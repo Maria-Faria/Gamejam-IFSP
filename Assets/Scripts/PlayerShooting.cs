@@ -40,6 +40,7 @@ public class PlayerShooting : MonoBehaviour
   private float nextFireTime;
   private LineRenderer laserLine;
   private AudioSource laserAudio;
+  private bool wasLaserActive;
 
   public WeaponType CurrentWeapon => currentWeapon;
 
@@ -226,10 +227,10 @@ public class PlayerShooting : MonoBehaviour
 
   private AudioSource CreateLaserAudio()
   {
-    // Fonte própria para o laser, tocando em loop enquanto o raio está ativo
+    // Fonte própria para o laser, para poder cortar o som ao soltar o botão
     AudioSource source = laserLine.gameObject.AddComponent<AudioSource>();
     source.playOnAwake = false;
-    source.loop = true;
+    source.loop = false;
     source.clip = laserSound;
     if (audioSource != null)
     {
@@ -243,7 +244,8 @@ public class PlayerShooting : MonoBehaviour
 
   private void UpdateLaserAudio(bool laserActive)
   {
-    if (laserActive && laserSound != null && !laserAudio.isPlaying)
+    // Toca uma vez só quando o laser começa a disparar
+    if (laserActive && !wasLaserActive && laserSound != null)
     {
       laserAudio.clip = laserSound;
       laserAudio.Play();
@@ -252,6 +254,8 @@ public class PlayerShooting : MonoBehaviour
     {
       laserAudio.Stop();
     }
+
+    wasLaserActive = laserActive;
   }
 
   private void PlaySound(AudioClip clip)
