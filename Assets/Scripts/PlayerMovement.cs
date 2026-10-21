@@ -12,9 +12,19 @@ public class PlayerMovement : MonoBehaviour
 
   private CharacterController controller;
 
+  public float WalkSpeed => speed;
+  public float RunSpeed => runSpeed;
+  public bool IsRunning { get; private set; }
+
   public void Start()
   {
     controller = GetComponent<CharacterController>();
+
+    // Garante que o personagem seja animado mesmo sem adicionar o componente na cena
+    if (GetComponent<PlayerAnimation>() == null)
+    {
+      gameObject.AddComponent<PlayerAnimation>();
+    }
   }
 
   public void Update()
@@ -25,6 +35,7 @@ public class PlayerMovement : MonoBehaviour
     Vector3 direction = new Vector3(horizontal, 0f, vertical);
     direction = Vector3.ClampMagnitude(direction, 1f);
 
+    IsRunning = Input.GetKey(runKey) && direction.sqrMagnitude > 0.01f;
     float currentSpeed = Input.GetKey(runKey) ? runSpeed : speed;
 
     controller.Move(direction * currentSpeed * Time.deltaTime);

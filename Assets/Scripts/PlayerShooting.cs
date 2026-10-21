@@ -83,6 +83,9 @@ public class PlayerShooting : MonoBehaviour
 
   public WeaponType CurrentWeapon => currentWeapon;
 
+  // Disparado a cada tiro (usado pela animação do personagem)
+  public event System.Action<WeaponType> Fired;
+
   public void Awake()
   {
     laserLine = CreateBeamLine("LaserBeam", laserWidth, laserColor);
@@ -202,6 +205,7 @@ public class PlayerShooting : MonoBehaviour
 
     Instantiate(bulletPrefab, muzzle.position, muzzle.rotation);
     PlaySound(shootSound);
+    Fired?.Invoke(currentWeapon);
   }
 
   private void ShootShotgun()
@@ -222,6 +226,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     PlaySound(shotgunSound != null ? shotgunSound : shootSound);
+    Fired?.Invoke(currentWeapon);
   }
 
   private void ShootMachineGun()
@@ -237,6 +242,7 @@ public class PlayerShooting : MonoBehaviour
     Instantiate(bulletPrefab, muzzle.position, muzzle.rotation * spread);
 
     PlaySound(machineGunSound != null ? machineGunSound : shootSound);
+    Fired?.Invoke(currentWeapon);
   }
 
   private void ShootRocket()
@@ -258,6 +264,7 @@ public class PlayerShooting : MonoBehaviour
     rocket.Configure(rocketSpeed, rocketExplosionRadius, rocketExplosionDamage, explosionSound);
 
     PlaySound(rocketSound != null ? rocketSound : shootSound);
+    Fired?.Invoke(currentWeapon);
   }
 
   private GameObject CreateRuntimeRocket()
@@ -329,6 +336,7 @@ public class PlayerShooting : MonoBehaviour
     railLine.SetPosition(0, start);
     railLine.SetPosition(1, end);
     railFlashTimer = RailFlashDuration;
+    Fired?.Invoke(currentWeapon);
   }
 
   private void UpdateRailVisual()
@@ -380,6 +388,8 @@ public class PlayerShooting : MonoBehaviour
 
   private void LaserTick(bool hitSomething, RaycastHit hit)
   {
+    Fired?.Invoke(currentWeapon);
+
     if (hitSomething)
     {
       WeaponDamage.TryDamage(hit.collider, laserDamage);
