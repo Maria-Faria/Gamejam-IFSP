@@ -39,12 +39,14 @@ public class PlayerShooting : MonoBehaviour
 
   private float nextFireTime;
   private LineRenderer laserLine;
+  private AudioSource laserAudio;
 
   public WeaponType CurrentWeapon => currentWeapon;
 
   public void Awake()
   {
     laserLine = CreateLaserLine();
+    laserAudio = CreateLaserAudio();
   }
 
   public void Update()
@@ -65,6 +67,7 @@ public class PlayerShooting : MonoBehaviour
       laserLine.SetPosition(1, laserEnd);
     }
     laserLine.enabled = laserActive;
+    UpdateLaserAudio(laserActive);
 
     if (firing && Time.time >= nextFireTime)
     {
@@ -175,8 +178,6 @@ public class PlayerShooting : MonoBehaviour
 
   private void LaserTick(bool hitSomething, RaycastHit hit)
   {
-    PlaySound(laserSound);
-
     if (!hitSomething)
     {
       return;
@@ -221,6 +222,36 @@ public class PlayerShooting : MonoBehaviour
     line.enabled = false;
 
     return line;
+  }
+
+  private AudioSource CreateLaserAudio()
+  {
+    // Fonte própria para o laser, tocando em loop enquanto o raio está ativo
+    AudioSource source = laserLine.gameObject.AddComponent<AudioSource>();
+    source.playOnAwake = false;
+    source.loop = true;
+    source.clip = laserSound;
+    if (audioSource != null)
+    {
+      source.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;
+      source.spatialBlend = audioSource.spatialBlend;
+      source.volume = audioSource.volume;
+    }
+
+    return source;
+  }
+
+  private void UpdateLaserAudio(bool laserActive)
+  {
+    if (laserActive && laserSound != null && !laserAudio.isPlaying)
+    {
+      laserAudio.clip = laserSound;
+      laserAudio.Play();
+    }
+    else if (!laserActive && laserAudio.isPlaying)
+    {
+      laserAudio.Stop();
+    }
   }
 
   private void PlaySound(AudioClip clip)

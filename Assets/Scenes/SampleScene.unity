@@ -496,6 +496,7 @@ MonoBehaviour:
   fireRate: 6
   audioSource: {fileID: 623602285}
   shootSound: {fileID: 8300000, guid: 428e37a69415d294da9ac3609baf7c26, type: 3}
+  laserSound: {fileID: 8300000, guid: 0d3b92b7094dd2c44b06e95133c3070f, type: 3}
 --- !u!82 &623602285
 AudioSource:
   m_ObjectHideFlags: 0
