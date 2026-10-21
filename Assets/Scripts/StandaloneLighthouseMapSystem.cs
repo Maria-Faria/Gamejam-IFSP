@@ -1,0 +1,1851 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Events;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
+namespace GuardiasDaLuz.MapSystem
+{
+    /// <summary>
+    /// ====================================================================================================
+    /// SISTEMA DE MAPA PROCEDURAL INDEPENDENTE (STANDALONE) — "JOGO SEM NOME - CAPIVIBES"
+    /// ====================================================================================================
+    /// Desenvolvido especificamente para o responsável pelo LEVEL DESIGN / MAPAS da equipe.
+    ///
+    /// POR QUE ESTE ARQUIVO É 100% INDEPENDENTE E VERSÁTIL?
+    /// 1) ZERO DEPENDÊNCIAS EXTERNAS: Este único arquivo (.cs) não depende de nenhum script específico
+    ///    de jogador, monstro, UI ou power-up. Você pode jogar apenas este arquivo em qualquer projeto Unity
+    ///    e ele compila e roda sozinho na hora!
+    /// 2) INTEGRAÇÃO FÁCIL COM A PROGRAMADORA DE PERSONAGENS:
+    ///    - Aceita qualquer Jogadora (basta arrastar no Inspector ou usar a Tag "Player").
+    ///    - Aceita qualquer Prefab de Monstro e Boss criado por ela (slots no Inspector).
+    ///    - Detecta automaticamente quando os monstros dela morrem (se ela der Destroy(gameObject),
+    ///      SetActive(false) ou chamar NotifyMonsterKilled).
+    ///    - Possui UnityEvents no Inspector (onPostRepaired, onSpecialPedestalUsed, onCrateRareDrop, etc.)
+    ///      para ela plugar os Power-ups das Cientistas, Loja e Atributos da Jogadora sem precisar
+    ///      editar a lógica do mapa!
+    /// 3) INTEGRAÇÃO FÁCIL COM O ARTISTA 3D / UI:
+    ///    - Slots no Inspector para substituir chão, paredes, portas, postes, caixas quebráveis e pedestais
+    ///      por modelos 3D (FBX/Prefabs) mantendo toda a lógica de salas e colisões funcionando.
+    ///    - Mini-mapa e legendas embutidas podem ser ligados/desligados com 1 clique no Inspector.
+    /// ====================================================================================================
+    /// </summary>
+    public class StandaloneLighthouseMapSystem : MonoBehaviour
+    {
+        public static StandaloneLighthouseMapSystem Instance { get; private set; }
+
+        // ====================================================================================================
+        // ENUMS PÚBLICOS DO SISTEMA DE MAPAS
+        // ====================================================================================================
+        public enum RoomType
+        {
+            Start,          // Sala Inicial (Segura, sem monstros, apenas Poste de Luz inicial)
+            Combat,         // Sala de Combate comum (Tranca portas até derrotar monstros e consertar poste)
+            GiantHall,      // Salão Gigante 2x1 ou 1x2 (Estilo Binding of Isaac, até 6 portas)
+            TreasureChoice, // Sala de Escolha de Item Único (2 pedestais exclusivos: escolheu 1, o outro some)
+            Shop,           // Sala de Loja (3 bancadas para compra com moedas/cristais)
+            Secret,         // Sala Secreta (Escondida atrás de parede rachada mais escura que abre no tiro)
+            BossExit        // Sala Final do Andar (Guardião + Escadaria do Farol ou Feixe Mestre no Topo)
+        }
+
+        public enum ObstacleLayoutVariant
+        {
+            None,
+            FourCornerPillars,          // 4 Pilares clássicos nos cantos
+            TwinLBunkers,               // 2 Bunkers em "L" espelhados (cobertura contra tiros)
+            CentralCrossCorridors,      // 4 Muretas formando corredor em cruz
+            Level1_PierContainers,      // Exclusivo Nível 1: Contêineres Marítimos + Cabeços de Amarração
+            Level2_SolarPanelsArray,    // Exclusivo Nível 2: Placas Solares Inclinadas + Capacitores
+            Level3_SmartGridServerRacks // Exclusivo Nível 3: Racks de Servidores Smart Grid com LED
+        }
+
+        [Serializable]
+        public class FloorStageConfig
+        {
+            public string floorTitle = "Nível 1 • Andar 1-1: Píer do Farol";
+            public int levelNumber = 1;           // 1, 2 ou 3
+            public int floorInLevel = 1;          // 1 ou 2
+            public int minRooms = 8;              // Nível 1: 8..15 | Nível 2: 15..25 | Nível 3: 25..35
+            public int maxRooms = 15;
+            public int secretRoomsCount = 2;      // 1 a 2 salas secretas por andar
+            public int giantHallPairsCount = 1;   // Quantidade de Salões Gigantes 2x1 / 1x2
+            public int monstersPerRoom = 3;       // Monstros por sala comum
+            public int breakableCratesPerRoom = 16;
+            public Color floorColor = new Color(0.16f, 0.17f, 0.22f);
+            public Color wallColor = new Color(0.24f, 0.27f, 0.35f);
+        }
+
+        // ====================================================================================================
+        // 1. CONFIGURAÇÃO DE CONEXÃO COM A JOGADORA E ALIADOS (PARA A PROGRAMADORA DE PERSONAGENS)
+        // ====================================================================================================
+        [Header("=== 1. JOGADORA & ALIADOS (INTEGRAÇÃO COM PERSONAGENS) ===")]
+        [Tooltip("Arraste a Transform da Jogadora aqui. Se vazio, o mapa busca automaticamente pela Tag 'Player'.")]
+        public Transform playerTransform;
+
+        [Tooltip("Se ativado e não houver nenhuma Jogadora na cena, cria uma cápsula de teste (WASD + Tiro) para você testar o mapa sozinho!")]
+        public bool spawnFallbackTestPlayerIfNoneFound = true;
+
+        [Tooltip("Lista de Companheiros/Bots aliados. Qualquer aliado aqui (ou com a Tag 'Companion'/'Ally') é puxado para dentro da sala quando as portas fecham!")]
+        public List<Transform> companionTransforms = new List<Transform>();
+
+        [Tooltip("Quantidade atual de Cristais/Moedas da jogadora (usado na Sala de Loja caso você use o sistema de compra embutido).")]
+        public int playerCurrencyCrystals = 25;
+
+        // ====================================================================================================
+        // 2. SLOTS DE PREFABS DE INIMIGOS (PARA A PROGRAMADORA DE PERSONAGENS)
+        // ====================================================================================================
+        [Header("=== 2. PREFABS DE MONSTROS (DA PROGRAMADORA DE PERSONAGENS) ===")]
+        [Tooltip("Arraste aqui os Prefabs de monstros comuns e atiradores criados pela menina dos personagens! Se vazio, cria alvos de teste.")]
+        public GameObject[] customMonsterPrefabs;
+
+        [Tooltip("Arraste aqui o Prefab do Boss/Guardião do fim do andar! Se vazio, cria um Guardião de teste maior.")]
+        public GameObject customBossMonsterPrefab;
+
+        [Tooltip("Se não houver Prefabs de monstros atribuídos acima, criar cápsulas de monstros de teste para testar o destrancamento de salas?")]
+        public bool spawnPlaceholderMonstersIfPrefabsEmpty = true;
+
+        // ====================================================================================================
+        // 3. SLOTS DE PREFABS DE CENÁRIO (PARA O ARTISTA 3D)
+        // ====================================================================================================
+        [Header("=== 3. PREFABS VISUAIS DE CENÁRIO (OPCIONAIS - PARA O ARTISTA 3D) ===")]
+        public GameObject customFloorPrefab;
+        public GameObject customWallPrefab;
+        public GameObject customDoorBarrierPrefab;
+        public GameObject customSmartLightPostPrefab;
+        public GameObject customBreakableCratePrefab;
+        public GameObject customRareDropBatteryPrefab;
+        public GameObject customPedestalPrefab;
+
+        // ====================================================================================================
+        // 4. PARÂMETROS GERAIS DAS SALAS E DOS 6 ANDARES (3 NÍVEIS x 2 ANDARES)
+        // ====================================================================================================
+        [Header("=== 4. DIMENSÕES DAS SALAS & REGRAS DE LEVEL DESIGN ===")]
+        public float roomWidthX = 32f;
+        public float roomLengthZ = 26f;
+        public float doorOpeningWidth = 5.4f;
+        [Range(0f, 1f)] public float rareCrateDropChance = 0.10f; // 10% de chance rara de dropar item de recuperação
+        public bool showBuiltInMinimapHUD = true;
+        public bool showBuiltInSubtitleHUD = true;
+
+        [Header("=== 5. CONFIGURAÇÃO DOS 6 ANDARES (3 NÍVEIS DO FAROL) ===")]
+        public FloorStageConfig[] floors = new FloorStageConfig[]
+        {
+            new FloorStageConfig
+            {
+                floorTitle = "Nível 1 • Andar 1-1: Píer & Entrada do Farol",
+                levelNumber = 1, floorInLevel = 1,
+                minRooms = 8, maxRooms = 15, secretRoomsCount = 1, giantHallPairsCount = 1,
+                monstersPerRoom = 3, breakableCratesPerRoom = 14,
+                floorColor = new Color(0.16f, 0.17f, 0.22f), wallColor = new Color(0.24f, 0.27f, 0.35f)
+            },
+            new FloorStageConfig
+            {
+                floorTitle = "Nível 1 • Andar 1-2: Fundações Costeiras",
+                levelNumber = 1, floorInLevel = 2,
+                minRooms = 10, maxRooms = 15, secretRoomsCount = 2, giantHallPairsCount = 1,
+                monstersPerRoom = 4, breakableCratesPerRoom = 15,
+                floorColor = new Color(0.14f, 0.18f, 0.24f), wallColor = new Color(0.22f, 0.29f, 0.38f)
+            },
+            new FloorStageConfig
+            {
+                floorTitle = "Nível 2 • Andar 2-1: Galeria Fotovoltaica",
+                levelNumber = 2, floorInLevel = 1,
+                minRooms = 15, maxRooms = 25, secretRoomsCount = 2, giantHallPairsCount = 2,
+                monstersPerRoom = 4, breakableCratesPerRoom = 16,
+                floorColor = new Color(0.12f, 0.20f, 0.18f), wallColor = new Color(0.18f, 0.32f, 0.28f)
+            },
+            new FloorStageConfig
+            {
+                floorTitle = "Nível 2 • Andar 2-2: Reatores Solares de Mária Telkes",
+                levelNumber = 2, floorInLevel = 2,
+                minRooms = 18, maxRooms = 25, secretRoomsCount = 2, giantHallPairsCount = 2,
+                monstersPerRoom = 5, breakableCratesPerRoom = 16,
+                floorColor = new Color(0.14f, 0.22f, 0.16f), wallColor = new Color(0.20f, 0.35f, 0.25f)
+            },
+            new FloorStageConfig
+            {
+                floorTitle = "Nível 3 • Andar 3-1: Torre de Transmissão Smart Grid",
+                levelNumber = 3, floorInLevel = 1,
+                minRooms = 25, maxRooms = 35, secretRoomsCount = 2, giantHallPairsCount = 3,
+                monstersPerRoom = 5, breakableCratesPerRoom = 18,
+                floorColor = new Color(0.16f, 0.14f, 0.24f), wallColor = new Color(0.28f, 0.22f, 0.40f)
+            },
+            new FloorStageConfig
+            {
+                floorTitle = "Nível 3 • Andar 3-2: Cúpula da Lente Mestra (Topo do Farol)",
+                levelNumber = 3, floorInLevel = 2,
+                minRooms = 28, maxRooms = 35, secretRoomsCount = 2, giantHallPairsCount = 3,
+                monstersPerRoom = 6, breakableCratesPerRoom = 18,
+                floorColor = new Color(0.20f, 0.15f, 0.28f), wallColor = new Color(0.35f, 0.25f, 0.48f)
+            }
+        };
+
+        // ====================================================================================================
+        // 6. UNITY EVENTS (HOOKS PARA A PROGRAMADORA DE PERSONAGENS PLUGAR POWER-UPS, CURA E UI)
+        // ====================================================================================================
+        [Header("=== 6. EVENTOS DE INTEGRAÇÃO (PLUGAR SCRIPTS DE PERSONAGEM/UI) ===")]
+        [Tooltip("Disparado quando um novo andar começa. Parâmetros: (Índice do Andar 0..5, Número do Nível 1..3, Nome do Andar)")]
+        public UnityEvent<int, int, string> onFloorGenerated;
+
+        [Tooltip("Disparado quando a jogadora entra numa sala. Parâmetros: (Coordenada X,Y da Sala, Tipo da Sala em Texto)")]
+        public UnityEvent<Vector2Int, string> onRoomEntered;
+
+        [Tooltip("Disparado quando a jogadora conserta um Poste Inteligente! A menina dos personagens pode ligar o menu de Power-up (Hades) aqui!")]
+        public UnityEvent<GameObject> onSmartPostRepaired;
+
+        [Tooltip("Disparado quando a jogadora pega um Item Único, compra na Loja ou pega a Relíquia da Sala Secreta! Parâmetro: ID do Item.")]
+        public UnityEvent<string> onSpecialItemAcquired;
+
+        [Tooltip("Disparado quando a jogadora coleta uma Célula de Bateria rara dropada de uma Caixa Quebrável!")]
+        public UnityEvent<float> onRareRecoveryItemCollected;
+
+        [Tooltip("Disparado quando a jogadora acende a Luz Mestra no Topo do Farol (Fim do Nível 3 / Andar 6)!")]
+        public UnityEvent onLighthouseMasterBeaconLit;
+
+        // ====================================================================================================
+        // ESTRUTURA INTERNA DO GRAFO DE SALAS (DUNGEON NODE)
+        // ====================================================================================================
+        public class MapRoomNode
+        {
+            public Vector2Int gridCoord;
+            public Vector3 worldCenter;
+            public RoomType roomType = RoomType.Combat;
+            public ObstacleLayoutVariant obstacleVariant = ObstacleLayoutVariant.FourCornerPillars;
+            public bool isVisited = false;
+            public bool isClearedAndLit = false;
+            public bool isSecretRoom = false;
+            public bool isSecretRevealed = false;
+            public int distanceFromStart = 0;
+
+            public MapRoomNode mergedGiantPartner = null;
+            public GameObject roomRoot;
+            public List<GameObject> doorBarriers = new List<GameObject>();
+            public List<StandaloneSmartPost> roomPosts = new List<StandaloneSmartPost>();
+            public List<GameObject> roomMonsters = new List<GameObject>();
+
+            public int GetAliveMonsterCount()
+            {
+                int alive = 0;
+                for (int i = roomMonsters.Count - 1; i >= 0; i--)
+                {
+                    GameObject m = roomMonsters[i];
+                    if (m != null && m.activeInHierarchy)
+                    {
+                        alive++;
+                    }
+                }
+                if (mergedGiantPartner != null)
+                {
+                    for (int i = mergedGiantPartner.roomMonsters.Count - 1; i >= 0; i--)
+                    {
+                        GameObject m = mergedGiantPartner.roomMonsters[i];
+                        if (m != null && m.activeInHierarchy)
+                        {
+                            alive++;
+                        }
+                    }
+                }
+                return alive;
+            }
+        }
+
+        // Estado em tempo de execução
+        public int currentFloorIndex = 0;
+        public Vector2Int currentPlayerRoomCoord = Vector2Int.zero;
+        public bool isLighthouseCompleted = false;
+
+        private readonly Dictionary<Vector2Int, MapRoomNode> dungeonGrid = new Dictionary<Vector2Int, MapRoomNode>();
+        private readonly Dictionary<string, GameObject> sharedBordersDoors = new Dictionary<string, GameObject>();
+        private readonly List<GameObject> spawnedFloorObjects = new List<GameObject>();
+        private string activeSubtitleBanner = "";
+        private string hoverPromptBanner = "";
+
+        public IReadOnlyDictionary<Vector2Int, MapRoomNode> DungeonGrid => dungeonGrid;
+
+        // ====================================================================================================
+        // CICLO DE VIDA UNITY
+        // ====================================================================================================
+        private void Awake()
+        {
+            Instance = this;
+        }
+
+        private void Start()
+        {
+            EnsurePlayerExistsOrFind();
+            GenerateFloor(0);
+        }
+
+        private void Update()
+        {
+            if (playerTransform == null)
+            {
+                EnsurePlayerExistsOrFind();
+                if (playerTransform == null) return;
+            }
+
+            UpdatePlayerRoomTracking(playerTransform.position);
+        }
+
+        // ====================================================================================================
+        // API PÚBLICA PARA A PROGRAMADORA DE PERSONAGENS USAR
+        // ====================================================================================================
+
+        /// <summary>
+        /// A programadora de personagens pode chamar este método quando a jogadora for instanciada via código.
+        /// </summary>
+        public void SetPlayer(Transform newPlayer)
+        {
+            playerTransform = newPlayer;
+        }
+
+        /// <summary>
+        /// Registra um novo Companheiro/Aliado para que ele nunca fique trancado fora das salas.
+        /// </summary>
+        public void RegisterCompanion(Transform allyTransform)
+        {
+            if (allyTransform != null && !companionTransforms.Contains(allyTransform))
+            {
+                companionTransforms.Add(allyTransform);
+                EnsureAllCompanionsInsideCurrentRoom();
+            }
+        }
+
+        /// <summary>
+        /// Se o script de vida do monstro da programadora não usar Destroy(gameObject), ela pode chamar
+        /// StandaloneLighthouseMapSystem.Instance.NotifyMonsterKilled(this.gameObject) ao morrer!
+        /// </summary>
+        public void NotifyMonsterKilled(GameObject monsterObj)
+        {
+            if (monsterObj == null) return;
+            foreach (var kvp in dungeonGrid)
+            {
+                kvp.Value.roomMonsters.Remove(monsterObj);
+            }
+        }
+
+        /// <summary>
+        /// Permite que projéteis da jogadora causem dano em Paredes Secretas Rachadas ou Caixas Quebráveis
+        /// chamando apenas: StandaloneLighthouseMapSystem.TryHitMapBreakable(colliderAtingido, dano);
+        /// </summary>
+        public static bool TryHitMapBreakable(Collider hitCollider, float damage = 1f)
+        {
+            if (hitCollider == null) return false;
+
+            StandaloneSecretCrackedWall secretWall = hitCollider.GetComponentInParent<StandaloneSecretCrackedWall>();
+            if (secretWall != null)
+            {
+                secretWall.RegisterProjectileHit();
+                return true;
+            }
+
+            StandaloneBreakableCrate crate = hitCollider.GetComponentInParent<StandaloneBreakableCrate>();
+            if (crate != null)
+            {
+                crate.TakeHit();
+                return true;
+            }
+
+            return false;
+        }
+
+        public void SetHoverPrompt(string prompt)
+        {
+            hoverPromptBanner = prompt;
+        }
+
+        public void ShowBannerMessage(string message)
+        {
+            activeSubtitleBanner = message;
+        }
+
+        // ====================================================================================================
+        // DETECÇÃO OU CRIAÇÃO DE JOGADORA DE TESTE (FALLBACK)
+        // ====================================================================================================
+        private void EnsurePlayerExistsOrFind()
+        {
+            if (playerTransform != null) return;
+
+            // 1) Tenta achar pela Tag padrão "Player"
+            GameObject tagged = GameObject.FindWithTag("Player");
+            if (tagged != null)
+            {
+                playerTransform = tagged.transform;
+                return;
+            }
+
+            // 2) Tenta achar pelo nome comum na cena
+            GameObject named = GameObject.Find("Jogadora_Lider") ?? GameObject.Find("Player");
+            if (named != null)
+            {
+                playerTransform = named.transform;
+                return;
+            }
+
+            // 3) Se não houver nenhum jogador na cena e o modo de teste estiver ativo, cria uma Jogadora de Teste
+            if (spawnFallbackTestPlayerIfNoneFound)
+            {
+                GameObject testPlayer = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                testPlayer.name = "Jogadora_Teste_MapaStandalone";
+                testPlayer.transform.position = new Vector3(0f, 1f, 0f);
+                Renderer r = testPlayer.GetComponent<Renderer>();
+                if (r != null) r.material.color = new Color(0.95f, 0.35f, 0.9f);
+
+                Light pLight = testPlayer.AddComponent<Light>();
+                pLight.type = LightType.Point;
+                pLight.range = 14f;
+                pLight.intensity = 2.8f;
+                pLight.color = new Color(1f, 0.95f, 0.8f);
+
+                testPlayer.AddComponent<StandaloneFallbackPlayerTester>();
+                playerTransform = testPlayer.transform;
+            }
+        }
+
+        // ====================================================================================================
+        // GERAÇÃO PROCEDURAL DO ANDAR (ISAAC / ZELDA / HADES)
+        // ====================================================================================================
+        public void GenerateFloor(int floorIdx)
+        {
+            if (floorIdx < 0 || floorIdx >= floors.Length) return;
+            currentFloorIndex = floorIdx;
+
+            foreach (var obj in spawnedFloorObjects)
+            {
+                if (obj != null) Destroy(obj);
+            }
+            spawnedFloorObjects.Clear();
+            dungeonGrid.Clear();
+            sharedBordersDoors.Clear();
+
+            FloorStageConfig cfg = floors[floorIdx];
+            int targetNormalRooms = UnityEngine.Random.Range(cfg.minRooms, cfg.maxRooms + 1);
+
+            // 1) Sala Inicial (0,0) - Sem monstros, apenas o Poste de Luz inicial
+            MapRoomNode startNode = new MapRoomNode
+            {
+                gridCoord = Vector2Int.zero,
+                worldCenter = Vector3.zero,
+                roomType = RoomType.Start,
+                obstacleVariant = ObstacleLayoutVariant.None,
+                isVisited = true,
+                distanceFromStart = 0
+            };
+            dungeonGrid[Vector2Int.zero] = startNode;
+
+            List<Vector2Int> coordsList = new List<Vector2Int> { Vector2Int.zero };
+            Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+
+            // 2) Random Walk / Expansão em Árvore para criar as salas do andar
+            int safety = 0;
+            while (dungeonGrid.Count < targetNormalRooms && safety < 600)
+            {
+                safety++;
+                Vector2Int fromCoord = coordsList[UnityEngine.Random.Range(0, coordsList.Count)];
+                Vector2Int dir = dirs[UnityEngine.Random.Range(0, dirs.Length)];
+                Vector2Int candidate = fromCoord + dir;
+
+                if (!dungeonGrid.ContainsKey(candidate))
+                {
+                    MapRoomNode newNode = new MapRoomNode
+                    {
+                        gridCoord = candidate,
+                        worldCenter = new Vector3(candidate.x * roomWidthX, 0f, candidate.y * roomLengthZ),
+                        roomType = RoomType.Combat,
+                        obstacleVariant = PickObstacleVariantForLevel(cfg.levelNumber),
+                        distanceFromStart = dungeonGrid[fromCoord].distanceFromStart + 1
+                    };
+                    dungeonGrid[candidate] = newNode;
+                    coordsList.Add(candidate);
+                }
+            }
+
+            // 3) Sala mais distante vira a Sala Final do Andar (BossExit)
+            MapRoomNode furthestNode = startNode;
+            foreach (var kvp in dungeonGrid)
+            {
+                if (kvp.Value.distanceFromStart > furthestNode.distanceFromStart)
+                {
+                    furthestNode = kvp.Value;
+                }
+            }
+            furthestNode.roomType = RoomType.BossExit;
+            furthestNode.obstacleVariant = PickObstacleVariantForLevel(cfg.levelNumber);
+
+            // 4) Escolhe Sala de Item Único (TreasureChoice) e Sala de Loja (Shop)
+            List<MapRoomNode> candidates = new List<MapRoomNode>();
+            foreach (var kvp in dungeonGrid)
+            {
+                if (kvp.Value != startNode && kvp.Value != furthestNode)
+                {
+                    candidates.Add(kvp.Value);
+                }
+            }
+
+            if (candidates.Count > 0)
+            {
+                int idx = UnityEngine.Random.Range(0, candidates.Count);
+                candidates[idx].roomType = RoomType.TreasureChoice;
+                candidates[idx].obstacleVariant = ObstacleLayoutVariant.None;
+                candidates[idx].isClearedAndLit = true;
+                candidates.RemoveAt(idx);
+            }
+
+            if (candidates.Count > 0)
+            {
+                int idx = UnityEngine.Random.Range(0, candidates.Count);
+                candidates[idx].roomType = RoomType.Shop;
+                candidates[idx].obstacleVariant = ObstacleLayoutVariant.None;
+                candidates[idx].isClearedAndLit = true;
+                candidates.RemoveAt(idx);
+            }
+
+            // 5) Funde pares de salas adjacentes de Combate em Salões Gigantes (GiantHall 2x1 / 1x2)
+            AssignGiantHalls(cfg.giantHallPairsCount, dirs);
+
+            // 6) Adiciona 1 a 2 Salas Secretas atrás de Paredes Rachadas
+            SpawnSecretRoomNodes(cfg.secretRoomsCount, dirs);
+
+            // 7) Constrói a Geometria 3D, Portas Compartilhadas, Obstáculos, Caixas e Monstros
+            foreach (var kvp in dungeonGrid)
+            {
+                BuildRoomGeometryAndContents(kvp.Value, cfg);
+            }
+
+            // 8) Posiciona a Jogadora na Sala Inicial (0,0) e destranca apenas quando ela consertar o 1º Poste
+            currentPlayerRoomCoord = Vector2Int.zero;
+            if (playerTransform != null)
+            {
+                playerTransform.position = new Vector3(0f, 1f, -3.5f);
+            }
+            EnterRoom(startNode);
+
+            ShowBannerMessage($"🗼 {cfg.floorTitle} ({dungeonGrid.Count} Salas) — Conserte o Poste Inicial [E] para abrir as portas!");
+            onFloorGenerated?.Invoke(currentFloorIndex, cfg.levelNumber, cfg.floorTitle);
+        }
+
+        private ObstacleLayoutVariant PickObstacleVariantForLevel(int levelNumber)
+        {
+            ObstacleLayoutVariant levelUnique = ObstacleLayoutVariant.Level1_PierContainers;
+            if (levelNumber == 2) levelUnique = ObstacleLayoutVariant.Level2_SolarPanelsArray;
+            else if (levelNumber >= 3) levelUnique = ObstacleLayoutVariant.Level3_SmartGridServerRacks;
+
+            if (UnityEngine.Random.value < 0.45f)
+                return levelUnique;
+
+            int r = UnityEngine.Random.Range(0, 3);
+            if (r == 0) return ObstacleLayoutVariant.FourCornerPillars;
+            if (r == 1) return ObstacleLayoutVariant.TwinLBunkers;
+            return ObstacleLayoutVariant.CentralCrossCorridors;
+        }
+
+        private void AssignGiantHalls(int desiredPairs, Vector2Int[] dirs)
+        {
+            int created = 0;
+            foreach (var kvp in dungeonGrid)
+            {
+                if (created >= desiredPairs) break;
+                MapRoomNode a = kvp.Value;
+                if (a.roomType != RoomType.Combat || a.mergedGiantPartner != null) continue;
+
+                foreach (var d in dirs)
+                {
+                    if (dungeonGrid.TryGetValue(a.gridCoord + d, out MapRoomNode b))
+                    {
+                        if (b.roomType == RoomType.Combat && b.mergedGiantPartner == null)
+                        {
+                            a.roomType = RoomType.GiantHall;
+                            b.roomType = RoomType.GiantHall;
+                            a.mergedGiantPartner = b;
+                            b.mergedGiantPartner = a;
+                            created++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void SpawnSecretRoomNodes(int count, Vector2Int[] dirs)
+        {
+            List<Vector2Int> emptyNeighbors = new List<Vector2Int>();
+            foreach (var kvp in dungeonGrid)
+            {
+                if (kvp.Value.roomType == RoomType.Start || kvp.Value.roomType == RoomType.BossExit)
+                    continue;
+
+                foreach (var d in dirs)
+                {
+                    Vector2Int n = kvp.Key + d;
+                    if (!dungeonGrid.ContainsKey(n) && !emptyNeighbors.Contains(n))
+                    {
+                        emptyNeighbors.Add(n);
+                    }
+                }
+            }
+
+            int spawned = 0;
+            while (spawned < count && emptyNeighbors.Count > 0)
+            {
+                int pick = UnityEngine.Random.Range(0, emptyNeighbors.Count);
+                Vector2Int secretCoord = emptyNeighbors[pick];
+                emptyNeighbors.RemoveAt(pick);
+
+                MapRoomNode secretNode = new MapRoomNode
+                {
+                    gridCoord = secretCoord,
+                    worldCenter = new Vector3(secretCoord.x * roomWidthX, 0f, secretCoord.y * roomLengthZ),
+                    roomType = RoomType.Secret,
+                    obstacleVariant = ObstacleLayoutVariant.None,
+                    isSecretRoom = true,
+                    isSecretRevealed = false,
+                    isClearedAndLit = true
+                };
+                dungeonGrid[secretCoord] = secretNode;
+                spawned++;
+            }
+        }
+
+        // ====================================================================================================
+        // CONSTRUÇÃO 3D DE CADA SALA
+        // ====================================================================================================
+        private void BuildRoomGeometryAndContents(MapRoomNode node, FloorStageConfig cfg)
+        {
+            GameObject root = new GameObject($"Sala_{node.gridCoord.x}_{node.gridCoord.y}_{node.roomType}_{node.obstacleVariant}");
+            root.transform.SetParent(transform);
+            root.transform.position = node.worldCenter;
+            node.roomRoot = root;
+            spawnedFloorObjects.Add(root);
+
+            // 1) Piso da Sala
+            if (customFloorPrefab != null)
+            {
+                GameObject f = Instantiate(customFloorPrefab, node.worldCenter + new Vector3(0f, -0.5f, 0f), Quaternion.identity, root.transform);
+                f.name = "Asfalto_Sala";
+            }
+            else
+            {
+                GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                floor.name = "Asfalto_Sala";
+                floor.transform.SetParent(root.transform);
+                floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+                floor.transform.localScale = new Vector3(roomWidthX, 1f, roomLengthZ);
+                Renderer fr = floor.GetComponent<Renderer>();
+                if (fr != null)
+                {
+                    fr.material.color = node.roomType == RoomType.BossExit ? new Color(0.25f, 0.14f, 0.28f)
+                                      : node.roomType == RoomType.Shop ? new Color(0.12f, 0.24f, 0.26f)
+                                      : node.roomType == RoomType.TreasureChoice ? new Color(0.26f, 0.22f, 0.12f)
+                                      : node.roomType == RoomType.Secret ? new Color(0.18f, 0.12f, 0.26f)
+                                      : cfg.floorColor;
+                }
+            }
+
+            // 2) Paredes e Portas nas 4 direções
+            BuildWallOrDoor(node, Vector2Int.up, cfg.wallColor);
+            BuildWallOrDoor(node, Vector2Int.down, cfg.wallColor);
+            BuildWallOrDoor(node, Vector2Int.right, cfg.wallColor);
+            BuildWallOrDoor(node, Vector2Int.left, cfg.wallColor);
+
+            // 3) Caixas Quebráveis espalhadas pelas bordas
+            SpawnBreakableCrates(node, cfg.breakableCratesPerRoom);
+
+            // 4) Conteúdo específico por tipo de sala
+            switch (node.roomType)
+            {
+                case RoomType.Start:
+                    node.roomPosts.Add(SpawnSmartPost(node.worldCenter + new Vector3(0f, 0f, 2f), node, false));
+                    break;
+
+                case RoomType.Combat:
+                case RoomType.GiantHall:
+                    BuildRoomObstacles(node, cfg.wallColor);
+                    node.roomPosts.Add(SpawnSmartPost(node.worldCenter, node, false));
+                    SpawnRoomMonsters(node, cfg.monstersPerRoom, false);
+                    break;
+
+                case RoomType.BossExit:
+                    BuildRoomObstacles(node, cfg.wallColor);
+                    bool isTopOfLighthouse = (currentFloorIndex == floors.Length - 1);
+                    node.roomPosts.Add(SpawnSmartPost(node.worldCenter, node, isTopOfLighthouse));
+                    SpawnRoomMonsters(node, cfg.monstersPerRoom + 2, true);
+                    break;
+
+                case RoomType.TreasureChoice:
+                    BuildTreasureRoomPedestals(node);
+                    break;
+
+                case RoomType.Shop:
+                    BuildShopRoomPedestals(node);
+                    break;
+
+                case RoomType.Secret:
+                    BuildSecretRoomPedestal(node);
+                    break;
+            }
+        }
+
+        private void BuildRoomObstacles(MapRoomNode node, Color wallColor)
+        {
+            Transform parent = node.roomRoot.transform;
+            switch (node.obstacleVariant)
+            {
+                case ObstacleLayoutVariant.FourCornerPillars:
+                    Vector3[] corners =
+                    {
+                        new Vector3(-7.5f, 1.4f, 5.5f), new Vector3(7.5f, 1.4f, 5.5f),
+                        new Vector3(-7.5f, 1.4f, -5.5f), new Vector3(7.5f, 1.4f, -5.5f)
+                    };
+                    foreach (var pos in corners)
+                        CreateBlock(parent, "Pilar_Cobertura", pos, new Vector3(2.3f, 2.8f, 2.3f), wallColor * 0.85f);
+                    break;
+
+                case ObstacleLayoutVariant.TwinLBunkers:
+                    Color c = wallColor * 0.82f;
+                    CreateBlock(parent, "Pilar_Bunker_Esq1", new Vector3(-7.5f, 1.2f, 0f), new Vector3(1.5f, 2.4f, 6.5f), c);
+                    CreateBlock(parent, "Pilar_Bunker_Esq2", new Vector3(-5.2f, 1.2f, 3.0f), new Vector3(3.5f, 2.4f, 1.5f), c);
+                    CreateBlock(parent, "Pilar_Bunker_Dir1", new Vector3(7.5f, 1.2f, 0f), new Vector3(1.5f, 2.4f, 6.5f), c);
+                    CreateBlock(parent, "Pilar_Bunker_Dir2", new Vector3(5.2f, 1.2f, -3.0f), new Vector3(3.5f, 2.4f, 1.5f), c);
+                    break;
+
+                case ObstacleLayoutVariant.CentralCrossCorridors:
+                    Color cw = wallColor * 0.88f;
+                    CreateBlock(parent, "Pilar_Mureta_NO", new Vector3(-6.0f, 1.1f, 4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
+                    CreateBlock(parent, "Pilar_Mureta_NE", new Vector3(6.0f, 1.1f, 4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
+                    CreateBlock(parent, "Pilar_Mureta_SO", new Vector3(-6.0f, 1.1f, -4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
+                    CreateBlock(parent, "Pilar_Mureta_SE", new Vector3(6.0f, 1.1f, -4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
+                    break;
+
+                case ObstacleLayoutVariant.Level1_PierContainers:
+                    CreateBlock(parent, "Pilar_Container_Maritimo_1", new Vector3(-8.2f, 1.35f, 4.8f), new Vector3(5.5f, 2.7f, 2.4f), new Color(0.18f, 0.35f, 0.55f));
+                    CreateBlock(parent, "Pilar_Container_Maritimo_2", new Vector3(8.2f, 1.35f, -4.8f), new Vector3(5.5f, 2.7f, 2.4f), new Color(0.55f, 0.25f, 0.18f));
+                    CreateCylinder(parent, "Pilar_Amarracao_1", new Vector3(7.0f, 0.9f, 5.0f), new Vector3(1.6f, 0.9f, 1.6f), new Color(0.25f, 0.25f, 0.28f));
+                    CreateCylinder(parent, "Pilar_Amarracao_2", new Vector3(-7.0f, 0.9f, -5.0f), new Vector3(1.6f, 0.9f, 1.6f), new Color(0.25f, 0.25f, 0.28f));
+                    break;
+
+                case ObstacleLayoutVariant.Level2_SolarPanelsArray:
+                    Vector3[] panels =
+                    {
+                        new Vector3(-8.0f, 1.2f, 5.2f), new Vector3(8.0f, 1.2f, 5.2f),
+                        new Vector3(-8.0f, 1.2f, -5.2f), new Vector3(8.0f, 1.2f, -5.2f)
+                    };
+                    foreach (var p in panels)
+                    {
+                        GameObject panel = CreateBlock(parent, "Pilar_Painel_Solar", p, new Vector3(4.2f, 0.35f, 2.6f), new Color(0.12f, 0.45f, 0.78f));
+                        panel.transform.localRotation = Quaternion.Euler(28f, 0f, 0f);
+                    }
+                    CreateCylinder(parent, "Pilar_Capacitor_1", new Vector3(-4.5f, 1.1f, 0f), new Vector3(1.3f, 1.1f, 1.3f), new Color(0.25f, 0.85f, 0.55f));
+                    CreateCylinder(parent, "Pilar_Capacitor_2", new Vector3(4.5f, 1.1f, 0f), new Vector3(1.3f, 1.1f, 1.3f), new Color(0.25f, 0.85f, 0.55f));
+                    break;
+
+                case ObstacleLayoutVariant.Level3_SmartGridServerRacks:
+                    Vector3[] racks =
+                    {
+                        new Vector3(-8.5f, 1.6f, 4.2f), new Vector3(-8.5f, 1.6f, -4.2f),
+                        new Vector3(8.5f, 1.6f, 4.2f), new Vector3(8.5f, 1.6f, -4.2f)
+                    };
+                    foreach (var rp in racks)
+                        CreateBlock(parent, "Pilar_Rack_SmartGrid", rp, new Vector3(1.8f, 3.2f, 3.4f), new Color(0.18f, 0.14f, 0.28f));
+                    break;
+            }
+        }
+
+        private GameObject CreateBlock(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color)
+        {
+            GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            obj.name = name;
+            obj.transform.SetParent(parent);
+            obj.transform.localPosition = localPos;
+            obj.transform.localScale = scale;
+            Renderer r = obj.GetComponent<Renderer>();
+            if (r != null) r.material.color = color;
+            return obj;
+        }
+
+        private GameObject CreateCylinder(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color)
+        {
+            GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            obj.name = name;
+            obj.transform.SetParent(parent);
+            obj.transform.localPosition = localPos;
+            obj.transform.localScale = scale;
+            Renderer r = obj.GetComponent<Renderer>();
+            if (r != null) r.material.color = color;
+            return obj;
+        }
+
+        // ====================================================================================================
+        // PAREDES, PORTAS COMPARTILHADAS E PAREDES SECRETAS RACHADAS
+        // ====================================================================================================
+        private string GetSharedBorderKey(Vector2Int a, Vector2Int b)
+        {
+            if (a.x < b.x || (a.x == b.x && a.y < b.y))
+                return $"{a.x},{a.y}_{b.x},{b.y}";
+            return $"{b.x},{b.y}_{a.x},{a.y}";
+        }
+
+        private void BuildWallOrDoor(MapRoomNode node, Vector2Int dir, Color wallColor)
+        {
+            Vector2Int neighborCoord = node.gridCoord + dir;
+            bool hasNeighbor = dungeonGrid.TryGetValue(neighborCoord, out MapRoomNode neighborNode);
+
+            // Salão Gigante 2x1 / 1x2 não tem parede divisória no meio
+            if (hasNeighbor && node.mergedGiantPartner == neighborNode)
+                return;
+
+            float wallHeight = 3.4f;
+            float wallThickness = 0.7f;
+            bool isCanonicalOwner = (node.gridCoord.x < neighborCoord.x) ||
+                                    (node.gridCoord.x == neighborCoord.x && node.gridCoord.y < neighborCoord.y);
+            bool isSecretBorder = hasNeighbor && (node.isSecretRoom || neighborNode.isSecretRoom);
+
+            if (dir.y != 0)
+            {
+                float zPos = dir.y * (roomLengthZ * 0.5f);
+                if (!hasNeighbor)
+                {
+                    CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(0f, wallHeight * 0.5f, zPos),
+                        new Vector3(roomWidthX, wallHeight, wallThickness), wallColor);
+                }
+                else
+                {
+                    if (isCanonicalOwner)
+                    {
+                        float sideWidth = (roomWidthX - doorOpeningWidth) * 0.5f;
+                        float sideOffset = (doorOpeningWidth * 0.5f) + (sideWidth * 0.5f);
+                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(-sideOffset, wallHeight * 0.5f, zPos),
+                            new Vector3(sideWidth, wallHeight, wallThickness), wallColor);
+                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(sideOffset, wallHeight * 0.5f, zPos),
+                            new Vector3(sideWidth, wallHeight, wallThickness), wallColor);
+                    }
+
+                    if (isSecretBorder)
+                    {
+                        MapRoomNode secretRef = node.isSecretRoom ? node : neighborNode;
+                        GetOrCreateSecretWall(node.gridCoord, neighborCoord,
+                            node.worldCenter + new Vector3(0f, wallHeight * 0.5f, zPos),
+                            new Vector3(doorOpeningWidth, wallHeight, wallThickness), wallColor, secretRef);
+                    }
+                    else
+                    {
+                        GameObject door = GetOrCreateSharedDoor(node.gridCoord, neighborCoord,
+                            node.worldCenter + new Vector3(0f, wallHeight * 0.45f, zPos),
+                            new Vector3(doorOpeningWidth, wallHeight * 0.9f, wallThickness * 0.85f));
+                        node.doorBarriers.Add(door);
+                    }
+                }
+            }
+            else if (dir.x != 0)
+            {
+                float xPos = dir.x * (roomWidthX * 0.5f);
+                if (!hasNeighbor)
+                {
+                    CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(xPos, wallHeight * 0.5f, 0f),
+                        new Vector3(wallThickness, wallHeight, roomLengthZ), wallColor);
+                }
+                else
+                {
+                    if (isCanonicalOwner)
+                    {
+                        float sideLength = (roomLengthZ - doorOpeningWidth) * 0.5f;
+                        float sideOffset = (doorOpeningWidth * 0.5f) + (sideLength * 0.5f);
+                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(xPos, wallHeight * 0.5f, -sideOffset),
+                            new Vector3(wallThickness, wallHeight, sideLength), wallColor);
+                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(xPos, wallHeight * 0.5f, sideOffset),
+                            new Vector3(wallThickness, wallHeight, sideLength), wallColor);
+                    }
+
+                    if (isSecretBorder)
+                    {
+                        MapRoomNode secretRef = node.isSecretRoom ? node : neighborNode;
+                        GetOrCreateSecretWall(node.gridCoord, neighborCoord,
+                            node.worldCenter + new Vector3(xPos, wallHeight * 0.5f, 0f),
+                            new Vector3(wallThickness, wallHeight, doorOpeningWidth), wallColor, secretRef);
+                    }
+                    else
+                    {
+                        GameObject door = GetOrCreateSharedDoor(node.gridCoord, neighborCoord,
+                            node.worldCenter + new Vector3(xPos, wallHeight * 0.45f, 0f),
+                            new Vector3(wallThickness * 0.85f, wallHeight * 0.9f, doorOpeningWidth));
+                        node.doorBarriers.Add(door);
+                    }
+                }
+            }
+        }
+
+        private GameObject GetOrCreateSharedDoor(Vector2Int a, Vector2Int b, Vector3 worldPos, Vector3 scale)
+        {
+            string key = GetSharedBorderKey(a, b);
+            if (sharedBordersDoors.TryGetValue(key, out GameObject existing) && existing != null)
+                return existing;
+
+            GameObject door;
+            if (customDoorBarrierPrefab != null)
+            {
+                door = Instantiate(customDoorBarrierPrefab, worldPos, Quaternion.identity, transform);
+            }
+            else
+            {
+                door = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                door.transform.SetParent(transform);
+                door.transform.position = worldPos;
+                door.transform.localScale = scale;
+                Renderer r = door.GetComponent<Renderer>();
+                if (r != null) r.material.color = new Color(0.9f, 0.15f, 0.25f);
+            }
+            door.name = $"Porta_Compartilhada_{key}";
+            sharedBordersDoors[key] = door;
+            spawnedFloorObjects.Add(door);
+            return door;
+        }
+
+        private GameObject GetOrCreateSecretWall(Vector2Int a, Vector2Int b, Vector3 worldPos, Vector3 scale, Color wallColor, MapRoomNode secretNode)
+        {
+            string key = "SECRET_" + GetSharedBorderKey(a, b);
+            if (sharedBordersDoors.TryGetValue(key, out GameObject existing) && existing != null)
+                return existing;
+
+            GameObject crackedWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            crackedWall.name = $"Parede_Secreta_Rachada_{key}";
+            crackedWall.transform.SetParent(transform);
+            crackedWall.transform.position = worldPos;
+            crackedWall.transform.localScale = scale;
+
+            Color darkerGrey = new Color(wallColor.r * 0.58f, wallColor.g * 0.58f, wallColor.b * 0.60f);
+            Renderer r = crackedWall.GetComponent<Renderer>();
+            if (r != null) r.material.color = darkerGrey;
+
+            StandaloneSecretCrackedWall scw = crackedWall.AddComponent<StandaloneSecretCrackedWall>();
+            scw.secretRoom = secretNode;
+
+            sharedBordersDoors[key] = crackedWall;
+            spawnedFloorObjects.Add(crackedWall);
+            return crackedWall;
+        }
+
+        // ====================================================================================================
+        // CAIXAS QUEBRÁVEIS E DROP RARO DE RECUPERAÇÃO
+        // ====================================================================================================
+        private void SpawnBreakableCrates(MapRoomNode node, int count)
+        {
+            Vector3[] crateSpots =
+            {
+                new Vector3(-13.2f, 0.65f, 10.2f), new Vector3(-11.5f, 0.65f, 10.5f),
+                new Vector3(-13.4f, 0.65f, 8.6f),  new Vector3(-11.8f, 0.65f, 8.8f),
+                new Vector3(13.2f, 0.65f, 10.2f),  new Vector3(11.5f, 0.65f, 10.5f),
+                new Vector3(13.4f, 0.65f, 8.6f),   new Vector3(11.8f, 0.65f, 8.8f),
+                new Vector3(-13.2f, 0.65f, -10.2f),new Vector3(-11.5f, 0.65f, -10.5f),
+                new Vector3(-13.4f, 0.65f, -8.6f), new Vector3(-11.8f, 0.65f, -8.8f),
+                new Vector3(13.2f, 0.65f, -10.2f), new Vector3(11.5f, 0.65f, -10.5f),
+                new Vector3(13.4f, 0.65f, -8.6f),  new Vector3(11.8f, 0.65f, -8.8f),
+                new Vector3(-12.8f, 0.65f, 3.8f),  new Vector3(12.8f, 0.65f, -3.8f)
+            };
+
+            int actual = Mathf.Min(count, crateSpots.Length);
+            for (int i = 0; i < actual; i++)
+            {
+                Vector3 worldPos = node.worldCenter + crateSpots[i];
+                GameObject crate;
+                if (customBreakableCratePrefab != null)
+                {
+                    crate = Instantiate(customBreakableCratePrefab, worldPos, Quaternion.identity, node.roomRoot.transform);
+                }
+                else
+                {
+                    crate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    crate.transform.SetParent(node.roomRoot.transform);
+                    crate.transform.position = worldPos;
+                    crate.transform.localScale = new Vector3(1.2f, 1.2f, 1.2f);
+                    crate.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(-20f, 20f), 0f);
+                    Renderer r = crate.GetComponent<Renderer>();
+                    if (r != null) r.material.color = new Color(0.58f, 0.36f, 0.16f);
+                }
+                crate.name = $"Caixa_Quebravel_{i}";
+                StandaloneBreakableCrate bc = crate.GetComponent<StandaloneBreakableCrate>();
+                if (bc == null) bc = crate.AddComponent<StandaloneBreakableCrate>();
+                bc.rareDropChance = rareCrateDropChance;
+            }
+        }
+
+        // ====================================================================================================
+        // SPAWN SEGURO DE MONSTros (INTEGRA COM OS PREFABS DA PROGRAMADORA DE PERSONAGENS)
+        // ====================================================================================================
+        private void SpawnRoomMonsters(MapRoomNode node, int count, bool includeBoss)
+        {
+            Physics.SyncTransforms();
+            List<Vector3> occupiedPositions = new List<Vector3>();
+
+            for (int m = 0; m < count; m++)
+            {
+                bool isBoss = (includeBoss && m == 0);
+                float clearance = isBoss ? 1.35f : 0.95f;
+
+                float angle = (360f / count) * m * Mathf.Deg2Rad;
+                Vector3 preferredPos = node.worldCenter + new Vector3(Mathf.Cos(angle) * 9.0f, 1.0f, Mathf.Sin(angle) * 7.0f);
+                Vector3 safePos = FindSafeMonsterSpawnPosition(node, preferredPos, clearance, occupiedPositions);
+                occupiedPositions.Add(safePos);
+
+                GameObject monsterObj = CreateOrInstantiateMonster(safePos, isBoss, m, node.roomRoot.transform);
+                if (monsterObj != null)
+                {
+                    monsterObj.SetActive(false); // Só acorda quando a jogadora entra na sala!
+                    node.roomMonsters.Add(monsterObj);
+                }
+            }
+        }
+
+        private GameObject CreateOrInstantiateMonster(Vector3 worldPos, bool isBoss, int index, Transform parent)
+        {
+            GameObject spawned = null;
+
+            if (isBoss && customBossMonsterPrefab != null)
+            {
+                spawned = Instantiate(customBossMonsterPrefab, worldPos, Quaternion.identity, parent);
+            }
+            else if (customMonsterPrefabs != null && customMonsterPrefabs.Length > 0)
+            {
+                GameObject prefab = customMonsterPrefabs[index % customMonsterPrefabs.Length];
+                if (prefab != null)
+                {
+                    spawned = Instantiate(prefab, worldPos, Quaternion.identity, parent);
+                }
+            }
+
+            // Fallback de teste caso a menina dos personagens ainda não tenha colocado os Prefabs dela
+            if (spawned == null && spawnPlaceholderMonstersIfPrefabsEmpty)
+            {
+                spawned = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                spawned.name = isBoss ? "Boss_Teste_Mapa" : $"Monstro_Teste_Mapa_{index}";
+                spawned.transform.SetParent(parent);
+                spawned.transform.position = worldPos;
+                spawned.transform.localScale = isBoss ? new Vector3(1.8f, 1.9f, 1.8f) : new Vector3(1.1f, 1.1f, 1.1f);
+                Renderer r = spawned.GetComponent<Renderer>();
+                if (r != null)
+                {
+                    r.material.color = isBoss ? new Color(0.55f, 0.05f, 0.25f) : new Color(0.22f, 0.05f, 0.35f);
+                }
+                StandalonePlaceholderMonsterTestAI testAI = spawned.AddComponent<StandalonePlaceholderMonsterTestAI>();
+                testAI.maxHP = isBoss ? 120f : 40f;
+            }
+
+            return spawned;
+        }
+
+        private Vector3 FindSafeMonsterSpawnPosition(MapRoomNode node, Vector3 preferredPos, float clearanceRadius, List<Vector3> occupied)
+        {
+            if (IsSpawnPointFree(node, preferredPos, clearanceRadius, occupied))
+                return preferredPos;
+
+            float[] radiiX = { 5.2f, 6.8f, 8.5f, 10.2f, 3.8f };
+            float[] radiiZ = { 3.8f, 5.0f, 6.4f, 7.6f, 2.8f };
+            int steps = 24;
+            float baseAngle = Mathf.Atan2(preferredPos.z - node.worldCenter.z, preferredPos.x - node.worldCenter.x);
+
+            for (int r = 0; r < radiiX.Length; r++)
+            {
+                for (int s = 0; s < steps; s++)
+                {
+                    int signedStep = (s % 2 == 0) ? (s / 2) : -((s + 1) / 2);
+                    float a = baseAngle + signedStep * (Mathf.PI * 2f / steps);
+                    Vector3 candidate = node.worldCenter + new Vector3(Mathf.Cos(a) * radiiX[r], 1.0f, Mathf.Sin(a) * radiiZ[r]);
+                    if (IsSpawnPointFree(node, candidate, clearanceRadius, occupied))
+                        return candidate;
+                }
+            }
+            return node.worldCenter + new Vector3(0f, 1.0f, -3.2f);
+        }
+
+        private bool IsSpawnPointFree(MapRoomNode node, Vector3 worldPos, float clearanceRadius, List<Vector3> occupied)
+        {
+            if (Vector2.Distance(new Vector2(worldPos.x, worldPos.z), new Vector2(node.worldCenter.x, node.worldCenter.z)) < (1.8f + clearanceRadius))
+                return false;
+
+            float halfW = roomWidthX * 0.5f;
+            float halfL = roomLengthZ * 0.5f;
+            Vector3[] doors =
+            {
+                node.worldCenter + new Vector3(0f, 1f, halfL - 1.5f),
+                node.worldCenter + new Vector3(0f, 1f, -halfL + 1.5f),
+                node.worldCenter + new Vector3(halfW - 1.5f, 1f, 0f),
+                node.worldCenter + new Vector3(-halfW + 1.5f, 1f, 0f)
+            };
+            foreach (var d in doors)
+            {
+                if (Vector2.Distance(new Vector2(worldPos.x, worldPos.z), new Vector2(d.x, d.z)) < 3.2f)
+                    return false;
+            }
+
+            foreach (var pos in occupied)
+            {
+                if (Vector2.Distance(new Vector2(worldPos.x, worldPos.z), new Vector2(pos.x, pos.z)) < (clearanceRadius + 1.15f))
+                    return false;
+            }
+
+            if (node.roomRoot != null)
+            {
+                Collider[] roomCols = node.roomRoot.GetComponentsInChildren<Collider>(true);
+                foreach (var rc in roomCols)
+                {
+                    if (rc == null || rc.isTrigger || rc.name.Contains("Asfalto")) continue;
+                    Bounds b = rc.bounds;
+                    b.Expand(new Vector3(clearanceRadius * 2.1f, 4f, clearanceRadius * 2.1f));
+                    if (b.Contains(new Vector3(worldPos.x, b.center.y, worldPos.z)))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        // ====================================================================================================
+        // POSTE INTELIGENTE E PEDESTAIS ESPECIAIS (LOJA, ESCOLHA ÚNICA, SALA SECRETA)
+        // ====================================================================================================
+        private StandaloneSmartPost SpawnSmartPost(Vector3 worldPos, MapRoomNode ownerRoom, bool isLighthouseTopBeacon)
+        {
+            GameObject postRoot;
+            if (customSmartLightPostPrefab != null)
+            {
+                postRoot = Instantiate(customSmartLightPostPrefab, worldPos, Quaternion.identity, ownerRoom.roomRoot.transform);
+            }
+            else
+            {
+                postRoot = new GameObject("Poste_Inteligente_Sala");
+                postRoot.transform.SetParent(ownerRoom.roomRoot.transform);
+                postRoot.transform.position = worldPos;
+
+                GameObject pole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pole.transform.SetParent(postRoot.transform);
+                pole.transform.localPosition = new Vector3(0f, 2f, 0f);
+                pole.transform.localScale = new Vector3(0.35f, 2f, 0.35f);
+
+                GameObject bulb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                bulb.name = "Bulbo_Poste";
+                bulb.transform.SetParent(postRoot.transform);
+                bulb.transform.localPosition = new Vector3(0f, 4.2f, 0f);
+                bulb.transform.localScale = new Vector3(0.9f, 0.9f, 0.9f);
+                Renderer br = bulb.GetComponent<Renderer>();
+                if (br != null) br.material.color = new Color(1f, 0.85f, 0.2f);
+            }
+
+            StandaloneSmartPost sp = postRoot.GetComponent<StandaloneSmartPost>();
+            if (sp == null) sp = postRoot.AddComponent<StandaloneSmartPost>();
+            sp.ownerRoom = ownerRoom;
+            sp.isTopBeacon = isLighthouseTopBeacon;
+            return sp;
+        }
+
+        private void BuildTreasureRoomPedestals(MapRoomNode node)
+        {
+            StandaloneSpecialPedestal p1 = CreatePedestal(node.roomRoot.transform, new Vector3(-4.2f, 1f, 0f),
+                new Color(1f, 0.85f, 0.2f), "CHOICE_ITEM_A", 0,
+                "🌟 [ITEM ÚNICO A] Aperte [E] para escolher este Item (o outro pedestal desaparecerá)!");
+
+            StandaloneSpecialPedestal p2 = CreatePedestal(node.roomRoot.transform, new Vector3(4.2f, 1f, 0f),
+                new Color(0.2f, 0.95f, 1f), "CHOICE_ITEM_B", 0,
+                "⚡ [ITEM ÚNICO B] Aperte [E] para escolher este Item (o outro pedestal desaparecerá)!");
+
+            p1.exclusivePartner = p2;
+            p2.exclusivePartner = p1;
+        }
+
+        private void BuildShopRoomPedestals(MapRoomNode node)
+        {
+            CreatePedestal(node.roomRoot.transform, new Vector3(-5.5f, 1f, 1.5f),
+                new Color(0.3f, 1f, 0.4f), "SHOP_FULL_HEAL", 10,
+                "🛒 [LOJA: 10 Cristais] Bateria Solar Completa — Aperte [E] para comprar!");
+
+            CreatePedestal(node.roomRoot.transform, new Vector3(0f, 1f, 2.5f),
+                new Color(1f, 0.6f, 0.2f), "SHOP_DAMAGE_SPEED", 15,
+                "🛒 [LOJA: 15 Cristais] Lente Superfoco — Aperte [E] para comprar!");
+
+            CreatePedestal(node.roomRoot.transform, new Vector3(5.5f, 1f, 1.5f),
+                new Color(0.85f, 0.4f, 1f), "SHOP_SCIENTIST_BOON", 20,
+                "🛒 [LOJA: 20 Cristais] Transmissão de Cientista — Aperte [E] para comprar!");
+        }
+
+        private void BuildSecretRoomPedestal(MapRoomNode node)
+        {
+            CreatePedestal(node.roomRoot.transform, new Vector3(0f, 1.2f, 0f),
+                new Color(1f, 0.35f, 0.9f), "SECRET_LEGENDARY_RELIC", 0,
+                "💎 [RELÍQUIA DA SALA SECRETA] Aperte [E] para coletar a Relíquia Lendária!");
+        }
+
+        private StandaloneSpecialPedestal CreatePedestal(Transform parent, Vector3 localPos, Color color, string itemId, int cost, string prompt)
+        {
+            GameObject ped;
+            if (customPedestalPrefab != null)
+            {
+                ped = Instantiate(customPedestalPrefab, parent);
+                ped.transform.localPosition = localPos;
+            }
+            else
+            {
+                ped = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                ped.transform.SetParent(parent);
+                ped.transform.localPosition = localPos;
+                ped.transform.localScale = new Vector3(1.3f, 1.0f, 1.3f);
+                Renderer r = ped.GetComponent<Renderer>();
+                if (r != null) r.material.color = color;
+            }
+            ped.name = $"Pedestal_{itemId}";
+            StandaloneSpecialPedestal sp = ped.AddComponent<StandaloneSpecialPedestal>();
+            sp.itemID = itemId;
+            sp.crystalCost = cost;
+            sp.promptText = prompt;
+            return sp;
+        }
+
+        // ====================================================================================================
+        // TRANSIÇÃO DE SALAS, TRANCAMENTO DE PORTAS E PUXADA DE ALIADOS
+        // ====================================================================================================
+        private void UpdatePlayerRoomTracking(Vector3 playerWorldPos)
+        {
+            int gx = Mathf.RoundToInt(playerWorldPos.x / roomWidthX);
+            int gy = Mathf.RoundToInt(playerWorldPos.z / roomLengthZ);
+            Vector2Int coord = new Vector2Int(gx, gy);
+
+            if (coord != currentPlayerRoomCoord && dungeonGrid.TryGetValue(coord, out MapRoomNode nextRoom))
+            {
+                float dx = Mathf.Abs(playerWorldPos.x - nextRoom.worldCenter.x);
+                float dz = Mathf.Abs(playerWorldPos.z - nextRoom.worldCenter.z);
+                if (dx < (roomWidthX * 0.5f - 1.6f) && dz < (roomLengthZ * 0.5f - 1.6f))
+                {
+                    currentPlayerRoomCoord = coord;
+                    EnterRoom(nextRoom);
+                }
+            }
+
+            if (dungeonGrid.TryGetValue(currentPlayerRoomCoord, out MapRoomNode activeRoom))
+            {
+                EnsureAllCompanionsInsideRoom(activeRoom);
+            }
+        }
+
+        public void EnsureAllCompanionsInsideCurrentRoom()
+        {
+            if (dungeonGrid.TryGetValue(currentPlayerRoomCoord, out MapRoomNode activeRoom))
+            {
+                EnsureAllCompanionsInsideRoom(activeRoom);
+            }
+        }
+
+        public void EnsureAllCompanionsInsideRoom(MapRoomNode room)
+        {
+            if (room == null || playerTransform == null) return;
+
+            // Também descobre automaticamente qualquer objeto com Tag "Companion" ou "Ally"
+            for (int i = companionTransforms.Count - 1; i >= 0; i--)
+            {
+                if (companionTransforms[i] == null) companionTransforms.RemoveAt(i);
+            }
+
+            if (companionTransforms.Count == 0) return;
+
+            Vector3 playerPos = playerTransform.position;
+            Vector3 dirToCenter = (room.worldCenter - playerPos);
+            dirToCenter.y = 0f;
+            if (dirToCenter.sqrMagnitude < 0.01f) dirToCenter = Vector3.forward;
+            else dirToCenter.Normalize();
+
+            Vector3 rightPerp = new Vector3(-dirToCenter.z, 0f, dirToCenter.x);
+
+            for (int i = 0; i < companionTransforms.Count; i++)
+            {
+                Transform ally = companionTransforms[i];
+                if (ally == null) continue;
+
+                if (!IsPositionInsideRoomOrPartner(ally.position, room))
+                {
+                    float sideSign = (i % 2 == 0) ? 1f : -1f;
+                    float sideDist = 1.25f + (i / 2) * 0.95f;
+                    Vector3 safeSpot = playerPos + dirToCenter * 2.2f + rightPerp * (sideSign * sideDist);
+                    safeSpot.x = Mathf.Clamp(safeSpot.x, room.worldCenter.x - (roomWidthX * 0.5f - 2.3f), room.worldCenter.x + (roomWidthX * 0.5f - 2.3f));
+                    safeSpot.z = Mathf.Clamp(safeSpot.z, room.worldCenter.z - (roomLengthZ * 0.5f - 2.3f), room.worldCenter.z + (roomLengthZ * 0.5f - 2.3f));
+                    safeSpot.y = 1.0f;
+                    ally.position = safeSpot;
+                }
+            }
+        }
+
+        private bool IsPositionInsideRoomOrPartner(Vector3 pos, MapRoomNode room)
+        {
+            float mx = (roomWidthX * 0.5f) - 1.15f;
+            float mz = (roomLengthZ * 0.5f) - 1.15f;
+
+            if (Mathf.Abs(pos.x - room.worldCenter.x) <= mx && Mathf.Abs(pos.z - room.worldCenter.z) <= mz)
+                return true;
+
+            if (room.mergedGiantPartner != null)
+            {
+                var p = room.mergedGiantPartner;
+                if (Mathf.Abs(pos.x - p.worldCenter.x) <= mx && Mathf.Abs(pos.z - p.worldCenter.z) <= mz)
+                    return true;
+            }
+            return false;
+        }
+
+        private void EnterRoom(MapRoomNode room)
+        {
+            room.isVisited = true;
+            if (room.isSecretRoom) room.isSecretRevealed = true;
+            if (room.mergedGiantPartner != null) room.mergedGiantPartner.isVisited = true;
+
+            EnsureAllCompanionsInsideRoom(room);
+            onRoomEntered?.Invoke(room.gridCoord, room.roomType.ToString());
+
+            // Salas especiais (Loja, Tesouro, Secreta) abrem todas as suas portas imediatamente ao entrar!
+            if (room.roomType == RoomType.Shop || room.roomType == RoomType.TreasureChoice || room.roomType == RoomType.Secret)
+            {
+                SetRoomDoorsOpen(room, true);
+                ShowBannerMessage($"✨ Sala Especial ({room.roomType})! Portas abertas — aproxime-se dos pedestais e aperte [E]!");
+                return;
+            }
+
+            if (!room.isClearedAndLit)
+            {
+                SetRoomDoorsOpen(room, false);
+                foreach (var m in room.roomMonsters)
+                {
+                    if (m != null) m.SetActive(true);
+                }
+                if (room.mergedGiantPartner != null)
+                {
+                    SetRoomDoorsOpen(room.mergedGiantPartner, false);
+                    foreach (var m in room.mergedGiantPartner.roomMonsters)
+                    {
+                        if (m != null) m.SetActive(true);
+                    }
+                }
+
+                if (room.roomType != RoomType.Start)
+                {
+                    ShowBannerMessage($"⚔️ Portas Trancadas! Derrote todos os {room.GetAliveMonsterCount()} monstros para liberar o Poste [E]!");
+                }
+            }
+            else
+            {
+                SetRoomDoorsOpen(room, true);
+                if (room.mergedGiantPartner != null) SetRoomDoorsOpen(room.mergedGiantPartner, true);
+            }
+        }
+
+        public void SetRoomDoorsOpen(MapRoomNode room, bool open)
+        {
+            if (room == null) return;
+            foreach (var door in room.doorBarriers)
+            {
+                if (door != null) door.SetActive(!open);
+            }
+        }
+
+        public void NotifyPostRepaired(StandaloneSmartPost post)
+        {
+            if (post == null || post.ownerRoom == null) return;
+            MapRoomNode room = post.ownerRoom;
+            room.isClearedAndLit = true;
+            SetRoomDoorsOpen(room, true);
+
+            if (room.mergedGiantPartner != null)
+            {
+                room.mergedGiantPartner.isClearedAndLit = true;
+                SetRoomDoorsOpen(room.mergedGiantPartner, true);
+            }
+
+            // Dispara o UnityEvent para a programadora de personagens abrir o Power-up das Cientistas (Hades)!
+            onSmartPostRepaired?.Invoke(post.gameObject);
+
+            if (room.roomType == RoomType.BossExit)
+            {
+                if (currentFloorIndex < floors.Length - 1)
+                {
+                    SpawnLighthouseStaircasePortal(room.worldCenter + new Vector3(0f, 0f, 5.0f));
+                    ShowBannerMessage("🌀 Escadaria Espiral do Farol Aberta! Entre no Portal Ciano ao Norte para subir ao próximo andar!");
+                }
+                else
+                {
+                    isLighthouseCompleted = true;
+                    ShowBannerMessage("🏆 TOPO DO FAROL ACESO! O Feixe Mestre iluminou toda a costa! Parabéns!");
+                    onLighthouseMasterBeaconLit?.Invoke();
+                }
+            }
+            else
+            {
+                ShowBannerMessage("🔓 Poste Consertado! As portas desta sala se abriram!");
+            }
+        }
+
+        private void SpawnLighthouseStaircasePortal(Vector3 pos)
+        {
+            GameObject portal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            portal.name = "Portal_Escadaria_Proximo_Andar";
+            portal.transform.SetParent(transform);
+            portal.transform.position = pos + new Vector3(0f, 1.2f, 0f);
+            portal.transform.localScale = new Vector3(2.8f, 1.2f, 2.8f);
+            Collider c = portal.GetComponent<Collider>();
+            if (c != null) c.isTrigger = true;
+
+            Renderer r = portal.GetComponent<Renderer>();
+            if (r != null) r.material.color = new Color(0.1f, 0.95f, 1f);
+
+            portal.AddComponent<StandaloneNextFloorPortal>();
+            spawnedFloorObjects.Add(portal);
+        }
+
+        public void AdvanceToNextFloor()
+        {
+            if (currentFloorIndex + 1 < floors.Length)
+            {
+                GenerateFloor(currentFloorIndex + 1);
+            }
+        }
+
+        // ====================================================================================================
+        // MINI-MAPA E LEGENDAS EMBUTIDAS (OPCIONAIS — PODEM SER DESLIGADAS NO INSPECTOR)
+        // ====================================================================================================
+        private void OnGUI()
+        {
+            if (showBuiltInMinimapHUD)
+            {
+                DrawMinimapHUD();
+            }
+
+            if (showBuiltInSubtitleHUD)
+            {
+                string msg = !string.IsNullOrEmpty(hoverPromptBanner) ? hoverPromptBanner : activeSubtitleBanner;
+                if (!string.IsNullOrEmpty(msg))
+                {
+                    GUIStyle s = new GUIStyle(GUI.skin.box)
+                    {
+                        fontSize = 14,
+                        fontStyle = FontStyle.Bold,
+                        alignment = TextAnchor.MiddleCenter,
+                        wordWrap = true
+                    };
+                    s.normal.textColor = new Color(1f, 0.95f, 0.55f);
+                    GUI.Box(new Rect(Screen.width * 0.15f, Screen.height - 60f, Screen.width * 0.70f, 44f), msg, s);
+                }
+            }
+        }
+
+        private void DrawMinimapHUD()
+        {
+            float mapW = 240f;
+            float mapH = 195f;
+            Rect mapRect = new Rect(Screen.width - mapW - 18f, 18f, mapW, mapH);
+            GUI.Box(mapRect, "🗺️ Mapa do Andar");
+
+            float centerX = mapRect.x + mapRect.width * 0.5f;
+            float centerY = mapRect.y + mapRect.height * 0.54f;
+            float cellW = 26f;
+            float cellH = 20f;
+            float stepX = 29f;
+            float stepY = 23f;
+
+            GUIStyle cellStyle = new GUIStyle(GUI.skin.box) { fontSize = 9, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+
+            foreach (var kvp in dungeonGrid)
+            {
+                MapRoomNode node = kvp.Value;
+                if (node.isSecretRoom && !node.isSecretRevealed) continue;
+
+                int relX = node.gridCoord.x - currentPlayerRoomCoord.x;
+                int relY = node.gridCoord.y - currentPlayerRoomCoord.y;
+                if (Mathf.Abs(relX) > 3 || Mathf.Abs(relY) > 3) continue;
+
+                float rx = centerX + relX * stepX - cellW * 0.5f;
+                float ry = centerY - relY * stepY - cellH * 0.5f;
+
+                string label = "SALA";
+                if (node.gridCoord == currentPlayerRoomCoord) { GUI.color = new Color(0.2f, 1f, 0.4f); label = "VOCÊ"; }
+                else if (node.roomType == RoomType.BossExit) { GUI.color = new Color(1f, 0.3f, 0.3f); label = "★FIM"; }
+                else if (node.roomType == RoomType.Shop) { GUI.color = new Color(0.2f, 0.95f, 1f); label = "🛒LOJA"; }
+                else if (node.roomType == RoomType.TreasureChoice) { GUI.color = new Color(1f, 0.85f, 0.2f); label = "🎁ITEM"; }
+                else if (node.roomType == RoomType.Secret) { GUI.color = new Color(0.95f, 0.4f, 1f); label = "🕵️SEC"; }
+                else if (node.roomType == RoomType.GiantHall) { GUI.color = new Color(1f, 0.6f, 0.2f); label = "🏛️BIG"; }
+                else if (node.isClearedAndLit) { GUI.color = new Color(1f, 0.9f, 0.3f); label = "💡OK"; }
+                else { GUI.color = new Color(0.65f, 0.65f, 0.78f); }
+
+                GUI.Box(new Rect(rx, ry, cellW, cellH), label, cellStyle);
+            }
+            GUI.color = Color.white;
+        }
+    }
+
+    // ========================================================================================================
+    // COMPONENTES AUXILIARES EMBUTIDOS NO MESMO ARQUIVO (ZERO DEPENDÊNCIAS EXTERNAS)
+    // ========================================================================================================
+
+    /// <summary>
+    /// Poste Inteligente independente: trancado enquanto houver monstros vivos na sala;
+    /// ao segurar [E], acende a luz da sala, abre as portas e dispara o evento onSmartPostRepaired!
+    /// </summary>
+    public class StandaloneSmartPost : MonoBehaviour
+    {
+        public StandaloneLighthouseMapSystem.MapRoomNode ownerRoom;
+        public bool isTopBeacon = false;
+        public bool isRepaired = false;
+        public float repairProgress = 0f;
+        public float repairTimeRequired = 1.6f;
+        private Light postLight;
+
+        private void Start()
+        {
+            GameObject lObj = new GameObject("Luz_Poste");
+            lObj.transform.SetParent(transform);
+            lObj.transform.localPosition = new Vector3(0f, 4.5f, 0f);
+            postLight = lObj.AddComponent<Light>();
+            postLight.type = LightType.Point;
+            postLight.range = isTopBeacon ? 40f : 22f;
+            postLight.intensity = 0f;
+            postLight.color = new Color(1f, 0.92f, 0.65f);
+        }
+
+        private void Update()
+        {
+            if (isRepaired || StandaloneLighthouseMapSystem.Instance == null) return;
+            Transform player = StandaloneLighthouseMapSystem.Instance.playerTransform;
+            if (player == null) return;
+
+            float dist = Vector3.Distance(transform.position, player.position);
+            if (dist <= 3.6f)
+            {
+                int aliveMonsters = ownerRoom != null ? ownerRoom.GetAliveMonsterCount() : 0;
+                if (aliveMonsters > 0)
+                {
+                    StandaloneLighthouseMapSystem.Instance.SetHoverPrompt($"🔒 POSTE BLOQUEADO! Derrote os {aliveMonsters} monstros da sala primeiro!");
+                    return;
+                }
+
+                StandaloneLighthouseMapSystem.Instance.SetHoverPrompt($"💡 Segure [E] para consertar o Poste ({Mathf.RoundToInt((repairProgress / repairTimeRequired) * 100f)}%)");
+                if (IsInteractKeyHeld())
+                {
+                    repairProgress += Time.deltaTime;
+                    if (repairProgress >= repairTimeRequired)
+                    {
+                        CompleteRepair();
+                    }
+                }
+            }
+        }
+
+        private void CompleteRepair()
+        {
+            isRepaired = true;
+            if (postLight != null) postLight.intensity = isTopBeacon ? 6.5f : 3.5f;
+            StandaloneLighthouseMapSystem.Instance.SetHoverPrompt("");
+            StandaloneLighthouseMapSystem.Instance.NotifyPostRepaired(this);
+        }
+
+        public static bool IsInteractKeyHeld()
+        {
+#if ENABLE_INPUT_SYSTEM
+            return Keyboard.current != null && Keyboard.current.eKey.isPressed;
+#else
+            return Input.GetKey(KeyCode.E);
+#endif
+        }
+
+        public static bool IsInteractKeyJustPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            return Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+#else
+            return Input.GetKeyDown(KeyCode.E);
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Parede Secreta Rachada: abre a Sala Secreta ao receber 3 tiros ou ao apertar [E] perto dela.
+    /// </summary>
+    public class StandaloneSecretCrackedWall : MonoBehaviour
+    {
+        public StandaloneLighthouseMapSystem.MapRoomNode secretRoom;
+        public int hitsRemaining = 3;
+
+        private void OnCollisionEnter(Collision col)
+        {
+            if (col.gameObject.name.Contains("Projetil") || col.gameObject.name.Contains("Bullet") || col.gameObject.name.Contains("Tiro"))
+            {
+                RegisterProjectileHit();
+            }
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            if (other.gameObject.name.Contains("Projetil") || other.gameObject.name.Contains("Bullet") || other.gameObject.name.Contains("Tiro"))
+            {
+                RegisterProjectileHit();
+            }
+        }
+
+        public void RegisterProjectileHit()
+        {
+            hitsRemaining--;
+            transform.localScale *= 0.94f;
+            if (hitsRemaining <= 0)
+            {
+                if (secretRoom != null) secretRoom.isSecretRevealed = true;
+                if (StandaloneLighthouseMapSystem.Instance != null)
+                {
+                    StandaloneLighthouseMapSystem.Instance.ShowBannerMessage("💥 PAREDE SECRETA QUEBRADA! Passagem revelada!");
+                }
+                Destroy(gameObject);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Caixa de Suprimentos Quebrável com chance rara (10%) de dropar item de recuperação.
+    /// </summary>
+    public class StandaloneBreakableCrate : MonoBehaviour
+    {
+        public float rareDropChance = 0.10f;
+
+        private void OnCollisionEnter(Collision col)
+        {
+            if (col.gameObject.name.Contains("Projetil") || col.gameObject.name.Contains("Bullet") || col.gameObject.name.Contains("Tiro"))
+            {
+                TakeHit();
+            }
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            if (other.gameObject.name.Contains("Projetil") || other.gameObject.name.Contains("Bullet") || other.gameObject.name.Contains("Tiro"))
+            {
+                TakeHit();
+            }
+        }
+
+        public void TakeHit()
+        {
+            if (UnityEngine.Random.value <= rareDropChance)
+            {
+                SpawnRareRecoveryBattery(transform.position);
+            }
+            Destroy(gameObject);
+        }
+
+        private void SpawnRareRecoveryBattery(Vector3 pos)
+        {
+            GameObject battery = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            battery.name = "Bateria_Recuperacao_Rara";
+            battery.transform.position = new Vector3(pos.x, 0.7f, pos.z);
+            battery.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
+            Collider c = battery.GetComponent<Collider>();
+            if (c != null) c.isTrigger = true;
+            Renderer r = battery.GetComponent<Renderer>();
+            if (r != null) r.material.color = new Color(0.2f, 1f, 0.55f);
+
+            battery.AddComponent<StandaloneRareBatteryPickup>();
+        }
+    }
+
+    public class StandaloneRareBatteryPickup : MonoBehaviour
+    {
+        public float recoveryAmount = 45f;
+
+        private void Update()
+        {
+            transform.Rotate(0f, 110f * Time.deltaTime, 0f);
+            if (StandaloneLighthouseMapSystem.Instance == null || StandaloneLighthouseMapSystem.Instance.playerTransform == null) return;
+
+            if (Vector3.Distance(transform.position, StandaloneLighthouseMapSystem.Instance.playerTransform.position) < 1.8f)
+            {
+                StandaloneLighthouseMapSystem.Instance.onRareRecoveryItemCollected?.Invoke(recoveryAmount);
+                StandaloneLighthouseMapSystem.Instance.ShowBannerMessage($"🔋 BATERIA RARA COLETADA! (+{recoveryAmount} Recuperação)");
+                Destroy(gameObject);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Pedestal Interativo para Sala de Loja, Sala de Escolha Única e Sala Secreta.
+    /// Dispara o evento onSpecialItemAcquired(itemID) para a programadora de personagens aplicar os buffs!
+    /// </summary>
+    public class StandaloneSpecialPedestal : MonoBehaviour
+    {
+        public string itemID;
+        public int crystalCost = 0;
+        public string promptText;
+        public StandaloneSpecialPedestal exclusivePartner;
+        private bool isUsed = false;
+
+        private void Update()
+        {
+            if (isUsed || StandaloneLighthouseMapSystem.Instance == null) return;
+            Transform player = StandaloneLighthouseMapSystem.Instance.playerTransform;
+            if (player == null) return;
+
+            if (Vector3.Distance(transform.position, player.position) <= 2.8f)
+            {
+                StandaloneLighthouseMapSystem.Instance.SetHoverPrompt(promptText);
+                if (StandaloneSmartPost.IsInteractKeyJustPressed())
+                {
+                    TryActivatePedestal();
+                }
+            }
+        }
+
+        private void TryActivatePedestal()
+        {
+            var sys = StandaloneLighthouseMapSystem.Instance;
+            if (crystalCost > 0)
+            {
+                if (sys.playerCurrencyCrystals < crystalCost)
+                {
+                    sys.ShowBannerMessage($"❌ Cristais insuficientes! Precisa de {crystalCost} (Você tem {sys.playerCurrencyCrystals}).");
+                    return;
+                }
+                sys.playerCurrencyCrystals -= crystalCost;
+            }
+
+            isUsed = true;
+            if (exclusivePartner != null) Destroy(exclusivePartner.gameObject);
+
+            sys.SetHoverPrompt("");
+            sys.ShowBannerMessage($"✨ Item obtido: {itemID}!");
+            sys.onSpecialItemAcquired?.Invoke(itemID);
+            Destroy(gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Portal da Escadaria do Farol para avançar ao próximo andar.
+    /// </summary>
+    public class StandaloneNextFloorPortal : MonoBehaviour
+    {
+        private void Update()
+        {
+            if (StandaloneLighthouseMapSystem.Instance == null || StandaloneLighthouseMapSystem.Instance.playerTransform == null) return;
+            if (Vector3.Distance(transform.position, StandaloneLighthouseMapSystem.Instance.playerTransform.position) < 2.2f)
+            {
+                StandaloneLighthouseMapSystem.Instance.AdvanceToNextFloor();
+            }
+        }
+    }
+
+    // ========================================================================================================
+    // MODO DE TESTE EMBUTIDO (SÓ É USADO SE VOCÊ RODAR O MAPA SOZINHO SEM OS SCRIPTS DA EQUIPE)
+    // ========================================================================================================
+    public class StandaloneFallbackPlayerTester : MonoBehaviour
+    {
+        public float moveSpeed = 9f;
+        private Camera mainCam;
+
+        private void Start()
+        {
+            mainCam = Camera.main;
+        }
+
+        private void Update()
+        {
+            Vector2 move = Vector2.zero;
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.wKey.isPressed) move.y += 1f;
+                if (Keyboard.current.sKey.isPressed) move.y -= 1f;
+                if (Keyboard.current.dKey.isPressed) move.x += 1f;
+                if (Keyboard.current.aKey.isPressed) move.x -= 1f;
+            }
+#else
+            move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+#endif
+            if (move.sqrMagnitude > 1f) move.Normalize();
+            transform.position += new Vector3(move.x, 0f, move.y) * moveSpeed * Time.deltaTime;
+
+            if (mainCam != null)
+            {
+                mainCam.transform.position = Vector3.Lerp(mainCam.transform.position, transform.position + new Vector3(0f, 18f, -12f), Time.deltaTime * 8f);
+                mainCam.transform.rotation = Quaternion.Euler(55f, 0f, 0f);
+            }
+
+            // Tiro de teste com clique esquerdo para você conseguir testar paredes secretas, caixas e monstros sozinho!
+            bool shoot = false;
+#if ENABLE_INPUT_SYSTEM
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) shoot = true;
+#else
+            if (Input.GetMouseButtonDown(0)) shoot = true;
+#endif
+            if (shoot && mainCam != null)
+            {
+#if ENABLE_INPUT_SYSTEM
+                Vector2 mp = Mouse.current.position.ReadValue();
+#else
+                Vector2 mp = Input.mousePosition;
+#endif
+                Ray ray = mainCam.ScreenPointToRay(mp);
+                Plane p = new Plane(Vector3.up, new Vector3(0f, 1f, 0f));
+                if (p.Raycast(ray, out float enter))
+                {
+                    Vector3 target = ray.GetPoint(enter);
+                    Vector3 dir = (target - transform.position).normalized;
+                    dir.y = 0f;
+                    SpawnTestBullet(transform.position + dir * 1.1f, dir);
+                }
+            }
+        }
+
+        private void SpawnTestBullet(Vector3 pos, Vector3 dir)
+        {
+            GameObject b = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            b.name = "Projetil_Teste_Mapa";
+            b.transform.position = pos;
+            b.transform.localScale = Vector3.one * 0.35f;
+            Renderer r = b.GetComponent<Renderer>();
+            if (r != null) r.material.color = Color.yellow;
+            StandaloneFallbackBullet tb = b.AddComponent<StandaloneFallbackBullet>();
+            tb.direction = dir;
+            Destroy(b, 2.0f);
+        }
+    }
+
+    public class StandaloneFallbackBullet : MonoBehaviour
+    {
+        public Vector3 direction;
+        public float speed = 24f;
+
+        private void Update()
+        {
+            transform.position += direction * speed * Time.deltaTime;
+            Collider[] hits = Physics.OverlapSphere(transform.position, 0.35f);
+            foreach (var h in hits)
+            {
+                if (h == null || h.name.Contains("Asfalto") || h.name.Contains("Jogadora_Teste")) continue;
+
+                if (StandaloneLighthouseMapSystem.TryHitMapBreakable(h, 25f))
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+
+                var testMonster = h.GetComponentInParent<StandalonePlaceholderMonsterTestAI>();
+                if (testMonster != null)
+                {
+                    testMonster.TakeDamage(25f);
+                    Destroy(gameObject);
+                    return;
+                }
+            }
+        }
+    }
+
+    public class StandalonePlaceholderMonsterTestAI : MonoBehaviour
+    {
+        public float maxHP = 40f;
+        public void TakeDamage(float dmg)
+        {
+            maxHP -= dmg;
+            if (maxHP <= 0f)
+            {
+                if (StandaloneLighthouseMapSystem.Instance != null)
+                    StandaloneLighthouseMapSystem.Instance.playerCurrencyCrystals += 3;
+                Destroy(gameObject);
+            }
+        }
+    }
+}
