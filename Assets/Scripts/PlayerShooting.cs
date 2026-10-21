@@ -66,15 +66,15 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private float railRange = 50f;
   [SerializeField] private float railWidth = 0.2f;
   [SerializeField] private Color railColor = new Color(0.4f, 0.9f, 1f);
-  [Tooltip("Se vazio, usa o laserSound.")]
+  [Tooltip("Toca enquanto carrega e para ao soltar. Se vazio, usa o laserSound.")]
   [SerializeField] private AudioClip railSound;
 
   private const float RailFlashDuration = 0.2f;
 
   private float nextFireTime;
   private LineRenderer laserLine;
-  private AudioSource laserAudio;
-  private bool wasLaserActive;
+  private AudioSource beamAudio;
+  private AudioClip beamClip;
 
   private LineRenderer railLine;
   private bool railCharging;
@@ -86,7 +86,7 @@ public class PlayerShooting : MonoBehaviour
   public void Awake()
   {
     laserLine = CreateBeamLine("LaserBeam", laserWidth, laserColor);
-    laserAudio = CreateLaserAudio();
+    beamAudio = CreateBeamAudio();
     railLine = CreateBeamLine("RailBeam", railWidth, railColor);
   }
 
@@ -108,13 +108,24 @@ public class PlayerShooting : MonoBehaviour
       laserLine.SetPosition(1, laserEnd);
     }
     laserLine.enabled = laserActive;
-    UpdateLaserAudio(laserActive);
 
     if (currentWeapon == WeaponType.Railgun)
     {
       UpdateRailgunCharge(firing);
     }
     UpdateRailVisual();
+
+    // Sons do laser e da railgun só tocam enquanto o botão está pressionado
+    AudioClip heldClip = null;
+    if (laserActive)
+    {
+      heldClip = laserSound;
+    }
+    else if (railCharging)
+    {
+      heldClip = railSound != null ? railSound : laserSound;
+    }
+    UpdateBeamAudio(heldClip);
 
     if (firing && currentWeapon != WeaponType.Railgun && Time.time >= nextFireTime)
     {
@@ -318,8 +329,6 @@ public class PlayerShooting : MonoBehaviour
     railLine.SetPosition(0, start);
     railLine.SetPosition(1, end);
     railFlashTimer = RailFlashDuration;
-
-    PlaySound(railSound != null ? railSound : laserSound);
   }
 
   private void UpdateRailVisual()
@@ -403,13 +412,12 @@ public class PlayerShooting : MonoBehaviour
     line.endColor = tinted;
   }
 
-  private AudioSource CreateLaserAudio()
+  private AudioSource CreateBeamAudio()
   {
-    // Fonte própria para o laser, para poder cortar o som ao soltar o botão
+    // Fonte própria para laser e railgun, para poder cortar o som ao soltar o botão
     AudioSource source = laserLine.gameObject.AddComponent<AudioSource>();
     source.playOnAwake = false;
     source.loop = false;
-    source.clip = laserSound;
     if (audioSource != null)
     {
       source.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;
@@ -420,20 +428,20 @@ public class PlayerShooting : MonoBehaviour
     return source;
   }
 
-  private void UpdateLaserAudio(bool laserActive)
+  private void UpdateBeamAudio(AudioClip heldClip)
   {
-    // Toca uma vez só quando o laser começa a disparar
-    if (laserActive && !wasLaserActive && laserSound != null)
+    // Toca uma vez só quando o botão é pressionado e corta quando é solto
+    if (heldClip != null && heldClip != beamClip)
     {
-      laserAudio.clip = laserSound;
-      laserAudio.Play();
+      beamAudio.clip = heldClip;
+      beamAudio.Play();
     }
-    else if (!laserActive && laserAudio.isPlaying)
+    else if (heldClip == null && beamAudio.isPlaying)
     {
-      laserAudio.Stop();
+      beamAudio.Stop();
     }
 
-    wasLaserActive = laserActive;
+    beamClip = heldClip;
   }
 
   private void PlaySound(AudioClip clip)
