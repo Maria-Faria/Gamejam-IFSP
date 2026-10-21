@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Animação procedural do personagem (o modelo OBJ não tem esqueleto para usar clipes de animação).
-// Se o modelo tiver um Animator com controller, também envia os parâmetros Speed, IsRunning e Shoot para ele.
 public class PlayerAnimation : MonoBehaviour
 {
   [Header("Referências (se vazias, procura filhos chamados Model e Gun)")]
@@ -89,12 +87,10 @@ public class PlayerAnimation : MonoBehaviour
     float speed = velocity.magnitude;
     float walkSpeed = movement != null ? movement.WalkSpeed : 5f;
 
-    // 0 = parado, 1 = andando, ~2 = correndo
     float targetMove = speed > 0.1f ? Mathf.Clamp(speed / walkSpeed, 0f, 2f) : 0f;
     moveAmount = Mathf.Lerp(moveAmount, targetMove, 1f - Mathf.Exp(-blendSpeed * dt));
     recoil = Mathf.Lerp(recoil, 0f, 1f - Mathf.Exp(-recoilRecovery * dt));
 
-    // Correr aumenta a cadência dos passos, mas menos do que a velocidade
     float cadence = moveAmount <= 1f ? moveAmount : 1f + (moveAmount - 1f) * 0.5f;
     stepPhase += dt * stepFrequency * Mathf.PI * cadence;
 
@@ -113,7 +109,6 @@ public class PlayerAnimation : MonoBehaviour
 
     if (gun != null)
     {
-      // Só desloca a arma (sem girar) para não mudar a direção dos tiros que saem do Muzzle
       gun.localPosition = gunBasePosition + Vector3.up * bob + gun.localRotation * Vector3.back * recoil * recoilDistance;
     }
 

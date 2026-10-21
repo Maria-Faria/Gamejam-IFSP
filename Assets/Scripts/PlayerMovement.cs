@@ -20,7 +20,6 @@ public class PlayerMovement : MonoBehaviour
   {
     controller = GetComponent<CharacterController>();
 
-    // Garante que o personagem seja animado mesmo sem adicionar o componente na cena
     if (GetComponent<PlayerAnimation>() == null)
     {
       gameObject.AddComponent<PlayerAnimation>();

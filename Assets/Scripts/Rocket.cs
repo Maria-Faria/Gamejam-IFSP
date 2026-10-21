@@ -26,7 +26,6 @@ public class Rocket : MonoBehaviour
 
   public void Start()
   {
-    // Explode sozinho se não acertar nada até o fim do tempo de vida
     Invoke(nameof(Explode), lifetime);
   }
 
@@ -66,7 +65,6 @@ public class Rocket : MonoBehaviour
         continue;
       }
 
-      // Dano cai com a distância até 30% na borda da explosão
       float distance = Vector3.Distance(center, hit.ClosestPoint(center));
       float falloff = Mathf.Lerp(1f, 0.3f, distance / explosionRadius);
       WeaponDamage.Damage(target, explosionDamage * falloff);
@@ -84,7 +82,6 @@ public class Rocket : MonoBehaviour
       return;
     }
 
-    // Fonte separada do foguete para o som continuar depois que ele é destruído
     GameObject soundObject = new GameObject("ExplosionSound");
     soundObject.transform.position = position;
 

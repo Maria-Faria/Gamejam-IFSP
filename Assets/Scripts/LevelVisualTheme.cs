@@ -4,11 +4,6 @@ using UnityEngine;
 
 namespace GuardiasDaLuz.MapSystem
 {
-    /// <summary>
-    /// Kit modular de cenário de um Nível (piso, paredes, porta, poste).
-    /// As peças são escaladas para caber nas medidas das salas do gerador, então colisões e portas continuam iguais.
-    /// No editor, os slots vazios são preenchidos automaticamente a partir da pasta do kit (ex.: Assets/Levels/L1_Lab).
-    /// </summary>
     [Serializable]
     public class LevelVisualTheme
     {
@@ -42,9 +37,6 @@ namespace GuardiasDaLuz.MapSystem
 
         public bool IsUsable => mainFloor != null && mainWall != null;
 
-        // ================================================================================================
-        // PISO
-        // ================================================================================================
         public void BuildFloor(Transform parent, float width, float length, bool specialRoom)
         {
             GameObject baseTile = specialRoom && accentFloor != null ? accentFloor : mainFloor;
@@ -66,18 +58,12 @@ namespace GuardiasDaLuz.MapSystem
 
                     Vector3 size = GetMeshSize(prefab);
                     Vector3 localPos = new Vector3(-width * 0.5f + tileX * (i + 0.5f), 0f, -length * 0.5f + tileZ * (j + 0.5f));
-                    // Só gira 0° ou 180° para o ladrilho continuar fechando a grade quando não é quadrado
                     Quaternion rotation = Quaternion.Euler(0f, UnityEngine.Random.value < 0.5f ? 0f : 180f, 0f);
                     Spawn(prefab, parent, localPos, rotation, new Vector3(tileX / size.x, 1f, tileZ / size.z), "Piso_Kit");
                 }
             }
         }
 
-        // ================================================================================================
-        // PAREDES
-        // ================================================================================================
-        /// <param name="localBase">Centro da parede na base (y = chão), no espaço do parent.</param>
-        /// <param name="inward">Direção para onde a face decorada (+Z da peça) deve apontar.</param>
         public void BuildWall(Transform parent, Vector3 localBase, float length, bool alongX, Vector3 inward,
             float height, float thickness, bool forceDecorated = false, float tint = 1f)
         {
@@ -107,9 +93,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        // ================================================================================================
-        // MOLDURA DE PORTA (o vão fica livre; os batentes ganham collider)
-        // ================================================================================================
         public GameObject BuildDoorFrame(Transform parent, Vector3 worldBase, float gapWidth, bool alongX,
             float height, float thickness, out float openingWidth)
         {
@@ -121,7 +104,6 @@ namespace GuardiasDaLuz.MapSystem
                 new Vector3(scaleX, height / size.y, thickness / reference.z), "Moldura_Porta_Kit");
             frame.transform.SetPositionAndRotation(worldBase, alongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f));
 
-            // Colliders dos batentes no espaço da malha (a escala do objeto ajusta o tamanho final)
             float openHalf = size.x * doorOpeningRatio * 0.5f;
             float jambWidth = size.x * 0.5f - openHalf;
             foreach (float side in new[] { -1f, 1f })
@@ -135,9 +117,6 @@ namespace GuardiasDaLuz.MapSystem
             return frame;
         }
 
-        // ================================================================================================
-        // POSTES (pilares nos cantos das salas)
-        // ================================================================================================
         public void PlacePost(Transform parent, Vector3 worldBase, float wallHeight, float wallThickness)
         {
             if (post == null) return;
@@ -149,9 +128,6 @@ namespace GuardiasDaLuz.MapSystem
             pillar.transform.position = worldBase;
         }
 
-        // ================================================================================================
-        // UTILITÁRIOS
-        // ================================================================================================
         private GameObject Spawn(GameObject prefab, Transform parent, Vector3 localPos, Quaternion localRot, Vector3 scale, string name)
         {
             GameObject obj = UnityEngine.Object.Instantiate(prefab, parent);
@@ -191,11 +167,6 @@ namespace GuardiasDaLuz.MapSystem
         }
 
 #if UNITY_EDITOR
-        /// <summary>
-        /// Preenche os slots vazios com os FBX da pasta do kit, pelo padrão de nomes:
-        /// *_Floor_* (pisos), *_Wall (parede), *_Wall_Door, *_Wall_Corner, *_Post e *_Wall_* (paredes decoradas).
-        /// Retorna true se algo foi preenchido.
-        /// </summary>
         public bool AutoAssignFromFolder()
         {
             bool needsFloors = floorDetails == null || floorDetails.Length == 0;

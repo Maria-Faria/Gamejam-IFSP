@@ -9,78 +9,48 @@ using UnityEngine.InputSystem;
 
 namespace GuardiasDaLuz.MapSystem
 {
-    /// <summary>
-    /// ====================================================================================================
-    /// SISTEMA DE MAPA PROCEDURAL INDEPENDENTE (STANDALONE) — "JOGO SEM NOME - CAPIVIBES"
-    /// ====================================================================================================
-    /// Desenvolvido especificamente para o responsável pelo LEVEL DESIGN / MAPAS da equipe.
-    ///
-    /// POR QUE ESTE ARQUIVO É 100% INDEPENDENTE E VERSÁTIL?
-    /// 1) ZERO DEPENDÊNCIAS EXTERNAS: Este único arquivo (.cs) não depende de nenhum script específico
-    ///    de jogador, monstro, UI ou power-up. Você pode jogar apenas este arquivo em qualquer projeto Unity
-    ///    e ele compila e roda sozinho na hora!
-    /// 2) INTEGRAÇÃO FÁCIL COM A PROGRAMADORA DE PERSONAGENS:
-    ///    - Aceita qualquer Jogadora (basta arrastar no Inspector ou usar a Tag "Player").
-    ///    - Aceita qualquer Prefab de Monstro e Boss criado por ela (slots no Inspector).
-    ///    - Detecta automaticamente quando os monstros dela morrem (se ela der Destroy(gameObject),
-    ///      SetActive(false) ou chamar NotifyMonsterKilled).
-    ///    - Possui UnityEvents no Inspector (onPostRepaired, onSpecialPedestalUsed, onCrateRareDrop, etc.)
-    ///      para ela plugar os Power-ups das Cientistas, Loja e Atributos da Jogadora sem precisar
-    ///      editar a lógica do mapa!
-    /// 3) INTEGRAÇÃO FÁCIL COM O ARTISTA 3D / UI:
-    ///    - Slots no Inspector para substituir chão, paredes, portas, postes, caixas quebráveis e pedestais
-    ///      por modelos 3D (FBX/Prefabs) mantendo toda a lógica de salas e colisões funcionando.
-    ///    - Mini-mapa e legendas embutidas podem ser ligados/desligados com 1 clique no Inspector.
-    /// ====================================================================================================
-    /// </summary>
     public class StandaloneLighthouseMapSystem : MonoBehaviour
     {
         public static StandaloneLighthouseMapSystem Instance { get; private set; }
 
-        // ====================================================================================================
-        // ENUMS PÚBLICOS DO SISTEMA DE MAPAS
-        // ====================================================================================================
         public enum RoomType
         {
-            Start,          // Sala Inicial (Segura, sem monstros, apenas Poste de Luz inicial)
-            Combat,         // Sala de Combate comum (Tranca portas até derrotar monstros e consertar poste)
-            GiantHall,      // Salão Gigante 2x1 ou 1x2 (Estilo Binding of Isaac, até 6 portas)
-            TreasureChoice, // Sala de Escolha de Item Único (2 pedestais exclusivos: escolheu 1, o outro some)
-            Shop,           // Sala de Loja (3 bancadas para compra com moedas/cristais)
-            Secret,         // Sala Secreta (Escondida atrás de parede rachada mais escura que abre no tiro)
-            BossExit        // Sala Final do Andar (Guardião + Escadaria do Farol ou Feixe Mestre no Topo)
+            Start,
+            Combat,
+            GiantHall,
+            TreasureChoice,
+            Shop,
+            Secret,
+            BossExit
         }
 
         public enum ObstacleLayoutVariant
         {
             None,
-            FourCornerPillars,          // 4 Pilares clássicos nos cantos
-            TwinLBunkers,               // 2 Bunkers em "L" espelhados (cobertura contra tiros)
-            CentralCrossCorridors,      // 4 Muretas formando corredor em cruz
-            Level1_PierContainers,      // Exclusivo Nível 1: Contêineres Marítimos + Cabeços de Amarração
-            Level2_SolarPanelsArray,    // Exclusivo Nível 2: Placas Solares Inclinadas + Capacitores
-            Level3_SmartGridServerRacks // Exclusivo Nível 3: Racks de Servidores Smart Grid com LED
+            FourCornerPillars,
+            TwinLBunkers,
+            CentralCrossCorridors,
+            Level1_PierContainers,
+            Level2_SolarPanelsArray,
+            Level3_SmartGridServerRacks
         }
 
         [Serializable]
         public class FloorStageConfig
         {
             public string floorTitle = "Nível 1 • Andar 1-1: Píer do Farol";
-            public int levelNumber = 1;           // 1, 2 ou 3
-            public int floorInLevel = 1;          // 1 ou 2
-            public int minRooms = 8;              // Nível 1: 8..15 | Nível 2: 15..25 | Nível 3: 25..35
+            public int levelNumber = 1;
+            public int floorInLevel = 1;
+            public int minRooms = 8;
             public int maxRooms = 15;
-            public int secretRoomsCount = 2;      // 1 a 2 salas secretas por andar
-            public int giantHallPairsCount = 1;   // Quantidade de Salões Gigantes 2x1 / 1x2
-            public int monstersPerRoom = 3;       // Monstros por sala comum
+            public int secretRoomsCount = 2;
+            public int giantHallPairsCount = 1;
+            public int monstersPerRoom = 3;
             public int breakableCratesPerRoom = 16;
             public Color floorColor = new Color(0.16f, 0.17f, 0.22f);
             public Color wallColor = new Color(0.24f, 0.27f, 0.35f);
         }
 
-        // ====================================================================================================
-        // 1. CONFIGURAÇÃO DE CONEXÃO COM A JOGADORA E ALIADOS (PARA A PROGRAMADORA DE PERSONAGENS)
-        // ====================================================================================================
         [Header("=== 1. JOGADORA & ALIADOS (INTEGRAÇÃO COM PERSONAGENS) ===")]
         [Tooltip("Arraste a Transform da Jogadora aqui. Se vazio, o mapa busca automaticamente pela Tag 'Player'.")]
         public Transform playerTransform;
@@ -94,9 +64,6 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Quantidade atual de Cristais/Moedas da jogadora (usado na Sala de Loja caso você use o sistema de compra embutido).")]
         public int playerCurrencyCrystals = 25;
 
-        // ====================================================================================================
-        // 2. SLOTS DE PREFABS DE INIMIGOS (PARA A PROGRAMADORA DE PERSONAGENS)
-        // ====================================================================================================
         [Header("=== 2. PREFABS DE MONSTROS (DA PROGRAMADORA DE PERSONAGENS) ===")]
         [Tooltip("Arraste aqui os Prefabs de monstros comuns e atiradores criados pela menina dos personagens! Se vazio, cria alvos de teste.")]
         public GameObject[] customMonsterPrefabs;
@@ -107,9 +74,6 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Se não houver Prefabs de monstros atribuídos acima, criar cápsulas de monstros de teste para testar o destrancamento de salas?")]
         public bool spawnPlaceholderMonstersIfPrefabsEmpty = true;
 
-        // ====================================================================================================
-        // 3. SLOTS DE PREFABS DE CENÁRIO (PARA O ARTISTA 3D)
-        // ====================================================================================================
         [Header("=== 3. PREFABS VISUAIS DE CENÁRIO (OPCIONAIS - PARA O ARTISTA 3D) ===")]
         public GameObject customFloorPrefab;
         public GameObject customWallPrefab;
@@ -140,14 +104,11 @@ namespace GuardiasDaLuz.MapSystem
             }
         };
 
-        // ====================================================================================================
-        // 4. PARÂMETROS GERAIS DAS SALAS E DOS 6 ANDARES (3 NÍVEIS x 2 ANDARES)
-        // ====================================================================================================
         [Header("=== 4. DIMENSÕES DAS SALAS & REGRAS DE LEVEL DESIGN ===")]
         public float roomWidthX = 32f;
         public float roomLengthZ = 26f;
         public float doorOpeningWidth = 5.4f;
-        [Range(0f, 1f)] public float rareCrateDropChance = 0.10f; // 10% de chance rara de dropar item de recuperação
+        [Range(0f, 1f)] public float rareCrateDropChance = 0.10f;
         public bool showBuiltInMinimapHUD = true;
         public bool showBuiltInSubtitleHUD = true;
 
@@ -204,9 +165,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         };
 
-        // ====================================================================================================
-        // 6. UNITY EVENTS (HOOKS PARA A PROGRAMADORA DE PERSONAGENS PLUGAR POWER-UPS, CURA E UI)
-        // ====================================================================================================
         [Header("=== 6. EVENTOS DE INTEGRAÇÃO (PLUGAR SCRIPTS DE PERSONAGEM/UI) ===")]
         [Tooltip("Disparado quando um novo andar começa. Parâmetros: (Índice do Andar 0..5, Número do Nível 1..3, Nome do Andar)")]
         public UnityEvent<int, int, string> onFloorGenerated;
@@ -226,9 +184,6 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Disparado quando a jogadora acende a Luz Mestra no Topo do Farol (Fim do Nível 3 / Andar 6)!")]
         public UnityEvent onLighthouseMasterBeaconLit;
 
-        // ====================================================================================================
-        // ESTRUTURA INTERNA DO GRAFO DE SALAS (DUNGEON NODE)
-        // ====================================================================================================
         public class MapRoomNode
         {
             public Vector2Int gridCoord;
@@ -273,7 +228,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        // Estado em tempo de execução
         public int currentFloorIndex = 0;
         public Vector2Int currentPlayerRoomCoord = Vector2Int.zero;
         public bool isLighthouseCompleted = false;
@@ -291,9 +245,6 @@ namespace GuardiasDaLuz.MapSystem
 
         public IReadOnlyDictionary<Vector2Int, MapRoomNode> DungeonGrid => dungeonGrid;
 
-        // ====================================================================================================
-        // CICLO DE VIDA UNITY
-        // ====================================================================================================
         private void Awake()
         {
             Instance = this;
@@ -305,7 +256,6 @@ namespace GuardiasDaLuz.MapSystem
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            // Adiado para não chamar o AssetDatabase no meio da importação/serialização
             UnityEditor.EditorApplication.delayCall += () =>
             {
                 if (this != null && AutoAssignLevelThemes())
@@ -344,21 +294,11 @@ namespace GuardiasDaLuz.MapSystem
             UpdatePlayerRoomTracking(playerTransform.position);
         }
 
-        // ====================================================================================================
-        // API PÚBLICA PARA A PROGRAMADORA DE PERSONAGENS USAR
-        // ====================================================================================================
-
-        /// <summary>
-        /// A programadora de personagens pode chamar este método quando a jogadora for instanciada via código.
-        /// </summary>
         public void SetPlayer(Transform newPlayer)
         {
             playerTransform = newPlayer;
         }
 
-        /// <summary>
-        /// Registra um novo Companheiro/Aliado para que ele nunca fique trancado fora das salas.
-        /// </summary>
         public void RegisterCompanion(Transform allyTransform)
         {
             if (allyTransform != null && !companionTransforms.Contains(allyTransform))
@@ -368,10 +308,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        /// <summary>
-        /// Se o script de vida do monstro da programadora não usar Destroy(gameObject), ela pode chamar
-        /// StandaloneLighthouseMapSystem.Instance.NotifyMonsterKilled(this.gameObject) ao morrer!
-        /// </summary>
         public void NotifyMonsterKilled(GameObject monsterObj)
         {
             if (monsterObj == null) return;
@@ -381,10 +317,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        /// <summary>
-        /// Permite que projéteis da jogadora causem dano em Paredes Secretas Rachadas ou Caixas Quebráveis
-        /// chamando apenas: StandaloneLighthouseMapSystem.TryHitMapBreakable(colliderAtingido, dano);
-        /// </summary>
         public static bool TryHitMapBreakable(Collider hitCollider, float damage = 1f)
         {
             if (hitCollider == null) return false;
@@ -416,14 +348,10 @@ namespace GuardiasDaLuz.MapSystem
             activeSubtitleBanner = message;
         }
 
-        // ====================================================================================================
-        // DETECÇÃO OU CRIAÇÃO DE JOGADORA DE TESTE (FALLBACK)
-        // ====================================================================================================
         private void EnsurePlayerExistsOrFind()
         {
             if (playerTransform != null) return;
 
-            // 1) Tenta achar pela Tag padrão "Player"
             GameObject tagged = GameObject.FindWithTag("Player");
             if (tagged != null)
             {
@@ -431,7 +359,6 @@ namespace GuardiasDaLuz.MapSystem
                 return;
             }
 
-            // 2) Tenta achar pelo nome comum na cena
             GameObject named = GameObject.Find("Jogadora_Lider") ?? GameObject.Find("Player");
             if (named != null)
             {
@@ -439,7 +366,6 @@ namespace GuardiasDaLuz.MapSystem
                 return;
             }
 
-            // 3) Se não houver nenhum jogador na cena e o modo de teste estiver ativo, cria uma Jogadora de Teste
             if (spawnFallbackTestPlayerIfNoneFound)
             {
                 GameObject testPlayer = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -459,9 +385,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        // ====================================================================================================
-        // GERAÇÃO PROCEDURAL DO ANDAR (ISAAC / ZELDA / HADES)
-        // ====================================================================================================
         public void GenerateFloor(int floorIdx)
         {
             if (floorIdx < 0 || floorIdx >= floors.Length) return;
@@ -480,7 +403,6 @@ namespace GuardiasDaLuz.MapSystem
             placedThemePillars.Clear();
             int targetNormalRooms = UnityEngine.Random.Range(cfg.minRooms, cfg.maxRooms + 1);
 
-            // 1) Sala Inicial (0,0) - Sem monstros, apenas o Poste de Luz inicial
             MapRoomNode startNode = new MapRoomNode
             {
                 gridCoord = Vector2Int.zero,
@@ -495,7 +417,6 @@ namespace GuardiasDaLuz.MapSystem
             List<Vector2Int> coordsList = new List<Vector2Int> { Vector2Int.zero };
             Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
 
-            // 2) Random Walk / Expansão em Árvore para criar as salas do andar
             int safety = 0;
             while (dungeonGrid.Count < targetNormalRooms && safety < 600)
             {
@@ -519,7 +440,6 @@ namespace GuardiasDaLuz.MapSystem
                 }
             }
 
-            // 3) Sala mais distante vira a Sala Final do Andar (BossExit)
             MapRoomNode furthestNode = startNode;
             foreach (var kvp in dungeonGrid)
             {
@@ -531,7 +451,6 @@ namespace GuardiasDaLuz.MapSystem
             furthestNode.roomType = RoomType.BossExit;
             furthestNode.obstacleVariant = PickObstacleVariantForLevel(cfg.levelNumber);
 
-            // 4) Escolhe Sala de Item Único (TreasureChoice) e Sala de Loja (Shop)
             List<MapRoomNode> candidates = new List<MapRoomNode>();
             foreach (var kvp in dungeonGrid)
             {
@@ -559,19 +478,15 @@ namespace GuardiasDaLuz.MapSystem
                 candidates.RemoveAt(idx);
             }
 
-            // 5) Funde pares de salas adjacentes de Combate em Salões Gigantes (GiantHall 2x1 / 1x2)
             AssignGiantHalls(cfg.giantHallPairsCount, dirs);
 
-            // 6) Adiciona 1 a 2 Salas Secretas atrás de Paredes Rachadas
             SpawnSecretRoomNodes(cfg.secretRoomsCount, dirs);
 
-            // 7) Constrói a Geometria 3D, Portas Compartilhadas, Obstáculos, Caixas e Monstros
             foreach (var kvp in dungeonGrid)
             {
                 BuildRoomGeometryAndContents(kvp.Value, cfg);
             }
 
-            // 8) Posiciona a Jogadora na Sala Inicial (0,0) e destranca apenas quando ela consertar o 1º Poste
             currentPlayerRoomCoord = Vector2Int.zero;
             if (playerTransform != null)
             {
@@ -673,9 +588,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        // ====================================================================================================
-        // CONSTRUÇÃO 3D DE CADA SALA
-        // ====================================================================================================
         private void BuildRoomGeometryAndContents(MapRoomNode node, FloorStageConfig cfg)
         {
             GameObject root = new GameObject($"Sala_{node.gridCoord.x}_{node.gridCoord.y}_{node.roomType}_{node.obstacleVariant}");
@@ -684,10 +596,8 @@ namespace GuardiasDaLuz.MapSystem
             node.roomRoot = root;
             spawnedFloorObjects.Add(root);
 
-            // 1) Piso da Sala
             if (activeTheme != null)
             {
-                // Collider invisível do piso (mantém o nome "Asfalto" usado nas checagens de espaço livre) + ladrilhos do kit
                 GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 floor.name = "Asfalto_Sala";
                 floor.transform.SetParent(root.transform);
@@ -722,17 +632,14 @@ namespace GuardiasDaLuz.MapSystem
                 }
             }
 
-            // 2) Paredes e Portas nas 4 direções
             BuildWallOrDoor(node, Vector2Int.up, cfg.wallColor);
             BuildWallOrDoor(node, Vector2Int.down, cfg.wallColor);
             BuildWallOrDoor(node, Vector2Int.right, cfg.wallColor);
             BuildWallOrDoor(node, Vector2Int.left, cfg.wallColor);
             PlaceThemePillarsAtRoomCorners(node);
 
-            // 3) Caixas Quebráveis espalhadas pelas bordas
             SpawnBreakableCrates(node, cfg.breakableCratesPerRoom);
 
-            // 4) Conteúdo específico por tipo de sala
             switch (node.roomType)
             {
                 case RoomType.Start:
@@ -844,10 +751,6 @@ namespace GuardiasDaLuz.MapSystem
             return obj;
         }
 
-        /// <summary>
-        /// Parede da sala: o bloco continua sendo o collider; com kit de cenário ativo ele fica invisível
-        /// e as peças modulares do nível são montadas por cima, com a face decorada virada para dentro da sala.
-        /// </summary>
         private GameObject CreateWallBlock(Transform parent, Vector2Int dir, Vector3 localPos, Vector3 scale, Color color)
         {
             GameObject wall = CreateBlock(parent, "Parede_Sala", localPos, scale, color);
@@ -875,7 +778,6 @@ namespace GuardiasDaLuz.MapSystem
 
             foreach (var offset in corners)
             {
-                // Cantos são compartilhados por até 4 salas: só um pilar por posição
                 Vector3 world = node.worldCenter + offset;
                 Vector2Int key = new Vector2Int(Mathf.RoundToInt(world.x * 10f), Mathf.RoundToInt(world.z * 10f));
                 if (!placedThemePillars.Add(key)) continue;
@@ -896,9 +798,6 @@ namespace GuardiasDaLuz.MapSystem
             return obj;
         }
 
-        // ====================================================================================================
-        // PAREDES, PORTAS COMPARTILHADAS E PAREDES SECRETAS RACHADAS
-        // ====================================================================================================
         private string GetSharedBorderKey(Vector2Int a, Vector2Int b)
         {
             if (a.x < b.x || (a.x == b.x && a.y < b.y))
@@ -911,7 +810,6 @@ namespace GuardiasDaLuz.MapSystem
             Vector2Int neighborCoord = node.gridCoord + dir;
             bool hasNeighbor = dungeonGrid.TryGetValue(neighborCoord, out MapRoomNode neighborNode);
 
-            // Salão Gigante 2x1 / 1x2 não tem parede divisória no meio
             if (hasNeighbor && node.mergedGiantPartner == neighborNode)
                 return;
 
@@ -1019,8 +917,6 @@ namespace GuardiasDaLuz.MapSystem
             sharedBordersDoors[key] = door;
             spawnedFloorObjects.Add(door);
 
-            // Moldura de porta do kit: preenche o vão da parede, batentes viram parede sólida
-            // e a barreira passa a fechar só o vão livre da moldura
             if (activeTheme != null && activeTheme.wallDoor != null)
             {
                 bool alongX = scale.x >= scale.z;
@@ -1049,7 +945,6 @@ namespace GuardiasDaLuz.MapSystem
             GameObject crackedWall;
             if (activeTheme != null)
             {
-                // Com kit: collider sem escala + peças decoradas escurecidas, com a decoração virada para a sala normal
                 crackedWall = new GameObject($"Parede_Secreta_Rachada_{key}");
                 crackedWall.transform.SetParent(transform);
                 crackedWall.transform.position = worldPos;
@@ -1084,9 +979,6 @@ namespace GuardiasDaLuz.MapSystem
             return crackedWall;
         }
 
-        // ====================================================================================================
-        // CAIXAS QUEBRÁVEIS E DROP RARO DE RECUPERAÇÃO
-        // ====================================================================================================
         private void SpawnBreakableCrates(MapRoomNode node, int count)
         {
             Vector3[] crateSpots =
@@ -1128,9 +1020,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        // ====================================================================================================
-        // SPAWN SEGURO DE MONSTros (INTEGRA COM OS PREFABS DA PROGRAMADORA DE PERSONAGENS)
-        // ====================================================================================================
         private void SpawnRoomMonsters(MapRoomNode node, int count, bool includeBoss)
         {
             Physics.SyncTransforms();
@@ -1149,7 +1038,7 @@ namespace GuardiasDaLuz.MapSystem
                 GameObject monsterObj = CreateOrInstantiateMonster(safePos, isBoss, m, node.roomRoot.transform);
                 if (monsterObj != null)
                 {
-                    monsterObj.SetActive(false); // Só acorda quando a jogadora entra na sala!
+                    monsterObj.SetActive(false);
                     node.roomMonsters.Add(monsterObj);
                 }
             }
@@ -1172,7 +1061,6 @@ namespace GuardiasDaLuz.MapSystem
                 }
             }
 
-            // Fallback de teste caso a menina dos personagens ainda não tenha colocado os Prefabs dela
             if (spawned == null && spawnPlaceholderMonstersIfPrefabsEmpty)
             {
                 spawned = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -1257,9 +1145,6 @@ namespace GuardiasDaLuz.MapSystem
             return true;
         }
 
-        // ====================================================================================================
-        // POSTE INTELIGENTE E PEDESTAIS ESPECIAIS (LOJA, ESCOLHA ÚNICA, SALA SECRETA)
-        // ====================================================================================================
         private StandaloneSmartPost SpawnSmartPost(Vector3 worldPos, MapRoomNode ownerRoom, bool isLighthouseTopBeacon)
         {
             GameObject postRoot;
@@ -1355,9 +1240,6 @@ namespace GuardiasDaLuz.MapSystem
             return sp;
         }
 
-        // ====================================================================================================
-        // TRANSIÇÃO DE SALAS, TRANCAMENTO DE PORTAS E PUXADA DE ALIADOS
-        // ====================================================================================================
         private void UpdatePlayerRoomTracking(Vector3 playerWorldPos)
         {
             int gx = Mathf.RoundToInt(playerWorldPos.x / roomWidthX);
@@ -1393,7 +1275,6 @@ namespace GuardiasDaLuz.MapSystem
         {
             if (room == null || playerTransform == null) return;
 
-            // Também descobre automaticamente qualquer objeto com Tag "Companion" ou "Ally"
             for (int i = companionTransforms.Count - 1; i >= 0; i--)
             {
                 if (companionTransforms[i] == null) companionTransforms.RemoveAt(i);
@@ -1453,7 +1334,6 @@ namespace GuardiasDaLuz.MapSystem
             EnsureAllCompanionsInsideRoom(room);
             onRoomEntered?.Invoke(room.gridCoord, room.roomType.ToString());
 
-            // Salas especiais (Loja, Tesouro, Secreta) abrem todas as suas portas imediatamente ao entrar!
             if (room.roomType == RoomType.Shop || room.roomType == RoomType.TreasureChoice || room.roomType == RoomType.Secret)
             {
                 SetRoomDoorsOpen(room, true);
@@ -1511,7 +1391,6 @@ namespace GuardiasDaLuz.MapSystem
                 SetRoomDoorsOpen(room.mergedGiantPartner, true);
             }
 
-            // Dispara o UnityEvent para a programadora de personagens abrir o Power-up das Cientistas (Hades)!
             onSmartPostRepaired?.Invoke(post.gameObject);
 
             if (room.roomType == RoomType.BossExit)
@@ -1559,9 +1438,6 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        // ====================================================================================================
-        // MINI-MAPA E LEGENDAS EMBUTIDAS (OPCIONAIS — PODEM SER DESLIGADAS NO INSPECTOR)
-        // ====================================================================================================
         private void OnGUI()
         {
             if (showBuiltInMinimapHUD)
@@ -1631,14 +1507,6 @@ namespace GuardiasDaLuz.MapSystem
         }
     }
 
-    // ========================================================================================================
-    // COMPONENTES AUXILIARES EMBUTIDOS NO MESMO ARQUIVO (ZERO DEPENDÊNCIAS EXTERNAS)
-    // ========================================================================================================
-
-    /// <summary>
-    /// Poste Inteligente independente: trancado enquanto houver monstros vivos na sala;
-    /// ao segurar [E], acende a luz da sala, abre as portas e dispara o evento onSmartPostRepaired!
-    /// </summary>
     public class StandaloneSmartPost : MonoBehaviour
     {
         public StandaloneLighthouseMapSystem.MapRoomNode ownerRoom;
@@ -1715,9 +1583,6 @@ namespace GuardiasDaLuz.MapSystem
         }
     }
 
-    /// <summary>
-    /// Parede Secreta Rachada: abre a Sala Secreta ao receber 3 tiros ou ao apertar [E] perto dela.
-    /// </summary>
     public class StandaloneSecretCrackedWall : MonoBehaviour
     {
         public StandaloneLighthouseMapSystem.MapRoomNode secretRoom;
@@ -1755,9 +1620,6 @@ namespace GuardiasDaLuz.MapSystem
         }
     }
 
-    /// <summary>
-    /// Caixa de Suprimentos Quebrável com chance rara (10%) de dropar item de recuperação.
-    /// </summary>
     public class StandaloneBreakableCrate : MonoBehaviour
     {
         public float rareDropChance = 0.10f;
@@ -1820,10 +1682,6 @@ namespace GuardiasDaLuz.MapSystem
         }
     }
 
-    /// <summary>
-    /// Pedestal Interativo para Sala de Loja, Sala de Escolha Única e Sala Secreta.
-    /// Dispara o evento onSpecialItemAcquired(itemID) para a programadora de personagens aplicar os buffs!
-    /// </summary>
     public class StandaloneSpecialPedestal : MonoBehaviour
     {
         public string itemID;
@@ -1871,9 +1729,6 @@ namespace GuardiasDaLuz.MapSystem
         }
     }
 
-    /// <summary>
-    /// Portal da Escadaria do Farol para avançar ao próximo andar.
-    /// </summary>
     public class StandaloneNextFloorPortal : MonoBehaviour
     {
         private void Update()
@@ -1886,9 +1741,6 @@ namespace GuardiasDaLuz.MapSystem
         }
     }
 
-    // ========================================================================================================
-    // MODO DE TESTE EMBUTIDO (SÓ É USADO SE VOCÊ RODAR O MAPA SOZINHO SEM OS SCRIPTS DA EQUIPE)
-    // ========================================================================================================
     public class StandaloneFallbackPlayerTester : MonoBehaviour
     {
         public float moveSpeed = 9f;
@@ -1922,7 +1774,6 @@ namespace GuardiasDaLuz.MapSystem
                 mainCam.transform.rotation = Quaternion.Euler(55f, 0f, 0f);
             }
 
-            // Tiro de teste com clique esquerdo para você conseguir testar paredes secretas, caixas e monstros sozinho!
             bool shoot = false;
 #if ENABLE_INPUT_SYSTEM
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) shoot = true;

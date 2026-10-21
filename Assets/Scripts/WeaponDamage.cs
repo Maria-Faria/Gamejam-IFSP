@@ -1,7 +1,6 @@
 using GuardiasDaLuz.MapSystem;
 using UnityEngine;
 
-// Aplica dano das armas que não usam o LightBullet (laser, railgun, explosões) aos alvos do mapa
 public static class WeaponDamage
 {
   public static MonoBehaviour FindTarget(Collider collider)

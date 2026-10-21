@@ -58,7 +58,6 @@ public class PlayerShooting : MonoBehaviour
   [Tooltip("Toca no DISPARO, quando o foguete sai da arma. Se vazio, usa o shootSound.")]
   [SerializeField] private AudioClip rocketLaunchSound;
   [Tooltip("Toca no IMPACTO, no instante em que o foguete bate em algo.")]
-  // O som de explosão estava no antigo campo de disparo; isto o move para o impacto
   [FormerlySerializedAs("rocketSound")]
   [SerializeField] private AudioClip impactSound;
 
@@ -88,7 +87,6 @@ public class PlayerShooting : MonoBehaviour
 
   public WeaponType CurrentWeapon => currentWeapon;
 
-  // Disparado a cada tiro (usado pela animação do personagem)
   public event System.Action<WeaponType> Fired;
 
   public void Awake()
@@ -123,7 +121,6 @@ public class PlayerShooting : MonoBehaviour
     }
     UpdateRailVisual();
 
-    // Sons do laser e da railgun só tocam enquanto o botão está pressionado
     AudioClip heldClip = null;
     if (laserActive)
     {
@@ -223,7 +220,6 @@ public class PlayerShooting : MonoBehaviour
 
     for (int i = 0; i < shotgunPellets; i++)
     {
-      // Espalha os projéteis em leque, com um pouco de aleatoriedade
       float t = shotgunPellets == 1 ? 0.5f : (float)i / (shotgunPellets - 1);
       float yaw = Mathf.Lerp(-shotgunSpreadAngle / 2f, shotgunSpreadAngle / 2f, t) + Random.Range(-2f, 2f);
       float pitch = Random.Range(-2f, 2f);
@@ -241,7 +237,6 @@ public class PlayerShooting : MonoBehaviour
       return;
     }
 
-    // Tiro rápido e impreciso
     float halfSpread = machineGunSpreadAngle / 2f;
     Quaternion spread = Quaternion.Euler(Random.Range(-halfSpread, halfSpread) * 0.5f, Random.Range(-halfSpread, halfSpread), 0f);
     Instantiate(bulletPrefab, muzzle.position, muzzle.rotation * spread);
@@ -316,7 +311,6 @@ public class PlayerShooting : MonoBehaviour
     RaycastHit[] hits = Physics.RaycastAll(start, muzzle.forward, railRange, laserMask, QueryTriggerInteraction.Ignore);
     System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-    // Atravessa inimigos, caixas e paredes secretas; para no primeiro obstáculo comum
     HashSet<MonoBehaviour> damaged = new HashSet<MonoBehaviour>();
     foreach (RaycastHit hit in hits)
     {
@@ -348,7 +342,6 @@ public class PlayerShooting : MonoBehaviour
   {
     if (railCharging && muzzle != null)
     {
-      // Mira fininha que fica mais forte conforme carrega
       float t = railCharge / railChargeTime;
       railLine.SetPosition(0, muzzle.position);
       railLine.SetPosition(1, muzzle.position + muzzle.forward * railRange);
@@ -429,7 +422,6 @@ public class PlayerShooting : MonoBehaviour
 
   private AudioSource CreateBeamAudio()
   {
-    // Fonte própria para laser e railgun, para poder cortar o som ao soltar o botão
     AudioSource source = laserLine.gameObject.AddComponent<AudioSource>();
     source.playOnAwake = false;
     source.loop = false;
@@ -445,7 +437,6 @@ public class PlayerShooting : MonoBehaviour
 
   private void UpdateBeamAudio(AudioClip heldClip)
   {
-    // Toca uma vez só quando o botão é pressionado e corta quando é solto
     if (heldClip != null && heldClip != beamClip)
     {
       beamAudio.clip = heldClip;
