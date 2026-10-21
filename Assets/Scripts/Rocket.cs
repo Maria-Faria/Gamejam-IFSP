@@ -9,6 +9,10 @@ public class Rocket : MonoBehaviour
   [SerializeField] private float explosionDamage = 25f;
   [SerializeField] private Color explosionColor = new Color(1f, 0.6f, 0.2f, 0.6f);
   [SerializeField] private AudioClip explosionSound;
+  [SerializeField] private float explosionVolume = 1f;
+  [Tooltip("0 = 2D (sempre audível), 1 = 3D (mais baixo quanto mais longe da câmera).")]
+  [Range(0f, 1f)]
+  [SerializeField] private float explosionSpatialBlend = 0f;
 
   private bool exploded;
 
@@ -68,13 +72,29 @@ public class Rocket : MonoBehaviour
       WeaponDamage.Damage(target, explosionDamage * falloff);
     }
 
-    if (explosionSound != null)
-    {
-      AudioSource.PlayClipAtPoint(explosionSound, center);
-    }
-
+    PlayExplosionSound(center);
     ExplosionFlash.Spawn(center, explosionRadius, explosionColor);
     Destroy(gameObject);
+  }
+
+  private void PlayExplosionSound(Vector3 position)
+  {
+    if (explosionSound == null)
+    {
+      return;
+    }
+
+    // Fonte separada do foguete para o som continuar depois que ele é destruído
+    GameObject soundObject = new GameObject("ExplosionSound");
+    soundObject.transform.position = position;
+
+    AudioSource source = soundObject.AddComponent<AudioSource>();
+    source.clip = explosionSound;
+    source.volume = explosionVolume;
+    source.spatialBlend = explosionSpatialBlend;
+    source.Play();
+
+    Destroy(soundObject, explosionSound.length + 0.1f);
   }
 }
 

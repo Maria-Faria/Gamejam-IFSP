@@ -54,7 +54,9 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private float rocketExplosionRadius = 3.5f;
   [SerializeField] private float rocketExplosionDamage = 25f;
   [SerializeField] private Color rocketColor = new Color(1f, 0.45f, 0.15f);
+  [Tooltip("Toca no DISPARO, quando o foguete sai da arma. Se vazio, usa o shootSound.")]
   [SerializeField] private AudioClip rocketSound;
+  [Tooltip("Toca no IMPACTO, no instante em que o foguete bate em algo.")]
   [SerializeField] private AudioClip explosionSound;
 
   [Header("Railgun (tecla 6) - segure para carregar, solte para disparar")]
