@@ -119,6 +119,27 @@ namespace GuardiasDaLuz.MapSystem
         public GameObject customRareDropBatteryPrefab;
         public GameObject customPedestalPrefab;
 
+        [Header("=== 3B. KITS MODULARES DE CENÁRIO POR NÍVEL (Assets/Levels) ===")]
+        [Tooltip("Um kit por Nível: posição 0 = Nível 1, 1 = Nível 2, 2 = Nível 3. Piso, paredes, portas e pilares das salas usam essas peças. Se o kit estiver vazio, o nível usa os blocos coloridos padrão.")]
+        public LevelVisualTheme[] levelThemes = new LevelVisualTheme[]
+        {
+            new LevelVisualTheme
+            {
+                themeName = "Nível 1 • Laboratório", assetFolder = "Assets/Levels/L1_Lab",
+                mainFloorName = "Lab_Floor_Plain", accentFloorName = "Lab_Floor_Grate"
+            },
+            new LevelVisualTheme
+            {
+                themeName = "Nível 2 • Cidade", assetFolder = "Assets/Levels/L2_City",
+                mainFloorName = "City_Floor_Pavers", accentFloorName = "City_Floor_Cobble"
+            },
+            new LevelVisualTheme
+            {
+                themeName = "Nível 3 • Jardim", assetFolder = "Assets/Levels/L3_Garden",
+                mainFloorName = "Garden_Floor_Grass", accentFloorName = "Garden_Floor_Stone"
+            }
+        };
+
         // ====================================================================================================
         // 4. PARÂMETROS GERAIS DAS SALAS E DOS 6 ANDARES (3 NÍVEIS x 2 ANDARES)
         // ====================================================================================================
@@ -260,6 +281,11 @@ namespace GuardiasDaLuz.MapSystem
         private readonly Dictionary<Vector2Int, MapRoomNode> dungeonGrid = new Dictionary<Vector2Int, MapRoomNode>();
         private readonly Dictionary<string, GameObject> sharedBordersDoors = new Dictionary<string, GameObject>();
         private readonly List<GameObject> spawnedFloorObjects = new List<GameObject>();
+        private readonly HashSet<Vector2Int> placedThemePillars = new HashSet<Vector2Int>();
+        private LevelVisualTheme activeTheme;
+
+        private const float WallHeight = 3.4f;
+        private const float WallThickness = 0.7f;
         private string activeSubtitleBanner = "";
         private string hoverPromptBanner = "";
 
@@ -271,7 +297,35 @@ namespace GuardiasDaLuz.MapSystem
         private void Awake()
         {
             Instance = this;
+#if UNITY_EDITOR
+            AutoAssignLevelThemes();
+#endif
         }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // Adiado para não chamar o AssetDatabase no meio da importação/serialização
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this != null && AutoAssignLevelThemes())
+                {
+                    UnityEditor.EditorUtility.SetDirty(this);
+                }
+            };
+        }
+
+        private bool AutoAssignLevelThemes()
+        {
+            bool changed = false;
+            if (levelThemes == null) return false;
+            foreach (var theme in levelThemes)
+            {
+                if (theme != null) changed |= theme.AutoAssignFromFolder();
+            }
+            return changed;
+        }
+#endif
 
         private void Start()
         {
@@ -422,6 +476,8 @@ namespace GuardiasDaLuz.MapSystem
             sharedBordersDoors.Clear();
 
             FloorStageConfig cfg = floors[floorIdx];
+            activeTheme = GetThemeForLevel(cfg.levelNumber);
+            placedThemePillars.Clear();
             int targetNormalRooms = UnityEngine.Random.Range(cfg.minRooms, cfg.maxRooms + 1);
 
             // 1) Sala Inicial (0,0) - Sem monstros, apenas o Poste de Luz inicial
@@ -527,6 +583,14 @@ namespace GuardiasDaLuz.MapSystem
             onFloorGenerated?.Invoke(currentFloorIndex, cfg.levelNumber, cfg.floorTitle);
         }
 
+        private LevelVisualTheme GetThemeForLevel(int levelNumber)
+        {
+            int idx = levelNumber - 1;
+            if (levelThemes == null || idx < 0 || idx >= levelThemes.Length) return null;
+            LevelVisualTheme theme = levelThemes[idx];
+            return theme != null && theme.IsUsable ? theme : null;
+        }
+
         private ObstacleLayoutVariant PickObstacleVariantForLevel(int levelNumber)
         {
             ObstacleLayoutVariant levelUnique = ObstacleLayoutVariant.Level1_PierContainers;
@@ -621,7 +685,21 @@ namespace GuardiasDaLuz.MapSystem
             spawnedFloorObjects.Add(root);
 
             // 1) Piso da Sala
-            if (customFloorPrefab != null)
+            if (activeTheme != null)
+            {
+                // Collider invisível do piso (mantém o nome "Asfalto" usado nas checagens de espaço livre) + ladrilhos do kit
+                GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                floor.name = "Asfalto_Sala";
+                floor.transform.SetParent(root.transform);
+                floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+                floor.transform.localScale = new Vector3(roomWidthX, 1f, roomLengthZ);
+                floor.GetComponent<Renderer>().enabled = false;
+
+                bool specialRoom = node.roomType == RoomType.BossExit || node.roomType == RoomType.Shop
+                                   || node.roomType == RoomType.TreasureChoice || node.roomType == RoomType.Secret;
+                activeTheme.BuildFloor(root.transform, roomWidthX, roomLengthZ, specialRoom);
+            }
+            else if (customFloorPrefab != null)
             {
                 GameObject f = Instantiate(customFloorPrefab, node.worldCenter + new Vector3(0f, -0.5f, 0f), Quaternion.identity, root.transform);
                 f.name = "Asfalto_Sala";
@@ -649,6 +727,7 @@ namespace GuardiasDaLuz.MapSystem
             BuildWallOrDoor(node, Vector2Int.down, cfg.wallColor);
             BuildWallOrDoor(node, Vector2Int.right, cfg.wallColor);
             BuildWallOrDoor(node, Vector2Int.left, cfg.wallColor);
+            PlaceThemePillarsAtRoomCorners(node);
 
             // 3) Caixas Quebráveis espalhadas pelas bordas
             SpawnBreakableCrates(node, cfg.breakableCratesPerRoom);
@@ -765,6 +844,46 @@ namespace GuardiasDaLuz.MapSystem
             return obj;
         }
 
+        /// <summary>
+        /// Parede da sala: o bloco continua sendo o collider; com kit de cenário ativo ele fica invisível
+        /// e as peças modulares do nível são montadas por cima, com a face decorada virada para dentro da sala.
+        /// </summary>
+        private GameObject CreateWallBlock(Transform parent, Vector2Int dir, Vector3 localPos, Vector3 scale, Color color)
+        {
+            GameObject wall = CreateBlock(parent, "Parede_Sala", localPos, scale, color);
+            if (activeTheme == null) return wall;
+
+            wall.GetComponent<Renderer>().enabled = false;
+            bool alongX = scale.x >= scale.z;
+            Vector3 inward = new Vector3(-dir.x, 0f, -dir.y);
+            activeTheme.BuildWall(parent, new Vector3(localPos.x, 0f, localPos.z), alongX ? scale.x : scale.z, alongX, inward,
+                scale.y, alongX ? scale.z : scale.x);
+            return wall;
+        }
+
+        private void PlaceThemePillarsAtRoomCorners(MapRoomNode node)
+        {
+            if (activeTheme == null || activeTheme.post == null) return;
+
+            float hx = roomWidthX * 0.5f;
+            float hz = roomLengthZ * 0.5f;
+            Vector3[] corners =
+            {
+                new Vector3(-hx, 0f, -hz), new Vector3(hx, 0f, -hz),
+                new Vector3(-hx, 0f, hz), new Vector3(hx, 0f, hz)
+            };
+
+            foreach (var offset in corners)
+            {
+                // Cantos são compartilhados por até 4 salas: só um pilar por posição
+                Vector3 world = node.worldCenter + offset;
+                Vector2Int key = new Vector2Int(Mathf.RoundToInt(world.x * 10f), Mathf.RoundToInt(world.z * 10f));
+                if (!placedThemePillars.Add(key)) continue;
+
+                activeTheme.PlacePost(node.roomRoot.transform, world, WallHeight, WallThickness);
+            }
+        }
+
         private GameObject CreateCylinder(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color)
         {
             GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -796,8 +915,8 @@ namespace GuardiasDaLuz.MapSystem
             if (hasNeighbor && node.mergedGiantPartner == neighborNode)
                 return;
 
-            float wallHeight = 3.4f;
-            float wallThickness = 0.7f;
+            float wallHeight = WallHeight;
+            float wallThickness = WallThickness;
             bool isCanonicalOwner = (node.gridCoord.x < neighborCoord.x) ||
                                     (node.gridCoord.x == neighborCoord.x && node.gridCoord.y < neighborCoord.y);
             bool isSecretBorder = hasNeighbor && (node.isSecretRoom || neighborNode.isSecretRoom);
@@ -807,7 +926,7 @@ namespace GuardiasDaLuz.MapSystem
                 float zPos = dir.y * (roomLengthZ * 0.5f);
                 if (!hasNeighbor)
                 {
-                    CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(0f, wallHeight * 0.5f, zPos),
+                    CreateWallBlock(node.roomRoot.transform, dir,new Vector3(0f, wallHeight * 0.5f, zPos),
                         new Vector3(roomWidthX, wallHeight, wallThickness), wallColor);
                 }
                 else
@@ -816,9 +935,9 @@ namespace GuardiasDaLuz.MapSystem
                     {
                         float sideWidth = (roomWidthX - doorOpeningWidth) * 0.5f;
                         float sideOffset = (doorOpeningWidth * 0.5f) + (sideWidth * 0.5f);
-                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(-sideOffset, wallHeight * 0.5f, zPos),
+                        CreateWallBlock(node.roomRoot.transform, dir,new Vector3(-sideOffset, wallHeight * 0.5f, zPos),
                             new Vector3(sideWidth, wallHeight, wallThickness), wallColor);
-                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(sideOffset, wallHeight * 0.5f, zPos),
+                        CreateWallBlock(node.roomRoot.transform, dir,new Vector3(sideOffset, wallHeight * 0.5f, zPos),
                             new Vector3(sideWidth, wallHeight, wallThickness), wallColor);
                     }
 
@@ -843,7 +962,7 @@ namespace GuardiasDaLuz.MapSystem
                 float xPos = dir.x * (roomWidthX * 0.5f);
                 if (!hasNeighbor)
                 {
-                    CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(xPos, wallHeight * 0.5f, 0f),
+                    CreateWallBlock(node.roomRoot.transform, dir,new Vector3(xPos, wallHeight * 0.5f, 0f),
                         new Vector3(wallThickness, wallHeight, roomLengthZ), wallColor);
                 }
                 else
@@ -852,9 +971,9 @@ namespace GuardiasDaLuz.MapSystem
                     {
                         float sideLength = (roomLengthZ - doorOpeningWidth) * 0.5f;
                         float sideOffset = (doorOpeningWidth * 0.5f) + (sideLength * 0.5f);
-                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(xPos, wallHeight * 0.5f, -sideOffset),
+                        CreateWallBlock(node.roomRoot.transform, dir,new Vector3(xPos, wallHeight * 0.5f, -sideOffset),
                             new Vector3(wallThickness, wallHeight, sideLength), wallColor);
-                        CreateBlock(node.roomRoot.transform, "Parede_Sala", new Vector3(xPos, wallHeight * 0.5f, sideOffset),
+                        CreateWallBlock(node.roomRoot.transform, dir,new Vector3(xPos, wallHeight * 0.5f, sideOffset),
                             new Vector3(wallThickness, wallHeight, sideLength), wallColor);
                     }
 
@@ -899,6 +1018,25 @@ namespace GuardiasDaLuz.MapSystem
             door.name = $"Porta_Compartilhada_{key}";
             sharedBordersDoors[key] = door;
             spawnedFloorObjects.Add(door);
+
+            // Moldura de porta do kit: preenche o vão da parede, batentes viram parede sólida
+            // e a barreira passa a fechar só o vão livre da moldura
+            if (activeTheme != null && activeTheme.wallDoor != null)
+            {
+                bool alongX = scale.x >= scale.z;
+                GameObject frame = activeTheme.BuildDoorFrame(transform, new Vector3(worldPos.x, 0f, worldPos.z),
+                    alongX ? scale.x : scale.z, alongX, WallHeight, WallThickness, out float openingWidth);
+                frame.name = $"Moldura_Porta_{key}";
+                spawnedFloorObjects.Add(frame);
+
+                if (customDoorBarrierPrefab == null)
+                {
+                    Vector3 barrierScale = door.transform.localScale;
+                    if (alongX) barrierScale.x = openingWidth;
+                    else barrierScale.z = openingWidth;
+                    door.transform.localScale = barrierScale;
+                }
+            }
             return door;
         }
 
@@ -908,15 +1046,35 @@ namespace GuardiasDaLuz.MapSystem
             if (sharedBordersDoors.TryGetValue(key, out GameObject existing) && existing != null)
                 return existing;
 
-            GameObject crackedWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            crackedWall.name = $"Parede_Secreta_Rachada_{key}";
-            crackedWall.transform.SetParent(transform);
-            crackedWall.transform.position = worldPos;
-            crackedWall.transform.localScale = scale;
+            GameObject crackedWall;
+            if (activeTheme != null)
+            {
+                // Com kit: collider sem escala + peças decoradas escurecidas, com a decoração virada para a sala normal
+                crackedWall = new GameObject($"Parede_Secreta_Rachada_{key}");
+                crackedWall.transform.SetParent(transform);
+                crackedWall.transform.position = worldPos;
+                BoxCollider col = crackedWall.AddComponent<BoxCollider>();
+                col.size = scale;
 
-            Color darkerGrey = new Color(wallColor.r * 0.58f, wallColor.g * 0.58f, wallColor.b * 0.60f);
-            Renderer r = crackedWall.GetComponent<Renderer>();
-            if (r != null) r.material.color = darkerGrey;
+                bool alongX = scale.x >= scale.z;
+                Vector3 towardNormalRoom = worldPos - secretNode.worldCenter;
+                towardNormalRoom.y = 0f;
+                towardNormalRoom = alongX ? new Vector3(0f, 0f, Mathf.Sign(towardNormalRoom.z)) : new Vector3(Mathf.Sign(towardNormalRoom.x), 0f, 0f);
+                activeTheme.BuildWall(crackedWall.transform, new Vector3(0f, -scale.y * 0.5f, 0f), alongX ? scale.x : scale.z, alongX,
+                    towardNormalRoom, scale.y, alongX ? scale.z : scale.x, forceDecorated: true, tint: 0.55f);
+            }
+            else
+            {
+                crackedWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                crackedWall.name = $"Parede_Secreta_Rachada_{key}";
+                crackedWall.transform.SetParent(transform);
+                crackedWall.transform.position = worldPos;
+                crackedWall.transform.localScale = scale;
+
+                Color darkerGrey = new Color(wallColor.r * 0.58f, wallColor.g * 0.58f, wallColor.b * 0.60f);
+                Renderer r = crackedWall.GetComponent<Renderer>();
+                if (r != null) r.material.color = darkerGrey;
+            }
 
             StandaloneSecretCrackedWall scw = crackedWall.AddComponent<StandaloneSecretCrackedWall>();
             scw.secretRoom = secretNode;
