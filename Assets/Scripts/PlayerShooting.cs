@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum WeaponType
 {
@@ -55,9 +56,11 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private float rocketExplosionDamage = 25f;
   [SerializeField] private Color rocketColor = new Color(1f, 0.45f, 0.15f);
   [Tooltip("Toca no DISPARO, quando o foguete sai da arma. Se vazio, usa o shootSound.")]
-  [SerializeField] private AudioClip rocketSound;
+  [SerializeField] private AudioClip rocketLaunchSound;
   [Tooltip("Toca no IMPACTO, no instante em que o foguete bate em algo.")]
-  [SerializeField] private AudioClip explosionSound;
+  // O som de explosão estava no antigo campo de disparo; isto o move para o impacto
+  [FormerlySerializedAs("rocketSound")]
+  [SerializeField] private AudioClip impactSound;
 
   [Header("Railgun (tecla 6) - segure para carregar, solte para disparar")]
   [SerializeField] private float railChargeTime = 1f;
@@ -263,9 +266,9 @@ public class PlayerShooting : MonoBehaviour
     {
       rocket = rocketObject.AddComponent<Rocket>();
     }
-    rocket.Configure(rocketSpeed, rocketExplosionRadius, rocketExplosionDamage, explosionSound);
+    rocket.Configure(rocketSpeed, rocketExplosionRadius, rocketExplosionDamage, impactSound);
 
-    PlaySound(rocketSound != null ? rocketSound : shootSound);
+    PlaySound(rocketLaunchSound != null ? rocketLaunchSound : shootSound);
     Fired?.Invoke(currentWeapon);
   }
 
