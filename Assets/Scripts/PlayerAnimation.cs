@@ -133,11 +133,11 @@ public class PlayerAnimation : MonoBehaviour
   {
     switch (weapon)
     {
+      case WeaponType.EightWayBurst: return 0.8f;
       case WeaponType.Shotgun: return 1.2f;
-      case WeaponType.Laser: return 0.08f;
-      case WeaponType.MachineGun: return 0.3f;
-      case WeaponType.RocketLauncher: return 1.4f;
-      case WeaponType.Railgun: return 1.5f;
+      case WeaponType.SineWave: return 0.4f;
+      case WeaponType.Exploding: return 1.4f;
+      case WeaponType.RapidFire: return 0.25f;
       default: return 0.5f;
     }
   }

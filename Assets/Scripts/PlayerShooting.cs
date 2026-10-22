@@ -1,15 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public enum WeaponType
 {
-  LightPistol,
+  AimedTriple,
+  EightWayBurst,
   Shotgun,
-  Laser,
-  MachineGun,
-  RocketLauncher,
-  Railgun
+  SineWave,
+  Exploding,
+  RapidFire
 }
 
 public class PlayerShooting : MonoBehaviour
@@ -17,149 +16,181 @@ public class PlayerShooting : MonoBehaviour
   [Header("Geral")]
   [SerializeField] private Transform muzzle;
   [SerializeField] private AudioSource audioSource;
-  [SerializeField] private WeaponType currentWeapon = WeaponType.LightPistol;
-
-  [Header("Pistola de Luz (tecla 1)")]
+  [SerializeField] private WeaponType currentWeapon = WeaponType.AimedTriple;
+  [Tooltip("Tempo mínimo, em segundos, entre duas trocas de arma.")]
+  [SerializeField] private float weaponSwitchCooldown = 0.3f;
+  [Tooltip("Projétil roxo usado por todos os padrões de tiro.")]
   [SerializeField] private GameObject bulletPrefab;
-  [SerializeField] private float fireRate = 6f;
+  [Tooltip("Som padrão, usado quando uma arma não tem som próprio.")]
   [SerializeField] private AudioClip shootSound;
 
-  [Header("Escopeta (tecla 2)")]
-  [Tooltip("Se vazio, usa o bulletPrefab da pistola.")]
+  [Header("Triplo Mirado (tecla 1) - mira no inimigo ou caixa mais alinhado com a frente")]
+  [SerializeField] private float aimedTripleFireRate = 4f;
+  [SerializeField] private float aimedTripleSpreadAngle = 12f;
+  [SerializeField] private float aimRange = 20f;
+  [Tooltip("Ângulo máximo, a partir da frente da personagem, para escolher um alvo.")]
+  [SerializeField] private float aimMaxAngle = 60f;
+  [SerializeField] private AudioClip aimedTripleSound;
+
+  [Header("Rajada em 8 Direções (tecla 2)")]
+  [SerializeField] private float eightWayFireRate = 2.5f;
+  [SerializeField] private int eightWayBullets = 8;
+  [SerializeField] private AudioClip eightWaySound;
+
+  [Header("Escopeta (tecla 3)")]
+  [Tooltip("Se vazio, usa o bulletPrefab.")]
   [SerializeField] private GameObject shotgunPelletPrefab;
   [SerializeField] private float shotgunFireRate = 1.2f;
   [SerializeField] private int shotgunPellets = 7;
   [SerializeField] private float shotgunSpreadAngle = 30f;
   [SerializeField] private AudioClip shotgunSound;
 
-  [Header("Laser (tecla 3)")]
-  [SerializeField] private float laserTickRate = 10f;
-  [SerializeField] private float laserDamage = 6f;
-  [SerializeField] private float laserRange = 30f;
-  [Tooltip("Largura da área de acerto do laser. Compensa a arma ficar ao lado do corpo da personagem.")]
-  [SerializeField] private float laserHitRadius = 0.5f;
-  [SerializeField] private float laserWidth = 0.08f;
-  [SerializeField] private Color laserColor = new Color(1f, 0.95f, 0.5f);
-  [SerializeField] private LayerMask laserMask = ~0;
-  [SerializeField] private AudioClip laserSound;
+  [Header("Onda Senoidal (tecla 4)")]
+  [SerializeField] private float sineWaveFireRate = 5f;
+  [SerializeField] private float sineWaveAmplitude = 0.8f;
+  [Tooltip("Oscilações por segundo.")]
+  [SerializeField] private float sineWaveFrequency = 3f;
+  [Tooltip("Toca em sequência enquanto o disparo estiver segurado.")]
+  [SerializeField] private AudioClip sineWaveSound;
 
-  [Header("Metralhadora (tecla 4)")]
-  [SerializeField] private float machineGunFireRate = 14f;
-  [SerializeField] private float machineGunSpreadAngle = 8f;
-  [Tooltip("Se vazio, usa o shootSound da pistola.")]
-  [SerializeField] private AudioClip machineGunSound;
-
-  [Header("Lança-Foguetes (tecla 5)")]
-  [Tooltip("Prefab com o componente Rocket. Se vazio, cria um foguete simples em tempo de execução.")]
-  [SerializeField] private GameObject rocketPrefab;
-  [SerializeField] private float rocketFireRate = 0.8f;
-  [SerializeField] private float rocketSpeed = 14f;
-  [SerializeField] private float rocketExplosionRadius = 3.5f;
-  [SerializeField] private float rocketExplosionDamage = 25f;
-  [SerializeField] private Color rocketColor = new Color(1f, 0.45f, 0.15f);
-  [Tooltip("Toca no DISPARO, quando o foguete sai da arma. Se vazio, usa o shootSound.")]
-  [SerializeField] private AudioClip rocketLaunchSound;
-  [Tooltip("Toca no IMPACTO, no instante em que o foguete bate em algo.")]
-  [FormerlySerializedAs("rocketSound")]
+  [Header("Explosivo (tecla 5)")]
+  [SerializeField] private float explodingFireRate = 1f;
+  [SerializeField] private float explodingSpeed = 12f;
+  [SerializeField] private float explodingRadius = 3f;
+  [SerializeField] private float explodingDamage = 20f;
+  [SerializeField] private int explodingFragments = 8;
+  [SerializeField] private float explodingFragmentDamage = 5f;
+  [SerializeField] private Color explodingColor = new Color(0.7f, 0.3f, 1f, 0.6f);
+  [Tooltip("Toca no DISPARO. Se vazio, usa o shootSound.")]
+  [SerializeField] private AudioClip explodingLaunchSound;
+  [Tooltip("Toca no IMPACTO, quando o projétil explode.")]
   [SerializeField] private AudioClip impactSound;
 
-  [Header("Railgun (tecla 6) - segure para carregar, solte para disparar")]
-  [SerializeField] private float railChargeTime = 1f;
-  [SerializeField] private float railMinCharge = 0.25f;
-  [SerializeField] private float railMinDamage = 10f;
-  [SerializeField] private float railMaxDamage = 40f;
-  [SerializeField] private float railCooldown = 0.5f;
-  [SerializeField] private float railRange = 50f;
-  [Tooltip("Largura da área de acerto do railgun. Compensa a arma ficar ao lado do corpo da personagem.")]
-  [SerializeField] private float railHitRadius = 0.5f;
-  [SerializeField] private float railWidth = 0.2f;
-  [SerializeField] private Color railColor = new Color(0.4f, 0.9f, 1f);
-  [Tooltip("Toca enquanto carrega e para ao soltar. Se vazio, usa o laserSound.")]
-  [SerializeField] private AudioClip railSound;
+  [Header("Tiro Rápido (tecla 6)")]
+  [SerializeField] private float rapidFireRate = 16f;
+  [SerializeField] private float rapidFireSpreadAngle = 6f;
+  [SerializeField] private float rapidFireDamage = 5f;
+  [Tooltip("Toca em sequência enquanto o disparo estiver segurado.")]
+  [SerializeField] private AudioClip rapidFireSound;
 
-  private const float RailFlashDuration = 0.2f;
+  [Header("Custo de mana por disparo")]
+  [SerializeField] private float aimedTripleManaCost = 4f;
+  [SerializeField] private float eightWayManaCost = 10f;
+  [SerializeField] private float shotgunManaCost = 12f;
+  [SerializeField] private float sineWaveManaCost = 4f;
+  [SerializeField] private float explodingManaCost = 15f;
+  [SerializeField] private float rapidFireManaCost = 2f;
+
+  [Header("Munição por arma (disparos até esvaziar)")]
+  [SerializeField] private int aimedTripleAmmo = 20;
+  [SerializeField] private int eightWayAmmo = 10;
+  [SerializeField] private int shotgunAmmo = 6;
+  [SerializeField] private int sineWaveAmmo = 25;
+  [SerializeField] private int explodingAmmo = 5;
+  [SerializeField] private int rapidFireAmmo = 60;
+  [Tooltip("Segundos para uma arma vazia recarregar por completo.")]
+  [SerializeField] private float ammoRefillSeconds = 8f;
+  [Tooltip("Segundos sem disparar uma arma até ela começar a recarregar.")]
+  [SerializeField] private float ammoRechargeDelay = 1f;
+
+  private static readonly string[] WeaponNames = { "Triplo", "8 Direções", "Escopeta", "Senoidal", "Explosivo", "Rápido" };
 
   private float nextFireTime;
-  private LineRenderer laserLine;
-  private AudioSource beamAudio;
-  private AudioClip beamClip;
-
-  private LineRenderer railLine;
-  private bool railCharging;
-  private float railCharge;
-  private float railFlashTimer;
+  private float nextSwitchTime;
+  private AudioSource heldAudio;
+  private PlayerMana mana;
+  private PlayerPowerUps powerUps;
+  private float[] ammo;
+  private float[] lastShotTimes;
 
   public WeaponType CurrentWeapon => currentWeapon;
+  public bool IsFiring { get; private set; }
 
   public event System.Action<WeaponType> Fired;
 
   public void Awake()
   {
-    laserLine = CreateBeamLine("LaserBeam", laserWidth, laserColor);
-    beamAudio = CreateBeamAudio();
-    railLine = CreateBeamLine("RailBeam", railWidth, railColor);
+    heldAudio = CreateHeldAudio();
+
+    int count = System.Enum.GetValues(typeof(WeaponType)).Length;
+    ammo = new float[count];
+    lastShotTimes = new float[count];
+    for (int i = 0; i < count; i++)
+    {
+      ammo[i] = GetMaxAmmo((WeaponType)i);
+      lastShotTimes[i] = float.NegativeInfinity;
+    }
   }
 
   public void Update()
   {
     HandleWeaponSwitch();
+    RechargeAmmo();
 
-    bool firing = Input.GetKey(KeyCode.Space);
-    bool laserActive = firing && currentWeapon == WeaponType.Laser && muzzle != null;
+    if (mana == null) mana = GetComponent<PlayerMana>();
+    if (powerUps == null) powerUps = GetComponent<PlayerPowerUps>();
 
-    Vector3 laserEnd = Vector3.zero;
-    RaycastHit laserHit = default;
-    bool laserHitSomething = false;
-    if (laserActive)
+    bool firing = (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && bulletPrefab != null && muzzle != null;
+    if (firing && ammo[(int)currentWeapon] < 1f)
     {
-      laserHitSomething = LaserRaycast(out laserHit);
-      laserEnd = laserHitSomething ? laserHit.point : muzzle.position + muzzle.forward * laserRange;
-      laserLine.SetPosition(0, muzzle.position);
-      laserLine.SetPosition(1, laserEnd);
+      SwitchToNextLoadedWeapon();
     }
-    laserLine.enabled = laserActive;
 
-    if (currentWeapon == WeaponType.Railgun)
+    float cost = GetManaCost();
+    int weaponIndex = (int)currentWeapon;
+    bool canShoot = ammo[weaponIndex] >= 1f && (mana == null || mana.Mana >= cost);
+    IsFiring = firing && canShoot;
+    UpdateHeldAudio(IsFiring ? GetHeldClip() : null);
+
+    if (!IsFiring || Time.time < nextFireTime || (mana != null && !mana.TrySpend(cost)))
     {
-      UpdateRailgunCharge(firing);
+      return;
     }
-    UpdateRailVisual();
 
-    AudioClip heldClip = null;
-    if (laserActive)
+    ammo[weaponIndex] -= 1f;
+    lastShotTimes[weaponIndex] = Time.time;
+
+    float fireRateMultiplier = powerUps != null ? powerUps.FireRateMultiplier : 1f;
+    nextFireTime = Time.time + 1f / (GetFireRate() * fireRateMultiplier);
+
+    switch (currentWeapon)
     {
-      heldClip = laserSound;
+      case WeaponType.AimedTriple:
+        ShootAimedTriple();
+        break;
+      case WeaponType.EightWayBurst:
+        ShootEightWay();
+        break;
+      case WeaponType.Shotgun:
+        ShootShotgun();
+        break;
+      case WeaponType.SineWave:
+        ShootSineWave();
+        break;
+      case WeaponType.Exploding:
+        ShootExploding();
+        break;
+      case WeaponType.RapidFire:
+        ShootRapidFire();
+        break;
     }
-    else if (railCharging)
+
+    if (ammo[weaponIndex] < 1f)
     {
-      heldClip = railSound != null ? railSound : laserSound;
+      SwitchToNextLoadedWeapon();
     }
-    UpdateBeamAudio(heldClip);
+  }
 
-    if (firing && currentWeapon != WeaponType.Railgun && Time.time >= nextFireTime)
+  private void SwitchToNextLoadedWeapon()
+  {
+    int count = ammo.Length;
+    for (int step = 1; step < count; step++)
     {
-      nextFireTime = Time.time + 1f / GetFireRate();
-
-      switch (currentWeapon)
+      int index = ((int)currentWeapon + step) % count;
+      if (ammo[index] >= 1f)
       {
-        case WeaponType.LightPistol:
-          Shoot();
-          break;
-        case WeaponType.Shotgun:
-          ShootShotgun();
-          break;
-        case WeaponType.Laser:
-          if (laserActive)
-          {
-            LaserTick(laserHitSomething, laserHit);
-          }
-          break;
-        case WeaponType.MachineGun:
-          ShootMachineGun();
-          break;
-        case WeaponType.RocketLauncher:
-          ShootRocket();
-          break;
+        SetWeapon((WeaponType)index);
+        return;
       }
     }
   }
@@ -168,25 +199,89 @@ public class PlayerShooting : MonoBehaviour
   {
     currentWeapon = weapon;
     nextFireTime = Time.time;
-    railCharging = false;
-    railCharge = 0f;
   }
 
   private void HandleWeaponSwitch()
   {
-    if (Input.GetKeyDown(KeyCode.Alpha1)) SetWeapon(WeaponType.LightPistol);
-    if (Input.GetKeyDown(KeyCode.Alpha2)) SetWeapon(WeaponType.Shotgun);
-    if (Input.GetKeyDown(KeyCode.Alpha3)) SetWeapon(WeaponType.Laser);
-    if (Input.GetKeyDown(KeyCode.Alpha4)) SetWeapon(WeaponType.MachineGun);
-    if (Input.GetKeyDown(KeyCode.Alpha5)) SetWeapon(WeaponType.RocketLauncher);
-    if (Input.GetKeyDown(KeyCode.Alpha6)) SetWeapon(WeaponType.Railgun);
+    if (Time.time < nextSwitchTime)
+    {
+      return;
+    }
+
+    WeaponType requested = currentWeapon;
+    if (Input.GetKeyDown(KeyCode.Alpha1)) requested = WeaponType.AimedTriple;
+    if (Input.GetKeyDown(KeyCode.Alpha2)) requested = WeaponType.EightWayBurst;
+    if (Input.GetKeyDown(KeyCode.Alpha3)) requested = WeaponType.Shotgun;
+    if (Input.GetKeyDown(KeyCode.Alpha4)) requested = WeaponType.SineWave;
+    if (Input.GetKeyDown(KeyCode.Alpha5)) requested = WeaponType.Exploding;
+    if (Input.GetKeyDown(KeyCode.Alpha6)) requested = WeaponType.RapidFire;
 
     float scroll = Input.GetAxis("Mouse ScrollWheel");
     if (scroll != 0f)
     {
       int count = System.Enum.GetValues(typeof(WeaponType)).Length;
       int step = scroll > 0f ? 1 : -1;
-      SetWeapon((WeaponType)(((int)currentWeapon + step + count) % count));
+      requested = (WeaponType)(((int)currentWeapon + step + count) % count);
+    }
+
+    if (requested != currentWeapon)
+    {
+      SetWeapon(requested);
+      nextSwitchTime = Time.time + weaponSwitchCooldown;
+    }
+  }
+
+  private void RechargeAmmo()
+  {
+    float refillSeconds = Mathf.Max(0.01f, ammoRefillSeconds);
+    for (int i = 0; i < ammo.Length; i++)
+    {
+      if (Time.time - lastShotTimes[i] < ammoRechargeDelay)
+      {
+        continue;
+      }
+
+      float max = GetMaxAmmo((WeaponType)i);
+      ammo[i] = Mathf.Min(max, ammo[i] + max / refillSeconds * Time.deltaTime);
+    }
+  }
+
+  private int GetMaxAmmo(WeaponType weapon)
+  {
+    switch (weapon)
+    {
+      case WeaponType.EightWayBurst: return eightWayAmmo;
+      case WeaponType.Shotgun: return shotgunAmmo;
+      case WeaponType.SineWave: return sineWaveAmmo;
+      case WeaponType.Exploding: return explodingAmmo;
+      case WeaponType.RapidFire: return rapidFireAmmo;
+      default: return aimedTripleAmmo;
+    }
+  }
+
+  public void OnGUI()
+  {
+    const float width = 200f;
+    const float rowHeight = 22f;
+    float x = Screen.width - width - 20f;
+    float y = Screen.height - 20f - rowHeight * ammo.Length;
+
+    for (int i = 0; i < ammo.Length; i++)
+    {
+      Rect row = new Rect(x, y + i * rowHeight, width, rowHeight - 3f);
+      bool selected = i == (int)currentWeapon;
+      float max = GetMaxAmmo((WeaponType)i);
+      bool empty = ammo[i] < 1f;
+
+      GUI.color = selected ? new Color(1f, 1f, 1f, 0.9f) : new Color(0f, 0f, 0f, 0.6f);
+      GUI.DrawTexture(row, Texture2D.whiteTexture);
+      GUI.color = new Color(0.08f, 0.05f, 0.12f, 0.9f);
+      GUI.DrawTexture(new Rect(row.x + 2f, row.y + 2f, row.width - 4f, row.height - 4f), Texture2D.whiteTexture);
+      GUI.color = empty ? new Color(0.5f, 0.2f, 0.25f) : new Color(0.6f, 0.3f, 1f);
+      GUI.DrawTexture(new Rect(row.x + 2f, row.y + 2f, (row.width - 4f) * ammo[i] / max, row.height - 4f), Texture2D.whiteTexture);
+      GUI.color = Color.white;
+      string count = empty ? "VAZIA" : $"{Mathf.FloorToInt(ammo[i])}/{max}";
+      GUI.Label(new Rect(row.x + 6f, row.y + 1f, row.width, row.height), $"{i + 1} {WeaponNames[i]}  {count}");
     }
   }
 
@@ -194,30 +289,105 @@ public class PlayerShooting : MonoBehaviour
   {
     switch (currentWeapon)
     {
+      case WeaponType.EightWayBurst: return eightWayFireRate;
       case WeaponType.Shotgun: return shotgunFireRate;
-      case WeaponType.Laser: return laserTickRate;
-      case WeaponType.MachineGun: return machineGunFireRate;
-      case WeaponType.RocketLauncher: return rocketFireRate;
-      default: return fireRate;
+      case WeaponType.SineWave: return sineWaveFireRate;
+      case WeaponType.Exploding: return explodingFireRate;
+      case WeaponType.RapidFire: return rapidFireRate;
+      default: return aimedTripleFireRate;
     }
   }
 
-  private void Shoot()
+  private float GetManaCost()
   {
-    if (bulletPrefab == null || muzzle == null)
+    switch (currentWeapon)
     {
-      return;
+      case WeaponType.EightWayBurst: return eightWayManaCost;
+      case WeaponType.Shotgun: return shotgunManaCost;
+      case WeaponType.SineWave: return sineWaveManaCost;
+      case WeaponType.Exploding: return explodingManaCost;
+      case WeaponType.RapidFire: return rapidFireManaCost;
+      default: return aimedTripleManaCost;
+    }
+  }
+
+  private void ShootAimedTriple()
+  {
+    Quaternion aim = GetAimRotation();
+    for (int i = -1; i <= 1; i++)
+    {
+      Spawn(bulletPrefab, aim * Quaternion.Euler(0f, i * aimedTripleSpreadAngle, 0f));
     }
 
-    Instantiate(bulletPrefab, muzzle.position, muzzle.rotation);
-    PlaySound(shootSound);
+    PlaySound(OrDefault(aimedTripleSound));
+    Fired?.Invoke(currentWeapon);
+  }
+
+  private Quaternion GetAimRotation()
+  {
+    Vector3 origin = muzzle.position;
+    Vector3 forward = Flatten(transform.forward);
+    Vector3 bestDirection = forward;
+    float bestAngle = aimMaxAngle;
+
+    foreach (MonoBehaviour target in FindAimTargets())
+    {
+      Vector3 toTarget = Flatten(target.transform.position - origin);
+      float distance = toTarget.magnitude;
+      float angle = Vector3.Angle(forward, toTarget);
+      if (distance < 0.01f || distance > aimRange || angle > bestAngle)
+      {
+        continue;
+      }
+
+      bestAngle = angle;
+      bestDirection = toTarget;
+    }
+
+    return Quaternion.LookRotation(bestDirection.normalized, Vector3.up);
+  }
+
+  private static IEnumerable<MonoBehaviour> FindAimTargets()
+  {
+    foreach (var crate in FindObjectsByType<GuardiasDaLuz.MapSystem.StandaloneBreakableCrate>())
+    {
+      yield return crate;
+    }
+
+    foreach (ShadowEnemy enemy in FindObjectsByType<ShadowEnemy>())
+    {
+      yield return enemy;
+    }
+
+    foreach (var monster in FindObjectsByType<GuardiasDaLuz.MapSystem.StandalonePlaceholderMonsterTestAI>())
+    {
+      yield return monster;
+    }
+  }
+
+  private static Vector3 Flatten(Vector3 vector)
+  {
+    vector.y = 0f;
+    return vector;
+  }
+
+  private void ShootEightWay()
+  {
+    int count = Mathf.Max(1, eightWayBullets);
+    Quaternion facing = Quaternion.LookRotation(Flatten(transform.forward).normalized, Vector3.up);
+    for (int i = 0; i < count; i++)
+    {
+      Spawn(bulletPrefab, facing * Quaternion.Euler(0f, 360f * i / count, 0f));
+    }
+
+    PlaySound(OrDefault(eightWaySound));
     Fired?.Invoke(currentWeapon);
   }
 
   private void ShootShotgun()
   {
     GameObject pellet = shotgunPelletPrefab != null ? shotgunPelletPrefab : bulletPrefab;
-    if (pellet == null || muzzle == null || shotgunPellets <= 0)
+    if (shotgunPellets <= 0)
     {
       return;
     }
@@ -227,242 +397,83 @@ public class PlayerShooting : MonoBehaviour
       float t = shotgunPellets == 1 ? 0.5f : (float)i / (shotgunPellets - 1);
       float yaw = Mathf.Lerp(-shotgunSpreadAngle / 2f, shotgunSpreadAngle / 2f, t) + Random.Range(-2f, 2f);
       float pitch = Random.Range(-2f, 2f);
-      Instantiate(pellet, muzzle.position, muzzle.rotation * Quaternion.Euler(pitch, yaw, 0f));
+      Spawn(pellet, muzzle.rotation * Quaternion.Euler(pitch, yaw, 0f));
     }
 
-    PlaySound(shotgunSound != null ? shotgunSound : shootSound);
+    PlaySound(OrDefault(shotgunSound));
     Fired?.Invoke(currentWeapon);
   }
 
-  private void ShootMachineGun()
+  private void ShootSineWave()
   {
-    if (bulletPrefab == null || muzzle == null)
+    foreach (float sign in new[] { 1f, -1f })
     {
-      return;
+      LightBullet bullet = Spawn(bulletPrefab, muzzle.rotation);
+      if (bullet != null)
+      {
+        bullet.ConfigureWave(sineWaveAmplitude * sign, sineWaveFrequency);
+      }
     }
 
-    float halfSpread = machineGunSpreadAngle / 2f;
-    Quaternion spread = Quaternion.Euler(Random.Range(-halfSpread, halfSpread) * 0.5f, Random.Range(-halfSpread, halfSpread), 0f);
-    Instantiate(bulletPrefab, muzzle.position, muzzle.rotation * spread);
-
-    PlaySound(machineGunSound != null ? machineGunSound : shootSound);
     Fired?.Invoke(currentWeapon);
   }
 
-  private void ShootRocket()
+  private void ShootExploding()
   {
-    if (muzzle == null)
+    LightBullet bullet = Spawn(bulletPrefab, muzzle.rotation);
+    if (bullet != null)
     {
-      return;
+      bullet.transform.localScale *= 1.6f;
+      bullet.SetSpeed(explodingSpeed);
+      bullet.ConfigureExplosion(explodingRadius, explodingDamage, explodingColor, impactSound,
+        bulletPrefab, explodingFragments, explodingFragmentDamage);
     }
 
-    GameObject rocketObject = rocketPrefab != null
-      ? Instantiate(rocketPrefab, muzzle.position, muzzle.rotation)
-      : CreateRuntimeRocket();
-
-    Rocket rocket = rocketObject.GetComponent<Rocket>();
-    if (rocket == null)
-    {
-      rocket = rocketObject.AddComponent<Rocket>();
-    }
-    rocket.Configure(rocketSpeed, rocketExplosionRadius, rocketExplosionDamage, impactSound);
-
-    PlaySound(rocketLaunchSound != null ? rocketLaunchSound : shootSound);
+    PlaySound(OrDefault(explodingLaunchSound));
     Fired?.Invoke(currentWeapon);
   }
 
-  private GameObject CreateRuntimeRocket()
+  private void ShootRapidFire()
   {
-    GameObject rocketObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-    rocketObject.name = "Rocket";
-    rocketObject.transform.SetPositionAndRotation(muzzle.position, muzzle.rotation);
-    rocketObject.transform.localScale = Vector3.one * 0.35f;
-
-    rocketObject.GetComponent<Collider>().isTrigger = true;
-    Rigidbody body = rocketObject.AddComponent<Rigidbody>();
-    body.isKinematic = true;
-    body.useGravity = false;
-
-    rocketObject.GetComponent<Renderer>().material.color = rocketColor;
-    return rocketObject;
-  }
-
-  private void UpdateRailgunCharge(bool firing)
-  {
-    if (firing && muzzle != null && Time.time >= nextFireTime)
+    float halfSpread = rapidFireSpreadAngle / 2f;
+    LightBullet bullet = Spawn(bulletPrefab, muzzle.rotation * Quaternion.Euler(0f, Random.Range(-halfSpread, halfSpread), 0f));
+    if (bullet != null)
     {
-      railCharging = true;
-      railCharge = Mathf.Min(railCharge + Time.deltaTime, railChargeTime);
-    }
-    else if (!firing && railCharging)
-    {
-      railCharging = false;
-      if (railCharge >= railMinCharge)
-      {
-        FireRailgun(railCharge / railChargeTime);
-        nextFireTime = Time.time + railCooldown;
-      }
-      railCharge = 0f;
-    }
-  }
-
-  private void FireRailgun(float charge)
-  {
-    float damage = Mathf.Lerp(railMinDamage, railMaxDamage, charge);
-    Vector3 start = muzzle.position;
-    Vector3 end = start + muzzle.forward * railRange;
-
-    RaycastHit[] hits = Physics.RaycastAll(start, muzzle.forward, railRange, laserMask, QueryTriggerInteraction.Ignore);
-    System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-    float blockDistance = railRange;
-    foreach (RaycastHit hit in hits)
-    {
-      if (hit.collider.GetComponentInParent<PlayerMovement>() != null || WeaponDamage.FindTarget(hit.collider) != null
-        || IsRailPierceable(hit.collider))
-      {
-        continue;
-      }
-
-      blockDistance = hit.distance;
-      end = hit.point;
-      break;
+      bullet.SetDamage(rapidFireDamage);
     }
 
-    HashSet<MonoBehaviour> damaged = new HashSet<MonoBehaviour>();
-    foreach (RaycastHit hit in Physics.SphereCastAll(start, railHitRadius, muzzle.forward, blockDistance, laserMask, QueryTriggerInteraction.Ignore))
-    {
-      if (hit.collider.GetComponentInParent<PlayerMovement>() != null)
-      {
-        continue;
-      }
-
-      MonoBehaviour target = WeaponDamage.FindTarget(hit.collider);
-      if (target != null && damaged.Add(target))
-      {
-        WeaponDamage.Damage(target, damage);
-      }
-    }
-
-    railLine.SetPosition(0, start);
-    railLine.SetPosition(1, end);
-    railFlashTimer = RailFlashDuration;
     Fired?.Invoke(currentWeapon);
   }
 
-  private static bool IsRailPierceable(Collider collider)
+  private LightBullet Spawn(GameObject prefab, Quaternion rotation)
   {
-    return collider.GetComponentInParent<GuardiasDaLuz.MapSystem.StandaloneSmartPost>() != null
-      || collider.name.StartsWith("Decor_");
+    LightBullet bullet = Instantiate(prefab, muzzle.position, rotation).GetComponent<LightBullet>();
+    if (bullet != null && powerUps != null)
+    {
+      bullet.SetBounces(powerUps.RicochetBounces);
+    }
+
+    return bullet;
   }
 
-  private void UpdateRailVisual()
+  private AudioClip GetHeldClip()
   {
-    if (railCharging && muzzle != null)
+    switch (currentWeapon)
     {
-      float t = railCharge / railChargeTime;
-      railLine.SetPosition(0, muzzle.position);
-      railLine.SetPosition(1, muzzle.position + muzzle.forward * railRange);
-      SetBeamStyle(railLine, railWidth * Mathf.Lerp(0.05f, 0.3f, t), railColor, Mathf.Lerp(0.1f, 0.5f, t));
-      railLine.enabled = true;
-    }
-    else if (railFlashTimer > 0f)
-    {
-      railFlashTimer -= Time.deltaTime;
-      float t = Mathf.Clamp01(railFlashTimer / RailFlashDuration);
-      SetBeamStyle(railLine, railWidth * t, railColor, t);
-      railLine.enabled = true;
-    }
-    else
-    {
-      railLine.enabled = false;
+      case WeaponType.SineWave: return OrDefault(sineWaveSound);
+      case WeaponType.RapidFire: return OrDefault(rapidFireSound);
+      default: return null;
     }
   }
 
-  private bool LaserRaycast(out RaycastHit closest)
+  private AudioSource CreateHeldAudio()
   {
-    closest = default;
-    bool found = false;
-    RaycastHit[] hits = Physics.RaycastAll(muzzle.position, muzzle.forward, laserRange, laserMask, QueryTriggerInteraction.Ignore);
+    GameObject audioObject = new GameObject("HeldShotAudio");
+    audioObject.transform.SetParent(transform, false);
 
-    foreach (RaycastHit hit in hits)
-    {
-      if (hit.collider.GetComponentInParent<PlayerMovement>() != null)
-      {
-        continue;
-      }
-
-      if (!found || hit.distance < closest.distance)
-      {
-        closest = hit;
-        found = true;
-      }
-    }
-
-    return found;
-  }
-
-  private void LaserTick(bool hitSomething, RaycastHit hit)
-  {
-    Fired?.Invoke(currentWeapon);
-
-    float length = hitSomething ? hit.distance : laserRange;
-    RaycastHit[] hits = Physics.SphereCastAll(muzzle.position, laserHitRadius, muzzle.forward, length, laserMask, QueryTriggerInteraction.Ignore);
-
-    MonoBehaviour closestTarget = hitSomething ? WeaponDamage.FindTarget(hit.collider) : null;
-    float closestDistance = closestTarget != null ? hit.distance : float.MaxValue;
-    foreach (RaycastHit sphereHit in hits)
-    {
-      if (sphereHit.distance <= 0f || sphereHit.distance >= closestDistance)
-      {
-        continue;
-      }
-
-      MonoBehaviour target = WeaponDamage.FindTarget(sphereHit.collider);
-      if (target != null)
-      {
-        closestTarget = target;
-        closestDistance = sphereHit.distance;
-      }
-    }
-
-    if (closestTarget != null)
-    {
-      WeaponDamage.Damage(closestTarget, laserDamage);
-    }
-  }
-
-  private LineRenderer CreateBeamLine(string name, float width, Color color)
-  {
-    GameObject lineObject = new GameObject(name);
-    lineObject.transform.SetParent(transform, false);
-
-    LineRenderer line = lineObject.AddComponent<LineRenderer>();
-    line.useWorldSpace = true;
-    line.positionCount = 2;
-    line.material = new Material(Shader.Find("Sprites/Default"));
-    line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-    line.receiveShadows = false;
-    line.enabled = false;
-    SetBeamStyle(line, width, color, color.a);
-
-    return line;
-  }
-
-  private static void SetBeamStyle(LineRenderer line, float width, Color color, float alpha)
-  {
-    Color tinted = new Color(color.r, color.g, color.b, alpha);
-    line.startWidth = width;
-    line.endWidth = width * 0.6f;
-    line.startColor = tinted;
-    line.endColor = tinted;
-  }
-
-  private AudioSource CreateBeamAudio()
-  {
-    AudioSource source = laserLine.gameObject.AddComponent<AudioSource>();
+    AudioSource source = audioObject.AddComponent<AudioSource>();
     source.playOnAwake = false;
-    source.loop = true;
+    source.loop = false;
     if (audioSource != null)
     {
       source.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;
@@ -473,19 +484,24 @@ public class PlayerShooting : MonoBehaviour
     return source;
   }
 
-  private void UpdateBeamAudio(AudioClip heldClip)
+  private void UpdateHeldAudio(AudioClip clip)
   {
-    if (heldClip != null && heldClip != beamClip)
+    if (clip == null)
     {
-      beamAudio.clip = heldClip;
-      beamAudio.Play();
-    }
-    else if (heldClip == null && beamAudio.isPlaying)
-    {
-      beamAudio.Stop();
+      if (heldAudio.isPlaying) heldAudio.Stop();
+      return;
     }
 
-    beamClip = heldClip;
+    if (heldAudio.clip != clip || !heldAudio.isPlaying)
+    {
+      heldAudio.clip = clip;
+      heldAudio.Play();
+    }
+  }
+
+  private AudioClip OrDefault(AudioClip clip)
+  {
+    return clip != null ? clip : shootSound;
   }
 
   private void PlaySound(AudioClip clip)

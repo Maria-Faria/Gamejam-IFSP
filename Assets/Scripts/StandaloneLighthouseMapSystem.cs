@@ -152,7 +152,7 @@ namespace GuardiasDaLuz.MapSystem
         [Range(1, MonsterQuotaCap)] public int minMonstersPerRoom = 6;
         [Range(1, MonsterQuotaCap)] public int maxMonstersPerRoom = MonsterQuotaCap;
         private const int MonsterQuotaCap = 20;
-        [Tooltip("Salas sem poste (loja, tesouro, secreta) ficam na penumbra e atraem alguns monstros, mas as portas continuam abertas.")]
+        [Tooltip("Salas sem poste (loja, tesouro, secreta) ficam no escuro e atraem alguns monstros, mas as portas continuam abertas.")]
         [Range(0, MonsterQuotaCap)] public int minMonstersInPostlessRoom = 2;
         [Range(0, MonsterQuotaCap)] public int maxMonstersInPostlessRoom = 4;
 
@@ -160,8 +160,6 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Deixa o mapa quase todo escuro: desliga a luz direcional e baixa a luz ambiente. Cada sala recebe só algumas luzes fracas.")]
         public bool darkRooms = true;
         public Color darkAmbientColor = new Color(0.16f, 0.16f, 0.22f);
-        [Tooltip("Claridade das salas sem poste: 0 = escura como uma sala com poste apagado, 1 = totalmente iluminada.")]
-        [Range(0f, 1f)] public float postlessRoomBrightness = 0.5f;
         [Range(0, 4)] public int dimLightsPerRoom = 4;
         public float dimLightIntensity = 6f;
         public float dimLightRange = 12f;
@@ -414,11 +412,11 @@ namespace GuardiasDaLuz.MapSystem
             ApplyRoomBrightness(0f);
         }
 
-        private void SetRoomLit(bool lit, float unlitBrightness = 0f)
+        private void SetRoomLit(bool lit)
         {
             if (!darkRooms) return;
             currentRoomLit = lit;
-            targetRoomBrightness = lit ? 1f : unlitBrightness;
+            targetRoomBrightness = lit ? 1f : 0f;
         }
 
         public int GetRoomPostCount(MapRoomNode room)
@@ -1702,14 +1700,14 @@ namespace GuardiasDaLuz.MapSystem
             EnsureAllCompanionsInsideRoom(room);
             onRoomEntered?.Invoke(room.gridCoord, room.roomType.ToString());
             bool postless = GetRoomPostCount(room) == 0;
-            SetRoomLit(room.isClearedAndLit && !postless, postless ? postlessRoomBrightness : 0f);
+            SetRoomLit(room.isClearedAndLit && !postless);
             if (darkRooms) ApplyRoomBrightness(roomBrightness);
 
             if (postless)
             {
                 room.doorsUnlocked = true;
                 SetRoomDoorsOpen(room, true);
-                ShowBannerMessage($"🌗 Sala Especial ({room.roomType}) sem poste: a penumbra atrai monstros! As portas continuam abertas — aproxime-se dos pedestais e aperte [E]!");
+                ShowBannerMessage($"🌗 Sala Especial ({room.roomType}) sem poste: a escuridão atrai monstros! As portas continuam abertas — aproxime-se dos pedestais e aperte [E]!");
                 return;
             }
 
@@ -2040,6 +2038,8 @@ namespace GuardiasDaLuz.MapSystem
     public class StandaloneBreakableCrate : MonoBehaviour
     {
         public float rareDropChance = 0.10f;
+        public float powerUpDropChance = 0.1f;
+        private bool broken;
 
         private void OnCollisionEnter(Collision col)
         {
@@ -2059,9 +2059,16 @@ namespace GuardiasDaLuz.MapSystem
 
         public void TakeHit()
         {
+            if (broken) return;
+            broken = true;
+
             if (UnityEngine.Random.value <= rareDropChance)
             {
                 SpawnRareRecoveryBattery(transform.position);
+            }
+            else
+            {
+                PowerUpPickup.TrySpawn(transform.position, powerUpDropChance);
             }
             Destroy(gameObject);
         }
@@ -2263,11 +2270,14 @@ namespace GuardiasDaLuz.MapSystem
     public class StandalonePlaceholderMonsterTestAI : MonoBehaviour
     {
         public float maxHP = 40f;
+        [Range(0f, 1f)] public float powerUpDropChance = 0.08f;
         public void TakeDamage(float dmg)
         {
+            if (maxHP <= 0f) return;
             maxHP -= dmg;
             if (maxHP <= 0f)
             {
+                PowerUpPickup.TrySpawn(transform.position, powerUpDropChance);
                 if (StandaloneLighthouseMapSystem.Instance != null)
                     StandaloneLighthouseMapSystem.Instance.playerCurrencyCrystals += 3;
                 Destroy(gameObject);

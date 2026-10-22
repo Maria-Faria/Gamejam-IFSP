@@ -6,19 +6,28 @@ public class PlayerHealth : MonoBehaviour
   [SerializeField] private float maxHealth = 100f;
   [Tooltip("Segundos até reiniciar a cena depois que a vida chega a zero.")]
   [SerializeField] private float restartDelay = 2.5f;
+  [SerializeField] private AudioClip hitSound;
+  [Tooltip("Toca no golpe fatal, no lugar do som de dano.")]
+  [SerializeField] private AudioClip deathSound;
+  [Tooltip("Intervalo mínimo entre dois sons de dano, para vários tiros simultâneos não empilharem.")]
+  [SerializeField] private float hitSoundInterval = 0.1f;
 
   private float health;
   private float hitFlash;
   private bool dead;
+  private AudioSource audioSource;
+  private float nextHitSoundTime;
 
   public float Health => health;
   public float MaxHealth => maxHealth;
+  public bool IsDead => dead;
 
   public event System.Action Died;
 
   public void Awake()
   {
     health = maxHealth;
+    audioSource = GetComponent<AudioSource>();
   }
 
   public void Update()
@@ -36,12 +45,39 @@ public class PlayerHealth : MonoBehaviour
     health = Mathf.Max(0f, health - damage);
     hitFlash = 1f;
 
-    if (health <= 0f)
+    if (health > 0f)
+    {
+      PlayHitSound();
+    }
+    else
     {
       dead = true;
+      if (audioSource != null && deathSound != null) audioSource.PlayOneShot(deathSound);
       Died?.Invoke();
       Invoke(nameof(Restart), restartDelay);
     }
+  }
+
+  public void IncreaseMax(float amount, float heal)
+  {
+    if (dead)
+    {
+      return;
+    }
+
+    maxHealth += amount;
+    health = Mathf.Min(maxHealth, health + heal);
+  }
+
+  private void PlayHitSound()
+  {
+    if (audioSource == null || hitSound == null || Time.time < nextHitSoundTime)
+    {
+      return;
+    }
+
+    audioSource.PlayOneShot(hitSound);
+    nextHitSoundTime = Time.time + hitSoundInterval;
   }
 
   private void Restart()

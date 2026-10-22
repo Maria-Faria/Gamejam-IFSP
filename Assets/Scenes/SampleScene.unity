@@ -119,6 +119,21 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!114 &330585549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a569e308bb84aab9a49918acade9442, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BackgroundMusic
+  music: {fileID: 8300000, guid: 019a270e5c7132d42829076e2419b6eb, type: 3}
+  volume: 0.35
+  fadeInSeconds: 2
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -132,6 +147,7 @@ GameObject:
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
   - component: {fileID: 330585548}
+  - component: {fileID: 330585549}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -412,6 +428,7 @@ GameObject:
   - component: {fileID: 623602283}
   - component: {fileID: 623602284}
   - component: {fileID: 623602285}
+  - component: {fileID: 623602286}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -476,9 +493,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5
   runSpeed: 10
-  runKey: 304
   rotationSpeed: 720
   gravity: -20
+  walkSound: {fileID: 8300000, guid: 1686d1f760c124346892e0fa29fa8397, type: 3}
+  runSound: {fileID: 8300000, guid: b647f90025d95414aa314a15c4819f80, type: 3}
 --- !u!114 &623602284
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -495,44 +513,54 @@ MonoBehaviour:
   audioSource: {fileID: 623602285}
   currentWeapon: 0
   bulletPrefab: {fileID: 5362839674482820599, guid: f091211fa35778a4eb8c56d9206821a0, type: 3}
-  fireRate: 6
   shootSound: {fileID: 8300000, guid: 428e37a69415d294da9ac3609baf7c26, type: 3}
+  aimedTripleFireRate: 4
+  aimedTripleSpreadAngle: 12
+  aimRange: 20
+  aimMaxAngle: 60
+  aimedTripleSound: {fileID: 8300000, guid: 4d88229577465094cb1e046f50f0fe9c, type: 3}
+  eightWayFireRate: 2.5
+  eightWayBullets: 8
+  eightWaySound: {fileID: 8300000, guid: 4dcf712519ba2a04e91b257832f73c45, type: 3}
   shotgunPelletPrefab: {fileID: 0}
   shotgunFireRate: 1.2
   shotgunPellets: 7
   shotgunSpreadAngle: 30
-  shotgunSound: {fileID: 0}
-  laserTickRate: 10
-  laserDamage: 6
-  laserRange: 30
-  laserHitRadius: 0.5
-  laserWidth: 0.08
-  laserColor: {r: 1, g: 0.95, b: 0.5, a: 1}
-  laserMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  laserSound: {fileID: 8300000, guid: 0d3b92b7094dd2c44b06e95133c3070f, type: 3}
-  machineGunFireRate: 14
-  machineGunSpreadAngle: 8
-  machineGunSound: {fileID: 0}
-  rocketPrefab: {fileID: 0}
-  rocketFireRate: 0.8
-  rocketSpeed: 14
-  rocketExplosionRadius: 3.5
-  rocketExplosionDamage: 25
-  rocketColor: {r: 1, g: 0.45, b: 0.15, a: 1}
-  rocketLaunchSound: {fileID: 0}
-  impactSound: {fileID: 8300000, guid: 0f82bf31a874d9c4baf22188b4a6972d, type: 3}
-  railChargeTime: 1
-  railMinCharge: 0.25
-  railMinDamage: 10
-  railMaxDamage: 40
-  railCooldown: 0.5
-  railRange: 50
-  railHitRadius: 0.5
-  railWidth: 0.2
-  railColor: {r: 0.4, g: 0.9, b: 1, a: 1}
-  railSound: {fileID: 8300000, guid: 9e8f0517b00d2cc4cb8915fa012dad38, type: 3}
+  shotgunSound: {fileID: 8300000, guid: a667853a21e6f4a46a27de349d24bc31, type: 3}
+  sineWaveFireRate: 5
+  sineWaveAmplitude: 0.8
+  sineWaveFrequency: 3
+  sineWaveSound: {fileID: 8300000, guid: c120baee40ab57f4da13766770820fb4, type: 3}
+  explodingFireRate: 1
+  explodingSpeed: 12
+  explodingRadius: 3
+  explodingDamage: 20
+  explodingFragments: 8
+  explodingFragmentDamage: 5
+  explodingColor: {r: 0.7, g: 0.3, b: 1, a: 0.6}
+  explodingLaunchSound: {fileID: 0}
+  impactSound: {fileID: 8300000, guid: bd351405f9f02e14ea57bcdb437a24c5, type: 3}
+  rapidFireRate: 16
+  rapidFireSpreadAngle: 6
+  rapidFireDamage: 5
+  rapidFireSound: {fileID: 8300000, guid: 184d9fe62facdbc4f980f8e1f6839660, type: 3}
+--- !u!114 &623602286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623602280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0743722bcd8c324f8b2c7abf0475097, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
+  maxHealth: 100
+  restartDelay: 2.5
+  hitSound: {fileID: 8300000, guid: 4a265fb5cfdc06e43848d2d4bc4553f6, type: 3}
+  deathSound: {fileID: 8300000, guid: c041299d3ff9af045a089e0de3d988ff, type: 3}
+  hitSoundInterval: 0.1
 --- !u!82 &623602285
 AudioSource:
   m_ObjectHideFlags: 0

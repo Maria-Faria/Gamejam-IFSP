@@ -4,17 +4,30 @@ public class PlayerMovement : MonoBehaviour
 {
   [SerializeField] private float speed = 5f;
   [SerializeField] private float runSpeed = 10f;
-  [SerializeField] private KeyCode runKey = KeyCode.LeftShift;
+  [Tooltip("Segundos andando sem soltar as teclas até começar a correr sozinho.")]
+  [SerializeField] private float walkTimeBeforeRun = 4f;
+  [Tooltip("Segundos correndo antes de voltar a andar.")]
+  [SerializeField] private float runDuration = 5f;
   [SerializeField] private float rotationSpeed = 720f;
   [SerializeField] private float gravity = -20f;
 
+  [Header("Sons de passos (tocam em loop enquanto se move)")]
+  [SerializeField] private AudioClip walkSound;
+  [SerializeField] private AudioClip runSound;
+
   private float verticalVelocity;
+  private float walkTimer;
+  private float runTimer;
 
   private CharacterController controller;
+  private PlayerPowerUps powerUps;
+  private PlayerHealth health;
+  private AudioSource footstepAudio;
 
   public float WalkSpeed => speed;
   public float RunSpeed => runSpeed;
   public bool IsRunning { get; private set; }
+  public bool IsMoving { get; private set; }
 
   public void Start()
   {
@@ -25,10 +38,24 @@ public class PlayerMovement : MonoBehaviour
       gameObject.AddComponent<PlayerAnimation>();
     }
 
-    if (GetComponent<PlayerHealth>() == null)
+    health = GetComponent<PlayerHealth>();
+    if (health == null)
     {
-      gameObject.AddComponent<PlayerHealth>();
+      health = gameObject.AddComponent<PlayerHealth>();
     }
+
+    if (GetComponent<PlayerMana>() == null)
+    {
+      gameObject.AddComponent<PlayerMana>();
+    }
+
+    powerUps = GetComponent<PlayerPowerUps>();
+    if (powerUps == null)
+    {
+      powerUps = gameObject.AddComponent<PlayerPowerUps>();
+    }
+
+    footstepAudio = CreateFootstepAudio();
   }
 
   public void Update()
@@ -39,15 +66,92 @@ public class PlayerMovement : MonoBehaviour
     Vector3 direction = new Vector3(horizontal, 0f, vertical);
     direction = Vector3.ClampMagnitude(direction, 1f);
 
-    IsRunning = Input.GetKey(runKey) && direction.sqrMagnitude > 0.01f;
-    float currentSpeed = Input.GetKey(runKey) ? runSpeed : speed;
+    bool holdingMove = Input.GetAxisRaw("Horizontal") != 0f || Input.GetAxisRaw("Vertical") != 0f;
+    UpdateAutoRun(holdingMove);
+    float currentSpeed = (IsRunning ? runSpeed : speed) * powerUps.MoveSpeedMultiplier;
 
-    controller.Move(direction * currentSpeed * Time.deltaTime);
+    if (controller.isGrounded && verticalVelocity < 0f)
+    {
+      verticalVelocity = -2f;
+    }
+    verticalVelocity += gravity * Time.deltaTime;
+
+    controller.Move((direction * currentSpeed + Vector3.up * verticalVelocity) * Time.deltaTime);
 
     if(direction.sqrMagnitude > 0.01f)
     {
       Quaternion targetRotation = Quaternion.LookRotation(direction);
       transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    }
+
+    UpdateFootsteps();
+  }
+
+  private AudioSource CreateFootstepAudio()
+  {
+    GameObject audioObject = new GameObject("FootstepAudio");
+    audioObject.transform.SetParent(transform, false);
+
+    AudioSource source = audioObject.AddComponent<AudioSource>();
+    source.playOnAwake = false;
+    source.loop = true;
+    AudioSource playerAudio = GetComponent<AudioSource>();
+    if (playerAudio != null)
+    {
+      source.outputAudioMixerGroup = playerAudio.outputAudioMixerGroup;
+      source.spatialBlend = playerAudio.spatialBlend;
+      source.volume = playerAudio.volume;
+    }
+
+    return source;
+  }
+
+  private void UpdateFootsteps()
+  {
+    Vector3 velocity = controller.velocity;
+    velocity.y = 0f;
+    IsMoving = velocity.sqrMagnitude > 0.25f && !health.IsDead;
+    AudioClip clip = IsMoving ? (IsRunning ? runSound : walkSound) : null;
+
+    if (clip == null)
+    {
+      if (footstepAudio.isPlaying) footstepAudio.Stop();
+      return;
+    }
+
+    if (footstepAudio.clip != clip || !footstepAudio.isPlaying)
+    {
+      footstepAudio.clip = clip;
+      footstepAudio.Play();
+    }
+  }
+
+  private void UpdateAutoRun(bool holdingMove)
+  {
+    if (!holdingMove)
+    {
+      IsRunning = false;
+      walkTimer = 0f;
+      runTimer = 0f;
+      return;
+    }
+
+    if (IsRunning)
+    {
+      runTimer += Time.deltaTime;
+      if (runTimer >= runDuration)
+      {
+        IsRunning = false;
+        runTimer = 0f;
+      }
+      return;
+    }
+
+    walkTimer += Time.deltaTime;
+    if (walkTimer >= walkTimeBeforeRun)
+    {
+      IsRunning = true;
+      walkTimer = 0f;
     }
   }
 }

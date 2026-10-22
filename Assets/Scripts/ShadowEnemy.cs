@@ -5,6 +5,8 @@ public class ShadowEnemy : MonoBehaviour
 {
   [SerializeField] private float health = 15f;
   [SerializeField] private float hitFlashDuration = 0.1f;
+  [Tooltip("Chance (0 a 1) de soltar um power-up ao morrer.")]
+  [Range(0f, 1f)] [SerializeField] private float powerUpDropChance = 0.08f;
   [SerializeField] private float moveSpeed = 3.2f;
   [SerializeField] private float fleeSpeed = 5f;
   [SerializeField] private float preferredDistance = 5f;
@@ -102,9 +104,15 @@ public class ShadowEnemy : MonoBehaviour
 
   public void TakeDamage(float damage)
   {
+    if (health <= 0f)
+    {
+      return;
+    }
+
     health -= damage;
     if (health <= 0f)
     {
+      PowerUpPickup.TrySpawn(transform.position, powerUpDropChance);
       Destroy(gameObject);
       return;
     }
