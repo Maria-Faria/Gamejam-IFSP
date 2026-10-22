@@ -11,6 +11,12 @@ public static class WeaponDamage
       return monster;
     }
 
+    MonoBehaviour shadowEnemy = collider.GetComponentInParent<ShadowEnemy>();
+    if (shadowEnemy != null)
+    {
+      return shadowEnemy;
+    }
+
     MonoBehaviour crate = collider.GetComponentInParent<StandaloneBreakableCrate>();
     if (crate != null)
     {
@@ -26,6 +32,9 @@ public static class WeaponDamage
     {
       case StandalonePlaceholderMonsterTestAI monster:
         monster.TakeDamage(damage);
+        break;
+      case ShadowEnemy shadowEnemy:
+        shadowEnemy.TakeDamage(damage);
         break;
       case StandaloneBreakableCrate crate:
         crate.TakeHit();

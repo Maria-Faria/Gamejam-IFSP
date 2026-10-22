@@ -34,8 +34,10 @@ public class PlayerShooting : MonoBehaviour
 
   [Header("Laser (tecla 3)")]
   [SerializeField] private float laserTickRate = 10f;
-  [SerializeField] private float laserDamage = 2f;
+  [SerializeField] private float laserDamage = 6f;
   [SerializeField] private float laserRange = 30f;
+  [Tooltip("Largura da área de acerto do laser. Compensa a arma ficar ao lado do corpo da personagem.")]
+  [SerializeField] private float laserHitRadius = 0.5f;
   [SerializeField] private float laserWidth = 0.08f;
   [SerializeField] private Color laserColor = new Color(1f, 0.95f, 0.5f);
   [SerializeField] private LayerMask laserMask = ~0;
@@ -68,6 +70,8 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private float railMaxDamage = 40f;
   [SerializeField] private float railCooldown = 0.5f;
   [SerializeField] private float railRange = 50f;
+  [Tooltip("Largura da área de acerto do railgun. Compensa a arma ficar ao lado do corpo da personagem.")]
+  [SerializeField] private float railHitRadius = 0.5f;
   [SerializeField] private float railWidth = 0.2f;
   [SerializeField] private Color railColor = new Color(0.4f, 0.9f, 1f);
   [Tooltip("Toca enquanto carrega e para ao soltar. Se vazio, usa o laserSound.")]
@@ -100,7 +104,7 @@ public class PlayerShooting : MonoBehaviour
   {
     HandleWeaponSwitch();
 
-    bool firing = Input.GetButton("Fire1");
+    bool firing = Input.GetKey(KeyCode.Space);
     bool laserActive = firing && currentWeapon == WeaponType.Laser && muzzle != null;
 
     Vector3 laserEnd = Vector3.zero;
@@ -311,8 +315,22 @@ public class PlayerShooting : MonoBehaviour
     RaycastHit[] hits = Physics.RaycastAll(start, muzzle.forward, railRange, laserMask, QueryTriggerInteraction.Ignore);
     System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-    HashSet<MonoBehaviour> damaged = new HashSet<MonoBehaviour>();
+    float blockDistance = railRange;
     foreach (RaycastHit hit in hits)
+    {
+      if (hit.collider.GetComponentInParent<PlayerMovement>() != null || WeaponDamage.FindTarget(hit.collider) != null
+        || IsRailPierceable(hit.collider))
+      {
+        continue;
+      }
+
+      blockDistance = hit.distance;
+      end = hit.point;
+      break;
+    }
+
+    HashSet<MonoBehaviour> damaged = new HashSet<MonoBehaviour>();
+    foreach (RaycastHit hit in Physics.SphereCastAll(start, railHitRadius, muzzle.forward, blockDistance, laserMask, QueryTriggerInteraction.Ignore))
     {
       if (hit.collider.GetComponentInParent<PlayerMovement>() != null)
       {
@@ -320,13 +338,7 @@ public class PlayerShooting : MonoBehaviour
       }
 
       MonoBehaviour target = WeaponDamage.FindTarget(hit.collider);
-      if (target == null)
-      {
-        end = hit.point;
-        break;
-      }
-
-      if (damaged.Add(target))
+      if (target != null && damaged.Add(target))
       {
         WeaponDamage.Damage(target, damage);
       }
@@ -336,6 +348,12 @@ public class PlayerShooting : MonoBehaviour
     railLine.SetPosition(1, end);
     railFlashTimer = RailFlashDuration;
     Fired?.Invoke(currentWeapon);
+  }
+
+  private static bool IsRailPierceable(Collider collider)
+  {
+    return collider.GetComponentInParent<GuardiasDaLuz.MapSystem.StandaloneSmartPost>() != null
+      || collider.name.StartsWith("Decor_");
   }
 
   private void UpdateRailVisual()
@@ -388,9 +406,29 @@ public class PlayerShooting : MonoBehaviour
   {
     Fired?.Invoke(currentWeapon);
 
-    if (hitSomething)
+    float length = hitSomething ? hit.distance : laserRange;
+    RaycastHit[] hits = Physics.SphereCastAll(muzzle.position, laserHitRadius, muzzle.forward, length, laserMask, QueryTriggerInteraction.Ignore);
+
+    MonoBehaviour closestTarget = hitSomething ? WeaponDamage.FindTarget(hit.collider) : null;
+    float closestDistance = closestTarget != null ? hit.distance : float.MaxValue;
+    foreach (RaycastHit sphereHit in hits)
     {
-      WeaponDamage.TryDamage(hit.collider, laserDamage);
+      if (sphereHit.distance <= 0f || sphereHit.distance >= closestDistance)
+      {
+        continue;
+      }
+
+      MonoBehaviour target = WeaponDamage.FindTarget(sphereHit.collider);
+      if (target != null)
+      {
+        closestTarget = target;
+        closestDistance = sphereHit.distance;
+      }
+    }
+
+    if (closestTarget != null)
+    {
+      WeaponDamage.Damage(closestTarget, laserDamage);
     }
   }
 
@@ -424,7 +462,7 @@ public class PlayerShooting : MonoBehaviour
   {
     AudioSource source = laserLine.gameObject.AddComponent<AudioSource>();
     source.playOnAwake = false;
-    source.loop = false;
+    source.loop = true;
     if (audioSource != null)
     {
       source.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;

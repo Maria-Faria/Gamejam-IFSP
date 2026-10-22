@@ -491,12 +491,48 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c7f5646793136240a61d63bb8fda652, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerShooting
-  bulletPrefab: {fileID: 5362839674482820599, guid: f091211fa35778a4eb8c56d9206821a0, type: 3}
   muzzle: {fileID: 782962151}
-  fireRate: 6
   audioSource: {fileID: 623602285}
+  currentWeapon: 0
+  bulletPrefab: {fileID: 5362839674482820599, guid: f091211fa35778a4eb8c56d9206821a0, type: 3}
+  fireRate: 6
   shootSound: {fileID: 8300000, guid: 428e37a69415d294da9ac3609baf7c26, type: 3}
+  shotgunPelletPrefab: {fileID: 0}
+  shotgunFireRate: 1.2
+  shotgunPellets: 7
+  shotgunSpreadAngle: 30
+  shotgunSound: {fileID: 0}
+  laserTickRate: 10
+  laserDamage: 6
+  laserRange: 30
+  laserHitRadius: 0.5
+  laserWidth: 0.08
+  laserColor: {r: 1, g: 0.95, b: 0.5, a: 1}
+  laserMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   laserSound: {fileID: 8300000, guid: 0d3b92b7094dd2c44b06e95133c3070f, type: 3}
+  machineGunFireRate: 14
+  machineGunSpreadAngle: 8
+  machineGunSound: {fileID: 0}
+  rocketPrefab: {fileID: 0}
+  rocketFireRate: 0.8
+  rocketSpeed: 14
+  rocketExplosionRadius: 3.5
+  rocketExplosionDamage: 25
+  rocketColor: {r: 1, g: 0.45, b: 0.15, a: 1}
+  rocketLaunchSound: {fileID: 0}
+  impactSound: {fileID: 8300000, guid: 0f82bf31a874d9c4baf22188b4a6972d, type: 3}
+  railChargeTime: 1
+  railMinCharge: 0.25
+  railMinDamage: 10
+  railMaxDamage: 40
+  railCooldown: 0.5
+  railRange: 50
+  railHitRadius: 0.5
+  railWidth: 0.2
+  railColor: {r: 0.4, g: 0.9, b: 1, a: 1}
+  railSound: {fileID: 8300000, guid: 9e8f0517b00d2cc4cb8915fa012dad38, type: 3}
 --- !u!82 &623602285
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1020,7 +1056,7 @@ MonoBehaviour:
   playerCurrencyCrystals: 25
   customMonsterPrefabs: []
   customBossMonsterPrefab: {fileID: 0}
-  spawnPlaceholderMonstersIfPrefabsEmpty: 1
+  spawnPlaceholderMonstersIfPrefabsEmpty: 0
   customFloorPrefab: {fileID: 0}
   customWallPrefab: {fileID: 0}
   customDoorBarrierPrefab: {fileID: 0}
@@ -1028,12 +1064,189 @@ MonoBehaviour:
   customBreakableCratePrefab: {fileID: 0}
   customRareDropBatteryPrefab: {fileID: 0}
   customPedestalPrefab: {fileID: 0}
+  levelThemes:
+  - themeName: "N\xEDvel 1 \u2022 Laborat\xF3rio"
+    assetFolder: Assets/Levels/L1_Lab
+    mainFloorName: Lab_Floor_Plain
+    accentFloorName: Lab_Floor_Grate
+    mainFloor: {fileID: 919132149155446097, guid: f7655c621361ea04eac00572f19a3782, type: 3}
+    accentFloor: {fileID: 919132149155446097, guid: f223ffecb71a8bb4f92f83361104b11d, type: 3}
+    floorDetails:
+    - {fileID: 919132149155446097, guid: 2ae9d0e753b103e48b642a878357ca09, type: 3}
+    - {fileID: 919132149155446097, guid: faf578591f9300647954310da734dd6e, type: 3}
+    mainWall: {fileID: 919132149155446097, guid: 05c607985d268b34f95127c0cd1409b6, type: 3}
+    decoratedWalls:
+    - {fileID: 919132149155446097, guid: 03459f282d42e6f4eaa1be418c41dab3, type: 3}
+    wallDoor: {fileID: 919132149155446097, guid: f70e79ba0d19f6349bd55603b9f4dff4, type: 3}
+    wallCorner: {fileID: 919132149155446097, guid: 7236a39a4b4153b46825942329a2555e, type: 3}
+    post: {fileID: 919132149155446097, guid: 1a99e5307712bf843a3b3f8523be64a0, type: 3}
+    floorTileSize: 4
+    floorDetailChance: 0.18
+    decoratedWallChance: 0.2
+    doorOpeningRatio: 0.5
+  - themeName: "N\xEDvel 2 \u2022 Cidade"
+    assetFolder: Assets/Levels/L2_City
+    mainFloorName: City_Floor_Pavers
+    accentFloorName: City_Floor_Cobble
+    mainFloor: {fileID: 919132149155446097, guid: d737f82c3eeb33b43a631b2392f9a5c2, type: 3}
+    accentFloor: {fileID: 919132149155446097, guid: 30b3248c4a0202d43ab19f07cb8d8130, type: 3}
+    floorDetails:
+    - {fileID: 919132149155446097, guid: c4a10b64265381749871048469d94055, type: 3}
+    - {fileID: 919132149155446097, guid: 86f173bcf574e8249ba982c9c138c33c, type: 3}
+    - {fileID: 919132149155446097, guid: 8adbc230212f6644f9e0058d73061f10, type: 3}
+    mainWall: {fileID: 919132149155446097, guid: b6b6c1f143e637a4f9584dd94a57ea91, type: 3}
+    decoratedWalls:
+    - {fileID: 919132149155446097, guid: 5f47b255ec7776c43997e6657769018a, type: 3}
+    wallDoor: {fileID: 919132149155446097, guid: 3e2a544aeba8b7f43aef92c043a78446, type: 3}
+    wallCorner: {fileID: 919132149155446097, guid: 442d22ba4c1a47b4fb9c0f29a9788fc8, type: 3}
+    post: {fileID: 919132149155446097, guid: 4b0d0a49b498b094f86f6405fde03414, type: 3}
+    floorTileSize: 4
+    floorDetailChance: 0.18
+    decoratedWallChance: 0.2
+    doorOpeningRatio: 0.5
+  - themeName: "N\xEDvel 3 \u2022 Jardim"
+    assetFolder: Assets/Levels/L3_Garden
+    mainFloorName: Garden_Floor_Grass
+    accentFloorName: Garden_Floor_Stone
+    mainFloor: {fileID: 919132149155446097, guid: 7943fead81a1f034398c7eff2bd6c71c, type: 3}
+    accentFloor: {fileID: 919132149155446097, guid: 1db3aa17b980c9f4a8a05a0fcf7a1744, type: 3}
+    floorDetails:
+    - {fileID: 919132149155446097, guid: 72b47e1876da70f40ab329d9a72a6dcc, type: 3}
+    - {fileID: 919132149155446097, guid: 26ad13259d176d149907f197d4831ab5, type: 3}
+    - {fileID: 919132149155446097, guid: f505fec7afd87304f9fe1aa33c945596, type: 3}
+    mainWall: {fileID: 919132149155446097, guid: 7e0dcfb2f76dcf94f9881fcd2b53d264, type: 3}
+    decoratedWalls:
+    - {fileID: 919132149155446097, guid: 1100d17e0e5ef684b994ba4e10976e19, type: 3}
+    - {fileID: 919132149155446097, guid: e2104b4abb459c34ab5f0a4f66ba2241, type: 3}
+    wallDoor: {fileID: 919132149155446097, guid: 1118e7b1caed16e4491d8bac96065563, type: 3}
+    wallCorner: {fileID: 919132149155446097, guid: c8bfa19664db2044e88cef0b65f91040, type: 3}
+    post: {fileID: 919132149155446097, guid: a343dd87d6b0b974e8a8dbe7bb49dcd1, type: 3}
+    floorTileSize: 4
+    floorDetailChance: 0.18
+    decoratedWallChance: 0.2
+    doorOpeningRatio: 0.5
+  levelDecorKits:
+  - kitName: "N\xEDvel 1 \u2022 Laborat\xF3rio"
+    standingPropNames:
+    - server
+    - pc
+    - table
+    - toolbox
+    - crate
+    - barrel
+    - laser
+    - sign_warn
+    - bin
+    wallMountedPropNames:
+    - led_wall
+    floorPanelNames:
+    - led_floor
+    standingProps:
+    - {fileID: 919132149155446097, guid: 66c27eb186dbd7843bc6513c1e591e98, type: 3}
+    - {fileID: 919132149155446097, guid: 3359d9d2c36bc094d84ee1921ff76d73, type: 3}
+    - {fileID: 919132149155446097, guid: e90244f1a9caaf74989ff84c0a42ed68, type: 3}
+    - {fileID: 919132149155446097, guid: 24c67a666b70c8644a0d1a094a313d02, type: 3}
+    - {fileID: 919132149155446097, guid: 9f9d4a22095a3c34786fd7a1ed53ec02, type: 3}
+    - {fileID: 919132149155446097, guid: 032d05ff3e010a84293090a5a6170be8, type: 3}
+    - {fileID: 919132149155446097, guid: cce5d3f9cc2485943823ae293f3cb3ee, type: 3}
+    - {fileID: 919132149155446097, guid: 62bbe102590af81448f841492776e10a, type: 3}
+    - {fileID: 919132149155446097, guid: 743ce64bba08c9144aaccfc7c6e4ffc9, type: 3}
+    wallMountedProps:
+    - {fileID: 919132149155446097, guid: e075c524a743fab479bd88e3fbfc7109, type: 3}
+    floorPanels:
+    - {fileID: 919132149155446097, guid: 0fc595157c286ac43a49061736a4c18b, type: 3}
+    minStandingProps: 10
+    maxStandingProps: 16
+    maxWallMountedProps: 3
+    maxFloorPanels: 2
+  - kitName: "N\xEDvel 2 \u2022 Cidade"
+    standingPropNames:
+    - trafic
+    - cone
+    - bench
+    - bin
+    - lamp
+    - park
+    - sign
+    - gate
+    - barrel
+    - crate
+    - gun
+    wallMountedPropNames: []
+    floorPanelNames: []
+    standingProps:
+    - {fileID: 919132149155446097, guid: 6070d20fccf03974da778e2b65d8dbc9, type: 3}
+    - {fileID: 919132149155446097, guid: 233de1ddf12e0464083bc18d0d9854f0, type: 3}
+    - {fileID: 919132149155446097, guid: cbdf7eee977d4c34486ec0a6c70d4300, type: 3}
+    - {fileID: 919132149155446097, guid: 743ce64bba08c9144aaccfc7c6e4ffc9, type: 3}
+    - {fileID: 919132149155446097, guid: 6e54533b00b4b8346b31329a6e14515f, type: 3}
+    - {fileID: 919132149155446097, guid: f92f4734dd6f9864da144336b614c1d3, type: 3}
+    - {fileID: 919132149155446097, guid: 1d68f1062f18feb46bdb477496a79abb, type: 3}
+    - {fileID: 919132149155446097, guid: 2469e9d19afa95543ac80cbfd21ba5da, type: 3}
+    - {fileID: 919132149155446097, guid: 032d05ff3e010a84293090a5a6170be8, type: 3}
+    - {fileID: 919132149155446097, guid: 9f9d4a22095a3c34786fd7a1ed53ec02, type: 3}
+    - {fileID: 919132149155446097, guid: 2a3a397b1e55070419463c8dc85b553a, type: 3}
+    wallMountedProps: []
+    floorPanels: []
+    minStandingProps: 10
+    maxStandingProps: 16
+    maxWallMountedProps: 3
+    maxFloorPanels: 2
+  - kitName: "N\xEDvel 3 \u2022 Jardim"
+    standingPropNames:
+    - plant
+    - bench
+    - lamp
+    - bin
+    - gate
+    - sign
+    - table
+    - barrel
+    wallMountedPropNames: []
+    floorPanelNames: []
+    standingProps:
+    - {fileID: 919132149155446097, guid: 05fdadcf54efe5c4d8d0424de13fdf68, type: 3}
+    - {fileID: 919132149155446097, guid: cbdf7eee977d4c34486ec0a6c70d4300, type: 3}
+    - {fileID: 919132149155446097, guid: 6e54533b00b4b8346b31329a6e14515f, type: 3}
+    - {fileID: 919132149155446097, guid: 743ce64bba08c9144aaccfc7c6e4ffc9, type: 3}
+    - {fileID: 919132149155446097, guid: 2469e9d19afa95543ac80cbfd21ba5da, type: 3}
+    - {fileID: 919132149155446097, guid: 1d68f1062f18feb46bdb477496a79abb, type: 3}
+    - {fileID: 919132149155446097, guid: e90244f1a9caaf74989ff84c0a42ed68, type: 3}
+    - {fileID: 919132149155446097, guid: 032d05ff3e010a84293090a5a6170be8, type: 3}
+    wallMountedProps: []
+    floorPanels: []
+    minStandingProps: 10
+    maxStandingProps: 16
+    maxWallMountedProps: 3
+    maxFloorPanels: 2
+  decorCenterLight: {fileID: 919132149155446097, guid: 62b7e1ff4a99d394e9ec88521c286938, type: 3}
+  decorMetalDoor: {fileID: 919132149155446097, guid: 516c8059513c85f4184d11ca4b7a2347, type: 3}
+  decorLock: {fileID: 919132149155446097, guid: e155817b3210df94b9939be82090db7a, type: 3}
+  monsterModels:
+  - {fileID: 919132149155446097, guid: 43b152fa0a0702442a05e925cc21f629, type: 3}
+  - {fileID: 919132149155446097, guid: ab3cdaf9a3c1a8f46807b817cd60febd, type: 3}
+  - {fileID: 919132149155446097, guid: 418fa4504af812244a03b3965fd19159, type: 3}
+  - {fileID: 919132149155446097, guid: 35f892a78f696344580c9fd9053840c7, type: 3}
+  - {fileID: 919132149155446097, guid: 5dad52b5db7bc9840a4a9aec93e8422d, type: 3}
+  - {fileID: 919132149155446097, guid: 9808ceb2fa62c0e47acf6e00310ee19d, type: 3}
+  - {fileID: 919132149155446097, guid: 98666c0f03a37a4459866a95b17b9646, type: 3}
+  - {fileID: 919132149155446097, guid: 59531ce31c0597c4eb585a17bfceb874, type: 3}
+  - {fileID: 919132149155446097, guid: 271001f1523c75644b7aa62ce36ec79d, type: 3}
   roomWidthX: 32
   roomLengthZ: 26
   doorOpeningWidth: 5.4
   rareCrateDropChance: 0.1
   showBuiltInMinimapHUD: 1
   showBuiltInSubtitleHUD: 1
+  minMonstersPerRoom: 6
+  maxMonstersPerRoom: 20
+  darkRooms: 1
+  darkAmbientColor: {r: 0.16, g: 0.16, b: 0.22, a: 1}
+  dimLightsPerRoom: 4
+  dimLightIntensity: 6
+  dimLightRange: 12
+  dimLightColor: {r: 0.55, g: 0.65, b: 1, a: 1}
+  lightTransitionSeconds: 1.2
   floors:
   - floorTitle: "N\xEDvel 1 \u2022 Andar 1-1: P\xEDer & Entrada do Farol"
     levelNumber: 1

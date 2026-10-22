@@ -1,0 +1,183 @@
+file,category,event,description,duration_seconds,loop,sample_rate,channels,bit_depth
+characters/gladys_west/idle.wav,characters/gladys_west,idle,Gladys West: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/gladys_west/use_button.wav,characters/gladys_west,use_button,Gladys West: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/gladys_west/use_item.wav,characters/gladys_west,use_item,Gladys West: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/gladys_west/run.wav,characters/gladys_west,run,Gladys West: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/gladys_west/shoot.wav,characters/gladys_west,shoot,Gladys West: Rounded light projectile pew,0.16,False,48000,1,16
+characters/gladys_west/projectile_hit_wall.wav,characters/gladys_west,projectile_hit_wall,Gladys West: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/gladys_west/projectile_explode_wall.wav,characters/gladys_west,projectile_explode_wall,Gladys West: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/gladys_west/projectile_hit_metal.wav,characters/gladys_west,projectile_hit_metal,Gladys West: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/gladys_west/projectile_hit_wood.wav,characters/gladys_west,projectile_hit_wood,Gladys West: Hollow wooden tok,0.22,False,48000,1,16
+characters/gladys_west/projectile_hit_plastic.wav,characters/gladys_west,projectile_hit_plastic,Gladys West: Light springy plastic plok,0.16,False,48000,1,16
+characters/gladys_west/being_hit.wav,characters/gladys_west,being_hit,Gladys West: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/gladys_west/death.wav,characters/gladys_west,death,Gladys West: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/gladys_west/happy.wav,characters/gladys_west,happy,Gladys West: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/alice_ball/idle.wav,characters/alice_ball,idle,Alice Ball: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/alice_ball/use_button.wav,characters/alice_ball,use_button,Alice Ball: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/alice_ball/use_item.wav,characters/alice_ball,use_item,Alice Ball: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/alice_ball/run.wav,characters/alice_ball,run,Alice Ball: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/alice_ball/shoot.wav,characters/alice_ball,shoot,Alice Ball: Rounded light projectile pew,0.16,False,48000,1,16
+characters/alice_ball/projectile_hit_wall.wav,characters/alice_ball,projectile_hit_wall,Alice Ball: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/alice_ball/projectile_explode_wall.wav,characters/alice_ball,projectile_explode_wall,Alice Ball: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/alice_ball/projectile_hit_metal.wav,characters/alice_ball,projectile_hit_metal,Alice Ball: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/alice_ball/projectile_hit_wood.wav,characters/alice_ball,projectile_hit_wood,Alice Ball: Hollow wooden tok,0.22,False,48000,1,16
+characters/alice_ball/projectile_hit_plastic.wav,characters/alice_ball,projectile_hit_plastic,Alice Ball: Light springy plastic plok,0.16,False,48000,1,16
+characters/alice_ball/being_hit.wav,characters/alice_ball,being_hit,Alice Ball: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/alice_ball/death.wav,characters/alice_ball,death,Alice Ball: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/alice_ball/happy.wav,characters/alice_ball,happy,Alice Ball: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/barbara_mcclintock/idle.wav,characters/barbara_mcclintock,idle,Barbara McClintock: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/barbara_mcclintock/use_button.wav,characters/barbara_mcclintock,use_button,Barbara McClintock: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/barbara_mcclintock/use_item.wav,characters/barbara_mcclintock,use_item,Barbara McClintock: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/barbara_mcclintock/run.wav,characters/barbara_mcclintock,run,Barbara McClintock: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/barbara_mcclintock/shoot.wav,characters/barbara_mcclintock,shoot,Barbara McClintock: Rounded light projectile pew,0.16,False,48000,1,16
+characters/barbara_mcclintock/projectile_hit_wall.wav,characters/barbara_mcclintock,projectile_hit_wall,Barbara McClintock: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/barbara_mcclintock/projectile_explode_wall.wav,characters/barbara_mcclintock,projectile_explode_wall,Barbara McClintock: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/barbara_mcclintock/projectile_hit_metal.wav,characters/barbara_mcclintock,projectile_hit_metal,Barbara McClintock: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/barbara_mcclintock/projectile_hit_wood.wav,characters/barbara_mcclintock,projectile_hit_wood,Barbara McClintock: Hollow wooden tok,0.22,False,48000,1,16
+characters/barbara_mcclintock/projectile_hit_plastic.wav,characters/barbara_mcclintock,projectile_hit_plastic,Barbara McClintock: Light springy plastic plok,0.16,False,48000,1,16
+characters/barbara_mcclintock/being_hit.wav,characters/barbara_mcclintock,being_hit,Barbara McClintock: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/barbara_mcclintock/death.wav,characters/barbara_mcclintock,death,Barbara McClintock: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/barbara_mcclintock/happy.wav,characters/barbara_mcclintock,happy,Barbara McClintock: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/ada_lovelace/idle.wav,characters/ada_lovelace,idle,Ada Lovelace: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/ada_lovelace/use_button.wav,characters/ada_lovelace,use_button,Ada Lovelace: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/ada_lovelace/use_item.wav,characters/ada_lovelace,use_item,Ada Lovelace: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/ada_lovelace/run.wav,characters/ada_lovelace,run,Ada Lovelace: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/ada_lovelace/shoot.wav,characters/ada_lovelace,shoot,Ada Lovelace: Rounded light projectile pew,0.16,False,48000,1,16
+characters/ada_lovelace/projectile_hit_wall.wav,characters/ada_lovelace,projectile_hit_wall,Ada Lovelace: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/ada_lovelace/projectile_explode_wall.wav,characters/ada_lovelace,projectile_explode_wall,Ada Lovelace: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/ada_lovelace/projectile_hit_metal.wav,characters/ada_lovelace,projectile_hit_metal,Ada Lovelace: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/ada_lovelace/projectile_hit_wood.wav,characters/ada_lovelace,projectile_hit_wood,Ada Lovelace: Hollow wooden tok,0.22,False,48000,1,16
+characters/ada_lovelace/projectile_hit_plastic.wav,characters/ada_lovelace,projectile_hit_plastic,Ada Lovelace: Light springy plastic plok,0.16,False,48000,1,16
+characters/ada_lovelace/being_hit.wav,characters/ada_lovelace,being_hit,Ada Lovelace: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/ada_lovelace/death.wav,characters/ada_lovelace,death,Ada Lovelace: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/ada_lovelace/happy.wav,characters/ada_lovelace,happy,Ada Lovelace: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/wanda_diaz_merced/idle.wav,characters/wanda_diaz_merced,idle,Wanda Díaz-Merced: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/wanda_diaz_merced/use_button.wav,characters/wanda_diaz_merced,use_button,Wanda Díaz-Merced: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/wanda_diaz_merced/use_item.wav,characters/wanda_diaz_merced,use_item,Wanda Díaz-Merced: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/wanda_diaz_merced/run.wav,characters/wanda_diaz_merced,run,Wanda Díaz-Merced: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/wanda_diaz_merced/shoot.wav,characters/wanda_diaz_merced,shoot,Wanda Díaz-Merced: Rounded light projectile pew,0.16,False,48000,1,16
+characters/wanda_diaz_merced/projectile_hit_wall.wav,characters/wanda_diaz_merced,projectile_hit_wall,Wanda Díaz-Merced: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/wanda_diaz_merced/projectile_explode_wall.wav,characters/wanda_diaz_merced,projectile_explode_wall,Wanda Díaz-Merced: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/wanda_diaz_merced/projectile_hit_metal.wav,characters/wanda_diaz_merced,projectile_hit_metal,Wanda Díaz-Merced: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/wanda_diaz_merced/projectile_hit_wood.wav,characters/wanda_diaz_merced,projectile_hit_wood,Wanda Díaz-Merced: Hollow wooden tok,0.22,False,48000,1,16
+characters/wanda_diaz_merced/projectile_hit_plastic.wav,characters/wanda_diaz_merced,projectile_hit_plastic,Wanda Díaz-Merced: Light springy plastic plok,0.16,False,48000,1,16
+characters/wanda_diaz_merced/being_hit.wav,characters/wanda_diaz_merced,being_hit,Wanda Díaz-Merced: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/wanda_diaz_merced/death.wav,characters/wanda_diaz_merced,death,Wanda Díaz-Merced: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/wanda_diaz_merced/happy.wav,characters/wanda_diaz_merced,happy,Wanda Díaz-Merced: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/tu_youyou/idle.wav,characters/tu_youyou,idle,Tu Youyou: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/tu_youyou/use_button.wav,characters/tu_youyou,use_button,Tu Youyou: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/tu_youyou/use_item.wav,characters/tu_youyou,use_item,Tu Youyou: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/tu_youyou/run.wav,characters/tu_youyou,run,Tu Youyou: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/tu_youyou/shoot.wav,characters/tu_youyou,shoot,Tu Youyou: Rounded light projectile pew,0.16,False,48000,1,16
+characters/tu_youyou/projectile_hit_wall.wav,characters/tu_youyou,projectile_hit_wall,Tu Youyou: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/tu_youyou/projectile_explode_wall.wav,characters/tu_youyou,projectile_explode_wall,Tu Youyou: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/tu_youyou/projectile_hit_metal.wav,characters/tu_youyou,projectile_hit_metal,Tu Youyou: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/tu_youyou/projectile_hit_wood.wav,characters/tu_youyou,projectile_hit_wood,Tu Youyou: Hollow wooden tok,0.22,False,48000,1,16
+characters/tu_youyou/projectile_hit_plastic.wav,characters/tu_youyou,projectile_hit_plastic,Tu Youyou: Light springy plastic plok,0.16,False,48000,1,16
+characters/tu_youyou/being_hit.wav,characters/tu_youyou,being_hit,Tu Youyou: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/tu_youyou/death.wav,characters/tu_youyou,death,Tu Youyou: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/tu_youyou/happy.wav,characters/tu_youyou,happy,Tu Youyou: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/patricia_bath/idle.wav,characters/patricia_bath,idle,Patricia Bath: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/patricia_bath/use_button.wav,characters/patricia_bath,use_button,Patricia Bath: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/patricia_bath/use_item.wav,characters/patricia_bath,use_item,Patricia Bath: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/patricia_bath/run.wav,characters/patricia_bath,run,Patricia Bath: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/patricia_bath/shoot.wav,characters/patricia_bath,shoot,Patricia Bath: Rounded light projectile pew,0.16,False,48000,1,16
+characters/patricia_bath/projectile_hit_wall.wav,characters/patricia_bath,projectile_hit_wall,Patricia Bath: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/patricia_bath/projectile_explode_wall.wav,characters/patricia_bath,projectile_explode_wall,Patricia Bath: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/patricia_bath/projectile_hit_metal.wav,characters/patricia_bath,projectile_hit_metal,Patricia Bath: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/patricia_bath/projectile_hit_wood.wav,characters/patricia_bath,projectile_hit_wood,Patricia Bath: Hollow wooden tok,0.22,False,48000,1,16
+characters/patricia_bath/projectile_hit_plastic.wav,characters/patricia_bath,projectile_hit_plastic,Patricia Bath: Light springy plastic plok,0.16,False,48000,1,16
+characters/patricia_bath/being_hit.wav,characters/patricia_bath,being_hit,Patricia Bath: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/patricia_bath/death.wav,characters/patricia_bath,death,Patricia Bath: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/patricia_bath/happy.wav,characters/patricia_bath,happy,Patricia Bath: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/annie_easley/idle.wav,characters/annie_easley,idle,Annie Easley: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/annie_easley/use_button.wav,characters/annie_easley,use_button,Annie Easley: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/annie_easley/use_item.wav,characters/annie_easley,use_item,Annie Easley: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/annie_easley/run.wav,characters/annie_easley,run,Annie Easley: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/annie_easley/shoot.wav,characters/annie_easley,shoot,Annie Easley: Rounded light projectile pew,0.16,False,48000,1,16
+characters/annie_easley/projectile_hit_wall.wav,characters/annie_easley,projectile_hit_wall,Annie Easley: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/annie_easley/projectile_explode_wall.wav,characters/annie_easley,projectile_explode_wall,Annie Easley: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/annie_easley/projectile_hit_metal.wav,characters/annie_easley,projectile_hit_metal,Annie Easley: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/annie_easley/projectile_hit_wood.wav,characters/annie_easley,projectile_hit_wood,Annie Easley: Hollow wooden tok,0.22,False,48000,1,16
+characters/annie_easley/projectile_hit_plastic.wav,characters/annie_easley,projectile_hit_plastic,Annie Easley: Light springy plastic plok,0.16,False,48000,1,16
+characters/annie_easley/being_hit.wav,characters/annie_easley,being_hit,Annie Easley: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/annie_easley/death.wav,characters/annie_easley,death,Annie Easley: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/annie_easley/happy.wav,characters/annie_easley,happy,Annie Easley: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/bibha_chowdhuri/idle.wav,characters/bibha_chowdhuri,idle,Bibha Chowdhuri: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/bibha_chowdhuri/use_button.wav,characters/bibha_chowdhuri,use_button,Bibha Chowdhuri: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/bibha_chowdhuri/use_item.wav,characters/bibha_chowdhuri,use_item,Bibha Chowdhuri: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/bibha_chowdhuri/run.wav,characters/bibha_chowdhuri,run,Bibha Chowdhuri: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/bibha_chowdhuri/shoot.wav,characters/bibha_chowdhuri,shoot,Bibha Chowdhuri: Rounded light projectile pew,0.16,False,48000,1,16
+characters/bibha_chowdhuri/projectile_hit_wall.wav,characters/bibha_chowdhuri,projectile_hit_wall,Bibha Chowdhuri: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/bibha_chowdhuri/projectile_explode_wall.wav,characters/bibha_chowdhuri,projectile_explode_wall,Bibha Chowdhuri: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/bibha_chowdhuri/projectile_hit_metal.wav,characters/bibha_chowdhuri,projectile_hit_metal,Bibha Chowdhuri: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/bibha_chowdhuri/projectile_hit_wood.wav,characters/bibha_chowdhuri,projectile_hit_wood,Bibha Chowdhuri: Hollow wooden tok,0.22,False,48000,1,16
+characters/bibha_chowdhuri/projectile_hit_plastic.wav,characters/bibha_chowdhuri,projectile_hit_plastic,Bibha Chowdhuri: Light springy plastic plok,0.16,False,48000,1,16
+characters/bibha_chowdhuri/being_hit.wav,characters/bibha_chowdhuri,being_hit,Bibha Chowdhuri: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/bibha_chowdhuri/death.wav,characters/bibha_chowdhuri,death,Bibha Chowdhuri: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/bibha_chowdhuri/happy.wav,characters/bibha_chowdhuri,happy,Bibha Chowdhuri: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/hertha_ayrton/idle.wav,characters/hertha_ayrton,idle,Hertha Ayrton: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/hertha_ayrton/use_button.wav,characters/hertha_ayrton,use_button,Hertha Ayrton: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/hertha_ayrton/use_item.wav,characters/hertha_ayrton,use_item,Hertha Ayrton: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/hertha_ayrton/run.wav,characters/hertha_ayrton,run,Hertha Ayrton: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/hertha_ayrton/shoot.wav,characters/hertha_ayrton,shoot,Hertha Ayrton: Rounded light projectile pew,0.16,False,48000,1,16
+characters/hertha_ayrton/projectile_hit_wall.wav,characters/hertha_ayrton,projectile_hit_wall,Hertha Ayrton: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/hertha_ayrton/projectile_explode_wall.wav,characters/hertha_ayrton,projectile_explode_wall,Hertha Ayrton: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/hertha_ayrton/projectile_hit_metal.wav,characters/hertha_ayrton,projectile_hit_metal,Hertha Ayrton: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/hertha_ayrton/projectile_hit_wood.wav,characters/hertha_ayrton,projectile_hit_wood,Hertha Ayrton: Hollow wooden tok,0.22,False,48000,1,16
+characters/hertha_ayrton/projectile_hit_plastic.wav,characters/hertha_ayrton,projectile_hit_plastic,Hertha Ayrton: Light springy plastic plok,0.16,False,48000,1,16
+characters/hertha_ayrton/being_hit.wav,characters/hertha_ayrton,being_hit,Hertha Ayrton: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/hertha_ayrton/death.wav,characters/hertha_ayrton,death,Hertha Ayrton: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/hertha_ayrton/happy.wav,characters/hertha_ayrton,happy,Hertha Ayrton: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/maria_telkes/idle.wav,characters/maria_telkes,idle,Mária Telkes: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/maria_telkes/use_button.wav,characters/maria_telkes,use_button,Mária Telkes: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/maria_telkes/use_item.wav,characters/maria_telkes,use_item,Mária Telkes: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/maria_telkes/run.wav,characters/maria_telkes,run,Mária Telkes: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/maria_telkes/shoot.wav,characters/maria_telkes,shoot,Mária Telkes: Rounded light projectile pew,0.16,False,48000,1,16
+characters/maria_telkes/projectile_hit_wall.wav,characters/maria_telkes,projectile_hit_wall,Mária Telkes: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/maria_telkes/projectile_explode_wall.wav,characters/maria_telkes,projectile_explode_wall,Mária Telkes: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/maria_telkes/projectile_hit_metal.wav,characters/maria_telkes,projectile_hit_metal,Mária Telkes: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/maria_telkes/projectile_hit_wood.wav,characters/maria_telkes,projectile_hit_wood,Mária Telkes: Hollow wooden tok,0.22,False,48000,1,16
+characters/maria_telkes/projectile_hit_plastic.wav,characters/maria_telkes,projectile_hit_plastic,Mária Telkes: Light springy plastic plok,0.16,False,48000,1,16
+characters/maria_telkes/being_hit.wav,characters/maria_telkes,being_hit,Mária Telkes: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/maria_telkes/death.wav,characters/maria_telkes,death,Mária Telkes: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/maria_telkes/happy.wav,characters/maria_telkes,happy,Mária Telkes: Bouncy nonverbal celebration,0.615,False,48000,1,16
+characters/chien_shiung_wu/idle.wav,characters/chien_shiung_wu,idle,Chien-Shiung Wu: Quiet two-note idle murmur; play occasionally,0.54,False,48000,1,16
+characters/chien_shiung_wu/use_button.wav,characters/chien_shiung_wu,use_button,Chien-Shiung Wu: Mitten button tap with a tiny confirmation note,0.17,False,48000,1,16
+characters/chien_shiung_wu/use_item.wav,characters/chien_shiung_wu,use_item,Chien-Shiung Wu: Three-note discovery sparkle,0.42,False,48000,1,16
+characters/chien_shiung_wu/run.wav,characters/chien_shiung_wu,run,Chien-Shiung Wu: Four alternating padded footsteps; seamless 0.88-second loop,0.88,True,48000,1,16
+characters/chien_shiung_wu/shoot.wav,characters/chien_shiung_wu,shoot,Chien-Shiung Wu: Rounded light projectile pew,0.16,False,48000,1,16
+characters/chien_shiung_wu/projectile_hit_wall.wav,characters/chien_shiung_wu,projectile_hit_wall,Chien-Shiung Wu: Soft stone tick and muted dust thump,0.22,False,48000,1,16
+characters/chien_shiung_wu/projectile_explode_wall.wav,characters/chien_shiung_wu,projectile_explode_wall,Chien-Shiung Wu: Small cushioned poof with falling light debris,0.6,False,48000,1,16
+characters/chien_shiung_wu/projectile_hit_metal.wav,characters/chien_shiung_wu,projectile_hit_metal,Chien-Shiung Wu: Short bright toy-metal ting,0.42,False,48000,1,16
+characters/chien_shiung_wu/projectile_hit_wood.wav,characters/chien_shiung_wu,projectile_hit_wood,Chien-Shiung Wu: Hollow wooden tok,0.22,False,48000,1,16
+characters/chien_shiung_wu/projectile_hit_plastic.wav,characters/chien_shiung_wu,projectile_hit_plastic,Chien-Shiung Wu: Light springy plastic plok,0.16,False,48000,1,16
+characters/chien_shiung_wu/being_hit.wav,characters/chien_shiung_wu,being_hit,Chien-Shiung Wu: Quick descending nonverbal ouch cue,0.25,False,48000,1,16
+characters/chien_shiung_wu/death.wav,characters/chien_shiung_wu,death,Chien-Shiung Wu: Gentle four-note power-down; no realistic distress,0.84,False,48000,1,16
+characters/chien_shiung_wu/happy.wav,characters/chien_shiung_wu,happy,Chien-Shiung Wu: Bouncy nonverbal celebration,0.615,False,48000,1,16
+shared/ui/keyboard_click.wav,shared/ui,keyboard_click,Soft keyboard key tak,0.065,False,48000,1,16
+shared/ui/mouse_click.wav,shared/ui,mouse_click,Small press-and-release mouse click,0.08,False,48000,1,16
+shared/electronics/light_on.wav,shared/electronics,light_on,Switch click followed by a soft rising light tone,0.395,False,48000,1,16
+shared/ui/victory.wav,shared/ui,victory,Bright five-note victory jingle,1.19,False,48000,1,16
+shared/ui/defeat.wav,shared/ui,defeat,Gentle descending defeat jingle,1.21,False,48000,1,16
+shared/ui/emoji_happy.wav,shared/ui,emoji_happy,Smiling three-note bubble,0.33,False,48000,1,16
+shared/ui/emoji_sad.wav,shared/ui,emoji_sad,Soft drooping two-note sigh,0.54,False,48000,1,16
+shared/ui/emoji_angry.wav,shared/ui,emoji_angry,Cute grumbly triplet,0.25,False,48000,1,16
+shared/ui/negative.wav,shared/ui,negative,Calm two-note refusal,0.29,False,48000,1,16
+shared/ui/wrong.wav,shared/ui,wrong,Short gently dissonant wobble,0.29,False,48000,1,16
+shared/ui/correct.wav,shared/ui,correct,Clean upward confirmation ding,0.41,False,48000,1,16
+shared/ui/right.wav,shared/ui,right,Single bright acknowledgment pop,0.24,False,48000,1,16
+shared/ui/warning.wav,shared/ui,warning,Three clear alert pips without a harsh alarm,0.5,False,48000,1,16
+shared/ghost/idle.wav,shared/ghost,idle,Airy wobbling ghost coo,1.3,False,48000,1,16
+shared/ghost/roar.wav,shared/ghost,roar,Comical low ghost warble,0.9,False,48000,1,16
+shared/ghost/appear.wav,shared/ghost,appear,Rising spectral bloop and airy swish,0.65,False,48000,1,16
+shared/ghost/slither.wav,shared/ghost,slither,Soft undulating shuffles and low burbles,1.03,False,48000,1,16
+shared/ghost/puff.wav,shared/ghost,puff,Short cloudy pop,0.3,False,48000,1,16
+shared/ghost/death.wav,shared/ghost,death,Dissolving descending bubbles and a final poof,0.82,False,48000,1,16
+shared/ghost/spit.wav,shared/ghost,spit,Wet cartoon plip with a small launch chirp,0.19,False,48000,1,16
+shared/ghost/explosion.wav,shared/ghost,explosion,Cushioned ghost burst with wobbling debris,0.6,False,48000,1,16
+shared/ghost/pain.wav,shared/ghost,pain,Brief downward squeaky warble,0.25,False,48000,1,16
+shared/environment/flames.wav,shared/environment,flames,Soft filtered flame flutter with tiny crackles; seamless two-second loop,2.0,True,48000,1,16
+shared/electronics/beeping.wav,shared/electronics,beeping,Three mellow equipment status beeps,0.65,False,48000,1,16
+shared/electronics/lights.wav,shared/electronics,lights,Delicate electronic light shimmer,0.56,False,48000,1,16
+shared/electronics/beep_boop.wav,shared/electronics,beep_boop,Friendly high-low robot response,0.36,False,48000,1,16

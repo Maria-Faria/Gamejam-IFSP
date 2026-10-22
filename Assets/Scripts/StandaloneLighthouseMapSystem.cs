@@ -72,7 +72,7 @@ namespace GuardiasDaLuz.MapSystem
         public GameObject customBossMonsterPrefab;
 
         [Tooltip("Se não houver Prefabs de monstros atribuídos acima, criar cápsulas de monstros de teste para testar o destrancamento de salas?")]
-        public bool spawnPlaceholderMonstersIfPrefabsEmpty = true;
+        public bool spawnPlaceholderMonstersIfPrefabsEmpty = false;
 
         [Header("=== 3. PREFABS VISUAIS DE CENÁRIO (OPCIONAIS - PARA O ARTISTA 3D) ===")]
         public GameObject customFloorPrefab;
@@ -104,6 +104,43 @@ namespace GuardiasDaLuz.MapSystem
             }
         };
 
+        [Header("=== 3C. DECORAÇÃO DAS SALAS (Assets/Decor) ===")]
+        [Tooltip("Um kit de objetos por Nível: posição 0 = Nível 1, 1 = Nível 2, 2 = Nível 3. Os objetos ficam encostados nas paredes, longe das portas.")]
+        public RoomDecorKit[] levelDecorKits = new RoomDecorKit[]
+        {
+            new RoomDecorKit
+            {
+                kitName = "Nível 1 • Laboratório",
+                standingPropNames = new[] { "server", "pc", "table", "toolbox", "crate", "barrel", "laser", "sign_warn", "bin" },
+                wallMountedPropNames = new[] { "led_wall" },
+                floorPanelNames = new[] { "led_floor" }
+            },
+            new RoomDecorKit
+            {
+                kitName = "Nível 2 • Cidade",
+                standingPropNames = new[] { "trafic", "cone", "bench", "bin", "lamp", "park", "sign", "gate", "barrel", "crate", "gun" },
+                wallMountedPropNames = new string[0],
+                floorPanelNames = new string[0]
+            },
+            new RoomDecorKit
+            {
+                kitName = "Nível 3 • Jardim",
+                standingPropNames = new[] { "plant", "bench", "lamp", "bin", "gate", "sign", "table", "barrel" },
+                wallMountedPropNames = new string[0],
+                floorPanelNames = new string[0]
+            }
+        };
+        [Tooltip("Modelo do Poste Inteligente no centro das salas (usado quando 'customSmartLightPostPrefab' está vazio).")]
+        public GameObject decorCenterLight;
+        [Tooltip("Modelo das folhas da porta trancada (usado quando 'customDoorBarrierPrefab' está vazio).")]
+        public GameObject decorMetalDoor;
+        [Tooltip("Cadeado mostrado nas portas trancadas.")]
+        public GameObject decorLock;
+
+        [Header("=== 3D. MONSTROS (Assets/Sprites/Monster) ===")]
+        [Tooltip("Modelos sorteados para os inimigos de sombra. No editor, a lista vazia é preenchida com todos os FBX da pasta.")]
+        public GameObject[] monsterModels;
+
         [Header("=== 4. DIMENSÕES DAS SALAS & REGRAS DE LEVEL DESIGN ===")]
         public float roomWidthX = 32f;
         public float roomLengthZ = 26f;
@@ -111,6 +148,26 @@ namespace GuardiasDaLuz.MapSystem
         [Range(0f, 1f)] public float rareCrateDropChance = 0.10f;
         public bool showBuiltInMinimapHUD = true;
         public bool showBuiltInSubtitleHUD = true;
+        [Tooltip("Cada sala com poste sorteia um limite total de monstros entre o mínimo e o máximo (nunca mais que 20). Depois disso, não nascem mais inimigos nela.")]
+        [Range(1, MonsterQuotaCap)] public int minMonstersPerRoom = 6;
+        [Range(1, MonsterQuotaCap)] public int maxMonstersPerRoom = MonsterQuotaCap;
+        private const int MonsterQuotaCap = 20;
+        [Tooltip("Salas sem poste (loja, tesouro, secreta) ficam na penumbra e atraem alguns monstros, mas as portas continuam abertas.")]
+        [Range(0, MonsterQuotaCap)] public int minMonstersInPostlessRoom = 2;
+        [Range(0, MonsterQuotaCap)] public int maxMonstersInPostlessRoom = 4;
+
+        [Header("=== 4B. ESCURIDÃO DAS SALAS ===")]
+        [Tooltip("Deixa o mapa quase todo escuro: desliga a luz direcional e baixa a luz ambiente. Cada sala recebe só algumas luzes fracas.")]
+        public bool darkRooms = true;
+        public Color darkAmbientColor = new Color(0.16f, 0.16f, 0.22f);
+        [Tooltip("Claridade das salas sem poste: 0 = escura como uma sala com poste apagado, 1 = totalmente iluminada.")]
+        [Range(0f, 1f)] public float postlessRoomBrightness = 0.5f;
+        [Range(0, 4)] public int dimLightsPerRoom = 4;
+        public float dimLightIntensity = 6f;
+        public float dimLightRange = 12f;
+        public Color dimLightColor = new Color(0.55f, 0.65f, 1f);
+        [Tooltip("Segundos para a sala clarear quando o poste é consertado (e escurecer ao entrar numa sala apagada).")]
+        public float lightTransitionSeconds = 1.2f;
 
         [Header("=== 5. CONFIGURAÇÃO DOS 6 ANDARES (3 NÍVEIS DO FAROL) ===")]
         public FloorStageConfig[] floors = new FloorStageConfig[]
@@ -201,6 +258,9 @@ namespace GuardiasDaLuz.MapSystem
             public List<GameObject> doorBarriers = new List<GameObject>();
             public List<StandaloneSmartPost> roomPosts = new List<StandaloneSmartPost>();
             public List<GameObject> roomMonsters = new List<GameObject>();
+            public int monsterQuota = 0;
+            public int monstersSpawned = 0;
+            public bool doorsUnlocked = false;
 
             public int GetAliveMonsterCount()
             {
@@ -237,11 +297,24 @@ namespace GuardiasDaLuz.MapSystem
         private readonly List<GameObject> spawnedFloorObjects = new List<GameObject>();
         private readonly HashSet<Vector2Int> placedThemePillars = new HashSet<Vector2Int>();
         private LevelVisualTheme activeTheme;
+        private RoomDecorKit activeDecorKit;
 
         private const float WallHeight = 3.4f;
         private const float WallThickness = 0.7f;
         private string activeSubtitleBanner = "";
         private string hoverPromptBanner = "";
+
+        private readonly List<Light> sceneDirectionalLights = new List<Light>();
+        private readonly List<float> sceneDirectionalIntensities = new List<float>();
+        private readonly List<Light> dimRoomLights = new List<Light>();
+        private UnityEngine.Rendering.AmbientMode originalAmbientMode;
+        private Color originalAmbientSky, originalAmbientEquator, originalAmbientGround;
+        private float originalReflectionIntensity;
+        private float roomBrightness = 1f;
+        private float targetRoomBrightness = 1f;
+        private bool currentRoomLit;
+
+        public float CurrentRoomBrightness => darkRooms ? roomBrightness : 0f;
 
         public IReadOnlyDictionary<Vector2Int, MapRoomNode> DungeonGrid => dungeonGrid;
 
@@ -273,14 +346,184 @@ namespace GuardiasDaLuz.MapSystem
             {
                 if (theme != null) changed |= theme.AutoAssignFromFolder();
             }
+            if (levelDecorKits != null)
+            {
+                foreach (var kit in levelDecorKits)
+                {
+                    if (kit != null) changed |= kit.AutoAssignFromFolder();
+                }
+            }
+            changed |= AssignDecorIfEmpty(ref decorCenterLight, "center_light");
+            changed |= AssignDecorIfEmpty(ref decorMetalDoor, "metal_door");
+            changed |= AssignDecorIfEmpty(ref decorLock, "lock");
+            changed |= AssignMonstersIfEmpty();
             return changed;
+        }
+
+        private bool AssignMonstersIfEmpty()
+        {
+            const string monsterFolder = "Assets/Sprites/Monster";
+            if ((monsterModels != null && monsterModels.Length > 0) || !UnityEditor.AssetDatabase.IsValidFolder(monsterFolder)) return false;
+
+            List<GameObject> found = new List<GameObject>();
+            foreach (string guid in UnityEditor.AssetDatabase.FindAssets("t:Model", new[] { monsterFolder }))
+            {
+                GameObject model = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+                if (model != null) found.Add(model);
+            }
+            if (found.Count == 0) return false;
+
+            monsterModels = found.ToArray();
+            return true;
+        }
+
+        private static bool AssignDecorIfEmpty(ref GameObject slot, string propName)
+        {
+            if (slot != null) return false;
+            slot = RoomDecorKit.LoadDecor(propName);
+            return slot != null;
         }
 #endif
 
         private void Start()
         {
             EnsurePlayerExistsOrFind();
+            ApplyDarkAmbience();
             GenerateFloor(0);
+            if (GetComponent<EnemySpawner>() == null) gameObject.AddComponent<EnemySpawner>();
+        }
+
+        private void ApplyDarkAmbience()
+        {
+            if (!darkRooms) return;
+
+            originalAmbientMode = RenderSettings.ambientMode;
+            originalAmbientSky = RenderSettings.ambientSkyColor;
+            originalAmbientEquator = RenderSettings.ambientEquatorColor;
+            originalAmbientGround = RenderSettings.ambientGroundColor;
+            originalReflectionIntensity = RenderSettings.reflectionIntensity;
+
+            foreach (Light l in FindObjectsByType<Light>())
+            {
+                if (l.type != LightType.Directional) continue;
+                sceneDirectionalLights.Add(l);
+                sceneDirectionalIntensities.Add(l.intensity);
+            }
+
+            roomBrightness = targetRoomBrightness = 0f;
+            ApplyRoomBrightness(0f);
+        }
+
+        private void SetRoomLit(bool lit, float unlitBrightness = 0f)
+        {
+            if (!darkRooms) return;
+            currentRoomLit = lit;
+            targetRoomBrightness = lit ? 1f : unlitBrightness;
+        }
+
+        public int GetRoomPostCount(MapRoomNode room)
+        {
+            if (room == null) return 0;
+            return room.roomPosts.Count + (room.mergedGiantPartner != null ? room.mergedGiantPartner.roomPosts.Count : 0);
+        }
+
+        public bool RoomAttractsMonsters(MapRoomNode room)
+        {
+            return room != null && (GetRoomPostCount(room) == 0 || !room.isClearedAndLit);
+        }
+
+        private float GetRoomPostBrightness(MapRoomNode room)
+        {
+            float best = -1f;
+            foreach (var post in room.roomPosts)
+            {
+                if (post != null && post.isRepaired) best = Mathf.Max(best, post.SmartBrightness);
+            }
+            if (room.mergedGiantPartner != null)
+            {
+                foreach (var post in room.mergedGiantPartner.roomPosts)
+                {
+                    if (post != null && post.isRepaired) best = Mathf.Max(best, post.SmartBrightness);
+                }
+            }
+            return best < 0f ? 1f : best;
+        }
+
+        private void UpdateRoomBrightness()
+        {
+            if (!darkRooms) return;
+
+            if (currentRoomLit && dungeonGrid.TryGetValue(currentPlayerRoomCoord, out MapRoomNode room))
+            {
+                targetRoomBrightness = GetRoomPostBrightness(room);
+            }
+            if (Mathf.Approximately(roomBrightness, targetRoomBrightness)) return;
+
+            float step = lightTransitionSeconds > 0f ? Time.deltaTime / lightTransitionSeconds : 1f;
+            roomBrightness = Mathf.MoveTowards(roomBrightness, targetRoomBrightness, step);
+            ApplyRoomBrightness(roomBrightness);
+        }
+
+        private void ApplyRoomBrightness(float t)
+        {
+            if (t >= 1f)
+            {
+                RenderSettings.ambientMode = originalAmbientMode;
+                DynamicGI.UpdateEnvironment();
+            }
+            else
+            {
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = Color.Lerp(darkAmbientColor, originalAmbientSky, t);
+                RenderSettings.ambientEquatorColor = Color.Lerp(darkAmbientColor, originalAmbientEquator, t);
+                RenderSettings.ambientGroundColor = Color.Lerp(darkAmbientColor, originalAmbientGround, t);
+            }
+            RenderSettings.reflectionIntensity = Mathf.Lerp(0.1f, originalReflectionIntensity, t);
+
+            for (int i = 0; i < sceneDirectionalLights.Count; i++)
+            {
+                Light l = sceneDirectionalLights[i];
+                if (l == null) continue;
+                l.intensity = sceneDirectionalIntensities[i] * t;
+                l.enabled = t > 0f;
+            }
+
+            dungeonGrid.TryGetValue(currentPlayerRoomCoord, out MapRoomNode current);
+            foreach (Light l in dimRoomLights)
+            {
+                if (l == null) continue;
+                l.intensity = dimLightIntensity * (1f - t);
+                l.enabled = t < 1f && current != null && IsPositionInsideRoomOrPartner(l.transform.position, current);
+            }
+        }
+
+        private void SpawnDimRoomLights(MapRoomNode node)
+        {
+            if (!darkRooms || dimLightsPerRoom <= 0) return;
+
+            float ix = roomWidthX * 0.5f - 3f;
+            float iz = roomLengthZ * 0.5f - 3f;
+            Vector3[] spots =
+            {
+                new Vector3(-ix, 2.6f, iz), new Vector3(ix, 2.6f, -iz),
+                new Vector3(ix, 2.6f, iz), new Vector3(-ix, 2.6f, -iz)
+            };
+
+            for (int i = 0; i < dimLightsPerRoom; i++)
+            {
+                GameObject lObj = new GameObject("Luz_Fraca");
+                lObj.transform.SetParent(node.roomRoot.transform);
+                lObj.transform.localPosition = spots[i];
+                Light l = lObj.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.range = dimLightRange;
+                l.intensity = dimLightIntensity * (1f - roomBrightness);
+                l.enabled = roomBrightness < 1f;
+                l.color = dimLightColor;
+                l.shadows = LightShadows.None;
+                dimRoomLights.Add(l);
+                LightField.Ignore(l);
+            }
         }
 
         private void Update()
@@ -292,6 +535,8 @@ namespace GuardiasDaLuz.MapSystem
             }
 
             UpdatePlayerRoomTracking(playerTransform.position);
+            UpdateRoomCompletion();
+            UpdateRoomBrightness();
         }
 
         public void SetPlayer(Transform newPlayer)
@@ -306,6 +551,14 @@ namespace GuardiasDaLuz.MapSystem
                 companionTransforms.Add(allyTransform);
                 EnsureAllCompanionsInsideCurrentRoom();
             }
+        }
+
+        public void RegisterRoomMonster(MapRoomNode room, GameObject monsterObj)
+        {
+            if (room == null || monsterObj == null) return;
+            if (room.roomMonsters.Contains(monsterObj)) return;
+            room.roomMonsters.Add(monsterObj);
+            room.monstersSpawned++;
         }
 
         public void NotifyMonsterKilled(GameObject monsterObj)
@@ -397,9 +650,12 @@ namespace GuardiasDaLuz.MapSystem
             spawnedFloorObjects.Clear();
             dungeonGrid.Clear();
             sharedBordersDoors.Clear();
+            dimRoomLights.Clear();
 
             FloorStageConfig cfg = floors[floorIdx];
             activeTheme = GetThemeForLevel(cfg.levelNumber);
+            int decorIdx = cfg.levelNumber - 1;
+            activeDecorKit = levelDecorKits != null && decorIdx >= 0 && decorIdx < levelDecorKits.Length ? levelDecorKits[decorIdx] : null;
             placedThemePillars.Clear();
             int targetNormalRooms = UnityEngine.Random.Range(cfg.minRooms, cfg.maxRooms + 1);
 
@@ -494,7 +750,7 @@ namespace GuardiasDaLuz.MapSystem
             }
             EnterRoom(startNode);
 
-            ShowBannerMessage($"🗼 {cfg.floorTitle} ({dungeonGrid.Count} Salas) — Conserte o Poste Inicial [E] para abrir as portas!");
+            ShowBannerMessage($"🗼 {cfg.floorTitle} ({dungeonGrid.Count} Salas) — Conserte o Poste Inicial [E] e derrote os monstros para abrir as portas!");
             onFloorGenerated?.Invoke(currentFloorIndex, cfg.levelNumber, cfg.floorTitle);
         }
 
@@ -671,6 +927,70 @@ namespace GuardiasDaLuz.MapSystem
                 case RoomType.Secret:
                     BuildSecretRoomPedestal(node);
                     break;
+            }
+
+            SpawnDimRoomLights(node);
+
+            if (activeDecorKit != null)
+            {
+                bool[] doorSides =
+                {
+                    dungeonGrid.ContainsKey(node.gridCoord + Vector2Int.up), dungeonGrid.ContainsKey(node.gridCoord + Vector2Int.down),
+                    dungeonGrid.ContainsKey(node.gridCoord + Vector2Int.right), dungeonGrid.ContainsKey(node.gridCoord + Vector2Int.left)
+                };
+                activeDecorKit.Decorate(node.roomRoot.transform, node.worldCenter, roomWidthX, roomLengthZ, WallThickness,
+                    doorSides, doorOpeningWidth * 0.5f + 1.5f);
+            }
+
+            if (node.roomPosts.Count > 0)
+            {
+                int maxQuota = Mathf.Min(maxMonstersPerRoom, MonsterQuotaCap);
+                int minQuota = Mathf.Clamp(minMonstersPerRoom, 1, maxQuota);
+                node.monstersSpawned = node.roomMonsters.Count;
+                node.monsterQuota = Mathf.Max(UnityEngine.Random.Range(minQuota, maxQuota + 1), node.monstersSpawned);
+            }
+            else
+            {
+                int maxQuota = Mathf.Min(maxMonstersInPostlessRoom, MonsterQuotaCap);
+                node.monsterQuota = UnityEngine.Random.Range(Mathf.Clamp(minMonstersInPostlessRoom, 0, maxQuota), maxQuota + 1);
+            }
+        }
+
+        public bool IsRoomComplete(MapRoomNode room)
+        {
+            return room.isClearedAndLit && room.GetAliveMonsterCount() == 0;
+        }
+
+        private void UpdateRoomCompletion()
+        {
+            if (!dungeonGrid.TryGetValue(currentPlayerRoomCoord, out MapRoomNode room)) return;
+            if (room.doorsUnlocked || !IsRoomComplete(room)) return;
+
+            room.doorsUnlocked = true;
+            SetRoomDoorsOpen(room, true);
+            if (room.mergedGiantPartner != null)
+            {
+                room.mergedGiantPartner.doorsUnlocked = true;
+                SetRoomDoorsOpen(room.mergedGiantPartner, true);
+            }
+
+            if (room.roomType == RoomType.BossExit)
+            {
+                if (currentFloorIndex < floors.Length - 1)
+                {
+                    SpawnLighthouseStaircasePortal(room.worldCenter + new Vector3(0f, 0f, 5.0f));
+                    ShowBannerMessage("🌀 Escadaria Espiral do Farol Aberta! Entre no Portal Ciano ao Norte para subir ao próximo andar!");
+                }
+                else
+                {
+                    isLighthouseCompleted = true;
+                    ShowBannerMessage("🏆 TOPO DO FAROL ACESO! O Feixe Mestre iluminou toda a costa! Parabéns!");
+                    onLighthouseMasterBeaconLit?.Invoke();
+                }
+            }
+            else
+            {
+                ShowBannerMessage("🔓 Poste consertado e monstros derrotados! As portas desta sala se abriram!");
             }
         }
 
@@ -933,7 +1253,46 @@ namespace GuardiasDaLuz.MapSystem
                     door.transform.localScale = barrierScale;
                 }
             }
+
+            if (customDoorBarrierPrefab == null && decorMetalDoor != null)
+            {
+                DecorateDoorBarrier(door);
+            }
             return door;
+        }
+
+        private void DecorateDoorBarrier(GameObject door)
+        {
+            Vector3 size = door.transform.localScale;
+            bool alongX = size.x >= size.z;
+            float width = alongX ? size.x : size.z;
+            Quaternion facing = alongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f);
+            Vector3 across = alongX ? Vector3.right : Vector3.forward;
+            Vector3 normal = alongX ? Vector3.forward : Vector3.right;
+            Vector3 basePos = door.transform.position - Vector3.up * size.y * 0.5f;
+
+            door.GetComponent<Renderer>().enabled = false;
+
+            Bounds doorBounds = RoomDecorKit.GetLocalBounds(decorMetalDoor);
+            Vector3 leafScale = new Vector3(width * 0.5f / doorBounds.size.x, size.y / doorBounds.size.y, 1.5f);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                GameObject leaf = RoomDecorKit.SpawnWrapped(decorMetalDoor, transform, basePos + across * side * width * 0.25f,
+                    facing * Quaternion.Euler(0f, side < 0f ? 0f : 180f, 0f), leafScale, false, "Folha_Porta");
+                leaf.transform.SetParent(door.transform, true);
+            }
+
+            if (decorLock == null) return;
+            Bounds lockBounds = RoomDecorKit.GetLocalBounds(decorLock);
+            float lockScale = 0.9f / Mathf.Max(lockBounds.size.y, 0.01f);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                Vector3 lockPos = basePos + Vector3.up * size.y * 0.35f
+                    + normal * side * (Mathf.Min(size.x, size.z) * 0.5f + lockBounds.size.z * lockScale * 0.5f + 0.05f);
+                GameObject padlock = RoomDecorKit.SpawnWrapped(decorLock, transform, lockPos,
+                    Quaternion.LookRotation(-normal * side, Vector3.up), Vector3.one * lockScale, false, "Cadeado_Porta");
+                padlock.transform.SetParent(door.transform, true);
+            }
         }
 
         private GameObject GetOrCreateSecretWall(Vector2Int a, Vector2Int b, Vector3 worldPos, Vector3 scale, Color wallColor, MapRoomNode secretNode)
@@ -1157,7 +1516,16 @@ namespace GuardiasDaLuz.MapSystem
                 postRoot = new GameObject("Poste_Inteligente_Sala");
                 postRoot.transform.SetParent(ownerRoom.roomRoot.transform);
                 postRoot.transform.position = worldPos;
+            }
 
+            if (customSmartLightPostPrefab == null && decorCenterLight != null)
+            {
+                Bounds bounds = RoomDecorKit.GetLocalBounds(decorCenterLight);
+                RoomDecorKit.SpawnWrapped(decorCenterLight, postRoot.transform, postRoot.transform.position, Quaternion.identity,
+                    Vector3.one * (4.5f / Mathf.Max(bounds.max.y, 0.01f)), true, "Modelo_Poste");
+            }
+            else if (customSmartLightPostPrefab == null)
+            {
                 GameObject pole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 pole.transform.SetParent(postRoot.transform);
                 pole.transform.localPosition = new Vector3(0f, 2f, 0f);
@@ -1333,15 +1701,19 @@ namespace GuardiasDaLuz.MapSystem
 
             EnsureAllCompanionsInsideRoom(room);
             onRoomEntered?.Invoke(room.gridCoord, room.roomType.ToString());
+            bool postless = GetRoomPostCount(room) == 0;
+            SetRoomLit(room.isClearedAndLit && !postless, postless ? postlessRoomBrightness : 0f);
+            if (darkRooms) ApplyRoomBrightness(roomBrightness);
 
-            if (room.roomType == RoomType.Shop || room.roomType == RoomType.TreasureChoice || room.roomType == RoomType.Secret)
+            if (postless)
             {
+                room.doorsUnlocked = true;
                 SetRoomDoorsOpen(room, true);
-                ShowBannerMessage($"✨ Sala Especial ({room.roomType})! Portas abertas — aproxime-se dos pedestais e aperte [E]!");
+                ShowBannerMessage($"🌗 Sala Especial ({room.roomType}) sem poste: a penumbra atrai monstros! As portas continuam abertas — aproxime-se dos pedestais e aperte [E]!");
                 return;
             }
 
-            if (!room.isClearedAndLit)
+            if (!room.doorsUnlocked)
             {
                 SetRoomDoorsOpen(room, false);
                 foreach (var m in room.roomMonsters)
@@ -1359,7 +1731,7 @@ namespace GuardiasDaLuz.MapSystem
 
                 if (room.roomType != RoomType.Start)
                 {
-                    ShowBannerMessage($"⚔️ Portas Trancadas! Derrote todos os {room.GetAliveMonsterCount()} monstros para liberar o Poste [E]!");
+                    ShowBannerMessage($"⚔️ Portas Trancadas! Conserte o Poste [E] e derrote todos os monstros para abrir as portas!");
                 }
             }
             else
@@ -1383,33 +1755,18 @@ namespace GuardiasDaLuz.MapSystem
             if (post == null || post.ownerRoom == null) return;
             MapRoomNode room = post.ownerRoom;
             room.isClearedAndLit = true;
-            SetRoomDoorsOpen(room, true);
-
             if (room.mergedGiantPartner != null)
             {
                 room.mergedGiantPartner.isClearedAndLit = true;
-                SetRoomDoorsOpen(room.mergedGiantPartner, true);
             }
 
             onSmartPostRepaired?.Invoke(post.gameObject);
+            SetRoomLit(true);
 
-            if (room.roomType == RoomType.BossExit)
+            int alive = room.GetAliveMonsterCount();
+            if (alive > 0)
             {
-                if (currentFloorIndex < floors.Length - 1)
-                {
-                    SpawnLighthouseStaircasePortal(room.worldCenter + new Vector3(0f, 0f, 5.0f));
-                    ShowBannerMessage("🌀 Escadaria Espiral do Farol Aberta! Entre no Portal Ciano ao Norte para subir ao próximo andar!");
-                }
-                else
-                {
-                    isLighthouseCompleted = true;
-                    ShowBannerMessage("🏆 TOPO DO FAROL ACESO! O Feixe Mestre iluminou toda a costa! Parabéns!");
-                    onLighthouseMasterBeaconLit?.Invoke();
-                }
-            }
-            else
-            {
-                ShowBannerMessage("🔓 Poste Consertado! As portas desta sala se abriram!");
+                ShowBannerMessage($"💡 Poste consertado! Derrote os {alive} monstros restantes para abrir as portas!");
             }
         }
 
@@ -1514,10 +1871,33 @@ namespace GuardiasDaLuz.MapSystem
         public bool isRepaired = false;
         public float repairProgress = 0f;
         public float repairTimeRequired = 1.6f;
+        [Tooltip("Depois de consertado, até esta distância da jogadora o poste fica com o brilho máximo.")]
+        public float fullBrightDistance = 3f;
+        [Tooltip("A partir desta distância da jogadora o poste consertado fica totalmente apagado.")]
+        public float darkDistance = 14f;
+        [Tooltip("Cor do brilho da lâmpada depois de consertada.")]
+        public Color glowColor = new Color(1f, 0.75f, 0.2f);
+        public float maxGlowIntensity = 2.5f;
         private Light postLight;
+        private Material[] lampMaterials = new Material[0];
+        private float appliedGlow = -1f;
 
         private void Start()
         {
+            List<Material> materials = new List<Material>();
+            foreach (Renderer lampRenderer in GetComponentsInChildren<Renderer>())
+            {
+                materials.AddRange(lampRenderer.materials);
+            }
+            lampMaterials = materials.ToArray();
+            foreach (Material material in lampMaterials)
+            {
+                if (material.HasProperty("_BaseMap") && material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") == null)
+                {
+                    material.SetTexture("_EmissionMap", material.GetTexture("_BaseMap"));
+                }
+            }
+
             GameObject lObj = new GameObject("Luz_Poste");
             lObj.transform.SetParent(transform);
             lObj.transform.localPosition = new Vector3(0f, 4.5f, 0f);
@@ -1528,22 +1908,25 @@ namespace GuardiasDaLuz.MapSystem
             postLight.color = new Color(1f, 0.92f, 0.65f);
         }
 
+        private float MaxIntensity => isTopBeacon ? 6.5f : 3.5f;
+
+        public float SmartBrightness => isRepaired && postLight != null ? postLight.intensity / MaxIntensity : 0f;
+
         private void Update()
         {
-            if (isRepaired || StandaloneLighthouseMapSystem.Instance == null) return;
+            if (StandaloneLighthouseMapSystem.Instance == null) return;
             Transform player = StandaloneLighthouseMapSystem.Instance.playerTransform;
             if (player == null) return;
 
             float dist = Vector3.Distance(transform.position, player.position);
+            if (isRepaired)
+            {
+                UpdateSmartBrightness(dist);
+                return;
+            }
+
             if (dist <= 3.6f)
             {
-                int aliveMonsters = ownerRoom != null ? ownerRoom.GetAliveMonsterCount() : 0;
-                if (aliveMonsters > 0)
-                {
-                    StandaloneLighthouseMapSystem.Instance.SetHoverPrompt($"🔒 POSTE BLOQUEADO! Derrote os {aliveMonsters} monstros da sala primeiro!");
-                    return;
-                }
-
                 StandaloneLighthouseMapSystem.Instance.SetHoverPrompt($"💡 Segure [E] para consertar o Poste ({Mathf.RoundToInt((repairProgress / repairTimeRequired) * 100f)}%)");
                 if (IsInteractKeyHeld())
                 {
@@ -1559,9 +1942,43 @@ namespace GuardiasDaLuz.MapSystem
         private void CompleteRepair()
         {
             isRepaired = true;
-            if (postLight != null) postLight.intensity = isTopBeacon ? 6.5f : 3.5f;
+            if (postLight != null) postLight.intensity = MaxIntensity;
+            SetGlow(1f);
             StandaloneLighthouseMapSystem.Instance.SetHoverPrompt("");
             StandaloneLighthouseMapSystem.Instance.NotifyPostRepaired(this);
+        }
+
+        private void UpdateSmartBrightness(float dist)
+        {
+            if (postLight == null || isTopBeacon) return;
+
+            float t = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(fullBrightDistance, darkDistance, dist));
+            postLight.intensity = Mathf.MoveTowards(postLight.intensity, MaxIntensity * t, MaxIntensity * 2f * Time.deltaTime);
+            postLight.enabled = postLight.intensity > 0f;
+            SetGlow(SmartBrightness);
+        }
+
+        private void SetGlow(float brightness)
+        {
+            float glow = Mathf.Lerp(0.6f, maxGlowIntensity, brightness);
+            if (Mathf.Abs(glow - appliedGlow) < 0.01f) return;
+            appliedGlow = glow;
+
+            foreach (Material material in lampMaterials)
+            {
+                if (material == null || !material.HasProperty("_EmissionColor")) continue;
+                material.EnableKeyword("_EMISSION");
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                material.SetColor("_EmissionColor", glowColor * glow);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (Material material in lampMaterials)
+            {
+                Destroy(material);
+            }
         }
 
         public static bool IsInteractKeyHeld()

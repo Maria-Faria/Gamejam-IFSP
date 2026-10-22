@@ -24,6 +24,11 @@ public class PlayerMovement : MonoBehaviour
     {
       gameObject.AddComponent<PlayerAnimation>();
     }
+
+    if (GetComponent<PlayerHealth>() == null)
+    {
+      gameObject.AddComponent<PlayerHealth>();
+    }
   }
 
   public void Update()
