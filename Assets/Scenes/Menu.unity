@@ -256,7 +256,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f67213cfb364b67b3a9a36c5fa52102, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameScene: SampleScene
+  gameScene: Intro
   background: {fileID: 2800000, guid: e8792217667a4007be820cb2f4456c39, type: 3}
   playButton: {fileID: 2800000, guid: dae2c921550a497da1fb7b37e46af20a, type: 3}
   optionsButton: {fileID: 2800000, guid: 41fce1bcb6d24353b84cbd48c7c46e15, type: 3}

@@ -6,7 +6,7 @@ public class MainMenu : MonoBehaviour
   private const string VolumeKey = "volume_geral";
 
   [Tooltip("Nome da cena carregada ao clicar em Jogar (precisa estar na lista de cenas do build).")]
-  [SerializeField] private string gameScene = "SampleScene";
+  [SerializeField] private string gameScene = "Intro";
 
   [Header("Imagens")]
   [SerializeField] private Texture2D background;
