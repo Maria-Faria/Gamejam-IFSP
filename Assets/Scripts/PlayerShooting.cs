@@ -372,6 +372,14 @@ public class PlayerShooting : MonoBehaviour
     {
       yield return monster;
     }
+
+    foreach (Roguelike.Monster monster in FindObjectsByType<Roguelike.Monster>())
+    {
+      if (!monster.Dead)
+      {
+        yield return monster;
+      }
+    }
   }
 
   private static Vector3 Flatten(Vector3 vector)
