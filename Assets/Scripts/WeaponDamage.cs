@@ -17,6 +17,13 @@ public static class WeaponDamage
       return shadowEnemy;
     }
 
+    // Monstros (Assets/Scripts/Monsters): a vida deles é um Roguelike.Health.
+    MonoBehaviour roguelikeMonster = MonsterGameBridge.FindMonsterHealth(collider);
+    if (roguelikeMonster != null)
+    {
+      return roguelikeMonster;
+    }
+
     MonoBehaviour crate = collider.GetComponentInParent<StandaloneBreakableCrate>();
     if (crate != null)
     {
@@ -35,6 +42,9 @@ public static class WeaponDamage
         break;
       case ShadowEnemy shadowEnemy:
         shadowEnemy.TakeDamage(damage);
+        break;
+      case Roguelike.Health roguelikeMonster:
+        roguelikeMonster.TakeDamage(damage, roguelikeMonster.transform.position);
         break;
       case StandaloneBreakableCrate crate:
         crate.TakeHit();
