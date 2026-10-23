@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Regular_Smoke
+  m_Shader: {fileID: 4800000, guid: a00c0a6cac846494ba7500bf9b5b6c8a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BottomBoost: 1.2
+    - _BreatheAmount: 0.02
+    - _BreatheSpeed: 1.8
+    - _FlowSpeed: 0.35
+    - _FresnelPower: 1.6
+    - _HemSway: 0.9
+    - _Inflate: 0.04
+    - _NoiseScale: 3.5
+    - _Opacity: 0.55
+    - _Phase: 0
+    - _Size: 1.4862794
+    - _Threshold: 0.42
+    - _TopBoost: 0.1
+    - _WarpAmount: 0.027999999
+    - _WarpScale: 2.5
+    - _WarpSpeed: 0.5
+    m_Colors:
+    - _SmokeColor: {r: 0.36, g: 0.3, b: 0.52, a: 1}
+    - _SmokeDark: {r: 0.08, g: 0.07, b: 0.12, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

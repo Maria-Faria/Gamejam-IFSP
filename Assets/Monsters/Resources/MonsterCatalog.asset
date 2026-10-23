@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b838e13afd370045861eb1e5f0a370e, type: 3}
+  m_Name: MonsterCatalog
+  m_EditorClassIdentifier: Roguelike::Roguelike.MonsterCatalog
+  entries:
+  - name: BallShadow
+    prefab: {fileID: 1170983814139953141, guid: cb0d65215ec2b4d43a0619ded0b68d23, type: 3}
+    sizeClass: 0
+    relativeSize: 0.5
+    height: 0.9276047
+    isBoss: 0
+    title: 
+    maxHealth: 20
+  - name: TwistedBall
+    prefab: {fileID: 3644398982285787525, guid: 3b6c2ab6b730e8e4f92615710909d899, type: 3}
+    sizeClass: 0
+    relativeSize: 0.5
+    height: 1.008831
+    isBoss: 0
+    title: 
+    maxHealth: 20
+  - name: Regular
+    prefab: {fileID: 9019729105791778918, guid: 99137a98bbca85d4090ab5b32c3892cf, type: 3}
+    sizeClass: 1
+    relativeSize: 0.75
+    height: 1.4862794
+    isBoss: 0
+    title: 
+    maxHealth: 40
+  - name: ThreeEyed
+    prefab: {fileID: 6662247609696351263, guid: 91df9dd154f39ac44b992d4dd9ca586e, type: 3}
+    sizeClass: 1
+    relativeSize: 0.75
+    height: 1.4862794
+    isBoss: 0
+    title: 
+    maxHealth: 40
+  - name: Ghost
+    prefab: {fileID: 8987998779150144896, guid: b886efe7baf6bcf4cbf2c0c532c674ad, type: 3}
+    sizeClass: 1
+    relativeSize: 0.75
+    height: 1.1805435
+    isBoss: 0
+    title: 
+    maxHealth: 40
+  - name: Crescent
+    prefab: {fileID: 3116117744029234891, guid: 990da7166156478419ce31315760ce70, type: 3}
+    sizeClass: 2
+    relativeSize: 1
+    height: 1.98176
+    isBoss: 0
+    title: 
+    maxHealth: 60
+  - name: Ghoul
+    prefab: {fileID: 1917751192253544194, guid: 7cec292167b12a6489ca04022db1ef01, type: 3}
+    sizeClass: 2
+    relativeSize: 1
+    height: 1.8076108
+    isBoss: 0
+    title: 
+    maxHealth: 60
+  - name: Horned
+    prefab: {fileID: 6787473395550278767, guid: f3cb118f12a575b4caa3d802aecb9485, type: 3}
+    sizeClass: 2
+    relativeSize: 1
+    height: 1.9357859
+    isBoss: 0
+    title: 
+    maxHealth: 60
+  - name: Claw
+    prefab: {fileID: 7835096020020049866, guid: 2188f216d5073bb4a986b42d4e3bae43, type: 3}
+    sizeClass: 1
+    relativeSize: 0.75
+    height: 1.4862794
+    isBoss: 0
+    title: 
+    maxHealth: 45
+  - name: Fat
+    prefab: {fileID: 6722225923345810536, guid: 319277a28321da241bb28740212185b5, type: 3}
+    sizeClass: 3
+    relativeSize: 1.7
+    height: 2.3253474
+    isBoss: 1
+    title: The Bloated One
+    maxHealth: 250
+  - name: Muscle
+    prefab: {fileID: 141515539100455300, guid: c97762928e249c54885bdbe3d8154d5a, type: 3}
+    sizeClass: 2
+    relativeSize: 1
+    height: 1.6047074
+    isBoss: 0
+    title: 
+    maxHealth: 80
+  - name: MuscleBoss
+    prefab: {fileID: 8710074842247123889, guid: 320474bdf050fd344a719430a816a889, type: 3}
+    sizeClass: 3
+    relativeSize: 1.8
+    height: 3.2428799
+    isBoss: 1
+    title: The Brute
+    maxHealth: 320
+  - name: SkullFace
+    prefab: {fileID: 7430007999694084914, guid: 94884c44d2ad3a14dbea33632371a657, type: 3}
+    sizeClass: 3
+    relativeSize: 2
+    height: 3.8194244
+    isBoss: 1
+    title: The Hollow Skull
+    maxHealth: 350

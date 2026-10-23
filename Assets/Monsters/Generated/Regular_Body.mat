@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Regular_Body
+  m_Shader: {fileID: 4800000, guid: 513a55bcadcf1e94bb7ea8d6c0732256, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: b1a1f40a32bc4ee40a1bc96c241ce72a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 909effee51ff1b342993043f473568dc, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 2800000, guid: da5c2b16f74345a48a3fa443ab151062, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BreatheAmount: 0.02
+    - _BreatheSpeed: 1.8
+    - _BumpScale: 1
+    - _GlowThreshold: 0.55
+    - _HemSway: 0.9
+    - _Opacity: 0.975
+    - _Phase: 0
+    - _RimPower: 2.5
+    - _RimStrength: 0.6
+    - _Size: 1.4862794
+    - _Smoothness: 0.6
+    - _WarpAmount: 0.02
+    - _WarpScale: 2.5
+    - _WarpSpeed: 0.5
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _GlowColor: {r: 1.6, g: 2, b: 3.4, a: 1}
+    - _RimColor: {r: 0.4, g: 0.32, b: 0.7, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
