@@ -293,6 +293,11 @@ namespace GuardiasDaLuz.MapSystem
         }
 
         public int currentFloorIndex = 0;
+
+        // Se definido (modo cooperativo), a semente aleatória de cada andar: todas as jogadoras geram o mesmo mapa.
+        public static Func<int, int> FloorSeedProvider;
+        // Acessibilidade: no minimapa, salas ainda não visitadas aparecem só como "?".
+        public static bool HideUnvisitedRoomsOnMinimap = false;
         public Vector2Int currentPlayerRoomCoord = Vector2Int.zero;
         public bool isLighthouseCompleted = false;
 
@@ -404,6 +409,7 @@ namespace GuardiasDaLuz.MapSystem
             ApplyDarkAmbience();
             GenerateFloor(0);
             if (GetComponent<EnemySpawner>() == null) gameObject.AddComponent<EnemySpawner>();
+            if (GetComponent<MonsterDirector>() == null) gameObject.AddComponent<MonsterDirector>();
         }
 
         private void ApplyDarkAmbience()
@@ -664,6 +670,8 @@ namespace GuardiasDaLuz.MapSystem
             dungeonGrid.Clear();
             sharedBordersDoors.Clear();
             dimRoomLights.Clear();
+
+            if (FloorSeedProvider != null) UnityEngine.Random.InitState(FloorSeedProvider(floorIdx));
 
             FloorStageConfig cfg = floors[floorIdx];
             activeTheme = GetThemeForLevel(cfg.levelNumber);
@@ -1863,6 +1871,7 @@ namespace GuardiasDaLuz.MapSystem
 
                 string label = "SALA";
                 if (node.gridCoord == currentPlayerRoomCoord) { GUI.color = new Color(0.2f, 1f, 0.4f); label = "VOCÊ"; }
+                else if (HideUnvisitedRoomsOnMinimap && !node.isVisited) { GUI.color = new Color(0.42f, 0.45f, 0.58f, 0.9f); label = "?"; }
                 else if (node.roomType == RoomType.BossExit) { GUI.color = new Color(1f, 0.3f, 0.3f); label = "★FIM"; }
                 else if (node.roomType == RoomType.Shop) { GUI.color = new Color(0.2f, 0.95f, 1f); label = "🛒LOJA"; }
                 else if (node.roomType == RoomType.TreasureChoice) { GUI.color = new Color(1f, 0.85f, 0.2f); label = "🎁ITEM"; }
@@ -1950,6 +1959,12 @@ namespace GuardiasDaLuz.MapSystem
                     }
                 }
             }
+        }
+
+        // Conserta na hora (poste consertado por outra jogadora no modo cooperativo).
+        public void ForceRepair()
+        {
+            if (!isRepaired) CompleteRepair();
         }
 
         private void CompleteRepair()

@@ -1,9 +1,12 @@
+using GuardiasDaLuz;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
   private const string VolumeKey = "volume_geral";
+  private const string NicknameKey = "coop_apelido";
+  private const string HostIpKey = "coop_ip_host";
 
   [Tooltip("Nome da cena carregada ao clicar em Jogar (precisa estar na lista de cenas do build).")]
   [SerializeField] private string gameScene = "Intro";
@@ -37,6 +40,10 @@ public class MainMenu : MonoBehaviour
   private float volume;
   private bool fullscreen;
 
+  private string nicknameText;
+  private string hostIpText;
+  private string portText = "7777";
+
   private GUIStyle titleStyle;
   private GUIStyle textStyle;
   private GUIStyle smallButtonStyle;
@@ -57,6 +64,9 @@ public class MainMenu : MonoBehaviour
     AudioListener.volume = volume;
 
     music = GetComponent<BackgroundMusic>();
+
+    nicknameText = PlayerPrefs.GetString(NicknameKey, "Guardiã");
+    hostIpText = PlayerPrefs.GetString(HostIpKey, "127.0.0.1");
   }
 
   public void Update()
@@ -101,6 +111,9 @@ public class MainMenu : MonoBehaviour
     switch (index)
     {
       case 0:
+        // jogar sozinha: encerra qualquer sala cooperativa aberta
+        if (LunaNetworkSyncManager.Instance != null) LunaNetworkSyncManager.Instance.StopNetwork();
+        CoopSession.ResetToSingleplayer();
         starting = true;
         break;
       case 1:
@@ -221,11 +234,73 @@ public class MainMenu : MonoBehaviour
     GUILayout.EndArea();
   }
 
+  // Sala cooperativa (até 4 jogadoras na rede local / online por IP), pelo LunaNetworkSyncManager.
   private void DrawMultiplayer()
   {
-    GUILayout.Label("MULTIPLAYER", titleStyle);
-    GUILayout.Space(Screen.height * 0.03f);
-    GUILayout.Label("O modo multiplayer chega em breve!", textStyle);
+    LunaNetworkSyncManager net = LunaNetworkSyncManager.EnsureExists();
+    float rowHeight = Screen.height * 0.05f;
+
+    GUILayout.Label("MULTIPLAYER (CO-OP ATÉ 4)", titleStyle);
+    GUILayout.Space(Screen.height * 0.01f);
+
+    GUILayout.BeginHorizontal();
+    GUILayout.Label("Apelido:", textStyle, GUILayout.Width(Screen.height * 0.16f));
+    nicknameText = GUILayout.TextField(nicknameText ?? "", 16, GUILayout.Height(rowHeight * 0.8f));
+    GUILayout.EndHorizontal();
+    GUILayout.BeginHorizontal();
+    GUILayout.Label("IP do host:", textStyle, GUILayout.Width(Screen.height * 0.16f));
+    hostIpText = GUILayout.TextField(hostIpText ?? "", 40, GUILayout.Height(rowHeight * 0.8f));
+    GUILayout.Label("Porta:", textStyle, GUILayout.Width(Screen.height * 0.08f));
+    portText = GUILayout.TextField(portText ?? "", 5, GUILayout.Width(Screen.height * 0.1f), GUILayout.Height(rowHeight * 0.8f));
+    GUILayout.EndHorizontal();
+
+    int port = int.TryParse(portText, out int parsed) && parsed > 0 && parsed < 65536 ? parsed : 7777;
+    CoopSession.playerNickname = string.IsNullOrWhiteSpace(nicknameText) ? "Guardiã" : nicknameText.Trim().Replace("|", "");
+
+    GUILayout.Space(Screen.height * 0.01f);
+    bool offline = net.currentRole == LunaNetworkSyncManager.NetworkRole.Offline;
+    if (offline)
+    {
+      GUILayout.BeginHorizontal();
+      if (GUILayout.Button("Criar sala (Host)", smallButtonStyle, GUILayout.Height(rowHeight)))
+      {
+        PlayerPrefs.SetString(NicknameKey, CoopSession.playerNickname);
+        CoopSession.customDungeonSeed = CoopSession.NewSeed();
+        net.StartHost(port);
+      }
+      if (GUILayout.Button("Entrar na sala", smallButtonStyle, GUILayout.Height(rowHeight)))
+      {
+        PlayerPrefs.SetString(NicknameKey, CoopSession.playerNickname);
+        PlayerPrefs.SetString(HostIpKey, hostIpText.Trim());
+        net.StartClient(hostIpText, port, CoopSession.playerNickname);
+      }
+      GUILayout.EndHorizontal();
+    }
+    else
+    {
+      bool host = net.currentRole == LunaNetworkSyncManager.NetworkRole.Host;
+      GUILayout.Label(host ? $"Sala aberta — {net.ConnectedPeersCount + 1}/4 jogadoras (semente {CoopSession.customDungeonSeed})"
+                           : (net.IsConnected ? $"Conectada como Jogadora {net.MyPlayerId + 1}" : "Conectando..."), textStyle);
+      GUILayout.BeginHorizontal();
+      GUI.enabled = host;
+      if (GUILayout.Button(host ? "INICIAR EXPEDIÇÃO" : "Aguardando o host...", smallButtonStyle, GUILayout.Height(rowHeight)))
+      {
+        CoopSession.StartExpedition();
+      }
+      GUI.enabled = true;
+      if (GUILayout.Button("Desconectar", smallButtonStyle, GUILayout.Height(rowHeight), GUILayout.Width(Screen.height * 0.2f)))
+      {
+        net.StopNetwork();
+        CoopSession.ResetToSingleplayer();
+        CoopSession.multiplayerConnectionLog = "Desconectada.";
+      }
+      GUILayout.EndHorizontal();
+    }
+
+    GUILayout.Space(Screen.height * 0.01f);
+    GUILayout.Label(string.IsNullOrEmpty(CoopSession.multiplayerConnectionLog)
+      ? "Crie uma sala e passe o seu IP para as amigas (mesma rede ou porta liberada), ou digite o IP do host e entre."
+      : CoopSession.multiplayerConnectionLog, textStyle);
   }
 
   private void DrawSettings()

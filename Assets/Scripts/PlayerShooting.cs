@@ -111,6 +111,9 @@ public class PlayerShooting : MonoBehaviour
   public bool SimulatedFire { get; set; }
 
   public event System.Action<WeaponType> Fired;
+  // Projétil e cano da arma, para o modo cooperativo repetir os tiros da parceira.
+  public GameObject BulletPrefab => bulletPrefab;
+  public Transform Muzzle => muzzle;
 
   public void Awake()
   {
@@ -375,7 +378,7 @@ public class PlayerShooting : MonoBehaviour
 
     foreach (Roguelike.Monster monster in FindObjectsByType<Roguelike.Monster>())
     {
-      if (!monster.Dead)
+      if (!monster.Dead && !monster.Untargetable)
       {
         yield return monster;
       }
