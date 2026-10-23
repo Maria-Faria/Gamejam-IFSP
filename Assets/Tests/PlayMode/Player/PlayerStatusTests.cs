@@ -24,7 +24,25 @@ public class PlayerStatusTests
   [UnitySetUp]
   public IEnumerator SetUp()
   {
+    // Em batch mode os quadros são curtíssimos: passos menores que o minMoveDistance do CharacterController
+    // seriam ignorados e a jogadora lenta quase não andaria. 60 fps como no jogo.
+    Application.targetFrameRate = 60;
     yield return LoadGameScene();
+  }
+
+  // Descarrega a cena do jogo, para a jogadora e o mapa não sobrarem nos testes seguintes
+  [UnityTearDown]
+  public IEnumerator TearDown()
+  {
+    Application.targetFrameRate = -1;
+    Scene game = SceneManager.GetSceneByName(GameScene);
+    if (!game.IsValid() || !game.isLoaded)
+    {
+      yield break;
+    }
+    Scene empty = SceneManager.CreateScene("DepoisDosTestesDaJogadora" + UnityEngine.Random.Range(0, 99999));
+    SceneManager.SetActiveScene(empty);
+    yield return SceneManager.UnloadSceneAsync(game);
   }
 
   [UnityTest]
@@ -302,7 +320,7 @@ public class PlayerStatusTests
   // Inimigos atirando atrapalhariam as medições de vida e movimento
   private static void DisableEnemies()
   {
-    string[] enemyTypes = { "EnemySpawner", "ShadowEnemy", "EnemyBullet", "StandalonePlaceholderMonsterTestAI" };
+    string[] enemyTypes = { "EnemySpawner", "ShadowEnemy", "EnemyBullet", "StandalonePlaceholderMonsterTestAI", "MonsterDirector" };
     foreach (MonoBehaviour behaviour in UnityEngine.Object.FindObjectsByType<MonoBehaviour>())
     {
       if (Array.IndexOf(enemyTypes, behaviour.GetType().Name) < 0)
@@ -310,7 +328,8 @@ public class PlayerStatusTests
         continue;
       }
 
-      if (behaviour.GetType().Name == "EnemySpawner") behaviour.enabled = false;
+      // o spawner e o diretor de monstros ficam no objeto do mapa: só desligados
+      if (behaviour.GetType().Name == "EnemySpawner" || behaviour.GetType().Name == "MonsterDirector") behaviour.enabled = false;
       else UnityEngine.Object.Destroy(behaviour.gameObject);
     }
   }
