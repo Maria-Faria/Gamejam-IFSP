@@ -1,0 +1,50 @@
+{
+ "name": "muscle",
+ "size": 1.109,
+ "height": 0.9878,
+ "hover": 0.0,
+ "scale": 1.0197,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Charge",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "ChargeWallHit",
+   "frames": 52,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.057692307692307696,
+     "name": "Impact"
+    }
+   ]
+  },
+  {
+   "name": "Punch",
+   "frames": 30,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.43333333333333335,
+     "name": "Hit"
+    }
+   ]
+  }
+ ]
+}

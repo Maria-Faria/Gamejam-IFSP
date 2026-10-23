@@ -1,0 +1,33 @@
+{
+ "name": "crescent",
+ "size": 1.109,
+ "height": 1.2199,
+ "hover": 0.1109,
+ "scale": 1.1272,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Shoot",
+   "frames": 36,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.4444444444444444,
+     "name": "Fire"
+    }
+   ]
+  }
+ ]
+}

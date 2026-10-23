@@ -1,0 +1,79 @@
+{
+ "name": "fat",
+ "size": 1.8853,
+ "height": 1.4314,
+ "hover": 0.0,
+ "scale": 1.8092,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Flail",
+   "frames": 60,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.08333333333333333,
+     "name": "Hit"
+    },
+    {
+     "time": 0.25,
+     "name": "Hit"
+    },
+    {
+     "time": 0.4166666666666667,
+     "name": "Hit"
+    },
+    {
+     "time": 0.5833333333333334,
+     "name": "Hit"
+    },
+    {
+     "time": 0.75,
+     "name": "Hit"
+    },
+    {
+     "time": 0.9166666666666666,
+     "name": "Hit"
+    }
+   ]
+  },
+  {
+   "name": "Jump",
+   "frames": 54,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.25925925925925924,
+     "name": "TakeOff"
+    },
+    {
+     "time": 0.6296296296296297,
+     "name": "Land"
+    }
+   ]
+  },
+  {
+   "name": "Spit",
+   "frames": 40,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.475,
+     "name": "Fire"
+    }
+   ]
+  }
+ ]
+}

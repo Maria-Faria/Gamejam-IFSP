@@ -1,0 +1,33 @@
+{
+ "name": "ghost",
+ "size": 0.8318,
+ "height": 0.7267,
+ "hover": 0.0661,
+ "scale": 0.7915,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Punch",
+   "frames": 30,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.43333333333333335,
+     "name": "Hit"
+    }
+   ]
+  }
+ ]
+}

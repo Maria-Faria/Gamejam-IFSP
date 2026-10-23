@@ -1,0 +1,57 @@
+{
+ "name": "muscle_boss",
+ "size": 1.9962,
+ "height": 1.9962,
+ "hover": 0.0,
+ "scale": 2.0222,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Charge",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "ChargeWallHit",
+   "frames": 52,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.057692307692307696,
+     "name": "Impact"
+    }
+   ]
+  },
+  {
+   "name": "Spin",
+   "frames": 24,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "SpinDizzy",
+   "frames": 84,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Cast",
+   "frames": 40,
+   "loop": true,
+   "events": []
+  }
+ ]
+}

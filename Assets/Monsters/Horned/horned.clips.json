@@ -1,0 +1,48 @@
+{
+ "name": "horned",
+ "size": 1.109,
+ "height": 1.1916,
+ "hover": 0.0883,
+ "scale": 1.1498,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Punch",
+   "frames": 44,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.2727272727272727,
+     "name": "Hit"
+    },
+    {
+     "time": 0.5909090909090909,
+     "name": "Hit"
+    }
+   ]
+  },
+  {
+   "name": "Shoot",
+   "frames": 36,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.4444444444444444,
+     "name": "Fire"
+    }
+   ]
+  }
+ ]
+}

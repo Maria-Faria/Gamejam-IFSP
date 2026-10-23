@@ -1,0 +1,63 @@
+{
+ "name": "claw",
+ "size": 0.8317,
+ "height": 0.9149,
+ "hover": 0.0832,
+ "scale": 0.7108,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Shoot",
+   "frames": 36,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.4444444444444444,
+     "name": "Fire"
+    }
+   ]
+  },
+  {
+   "name": "Slash",
+   "frames": 36,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.2777777777777778,
+     "name": "Hit"
+    },
+    {
+     "time": 0.6111111111111112,
+     "name": "Hit"
+    }
+   ]
+  },
+  {
+   "name": "Teleport",
+   "frames": 48,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.375,
+     "name": "Vanish"
+    },
+    {
+     "time": 0.5416666666666666,
+     "name": "Appear"
+    }
+   ]
+  }
+ ]
+}

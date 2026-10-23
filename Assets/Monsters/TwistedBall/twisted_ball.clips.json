@@ -1,0 +1,33 @@
+{
+ "name": "twisted_ball",
+ "size": 0.5545,
+ "height": 0.621,
+ "hover": 0.0665,
+ "scale": 0.4711,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Lunge",
+   "frames": 30,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.3333333333333333,
+     "name": "Hit"
+    }
+   ]
+  },
+  {
+   "name": "Move",
+   "frames": 20,
+   "loop": true,
+   "events": []
+  }
+ ]
+}

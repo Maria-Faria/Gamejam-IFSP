@@ -1,0 +1,48 @@
+{
+ "name": "3_eyed",
+ "size": 0.8317,
+ "height": 0.9149,
+ "hover": 0.0832,
+ "scale": 0.8967,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Shoot",
+   "frames": 36,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.4444444444444444,
+     "name": "Fire"
+    }
+   ]
+  },
+  {
+   "name": "Teleport",
+   "frames": 48,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.375,
+     "name": "Vanish"
+    },
+    {
+     "time": 0.5416666666666666,
+     "name": "Appear"
+    }
+   ]
+  }
+ ]
+}

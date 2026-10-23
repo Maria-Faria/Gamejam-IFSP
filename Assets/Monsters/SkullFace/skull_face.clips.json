@@ -1,0 +1,120 @@
+{
+ "name": "skull_face",
+ "size": 2.218,
+ "height": 2.3511,
+ "hover": 0.1331,
+ "scale": 2.209,
+ "textured": true,
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Move",
+   "frames": 32,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "ChargedLaser",
+   "frames": 96,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.0625,
+     "name": "Charge"
+    },
+    {
+     "time": 0.4583333333333333,
+     "name": "Fire"
+    },
+    {
+     "time": 0.7916666666666666,
+     "name": "FireEnd"
+    }
+   ]
+  },
+  {
+   "name": "Teleport",
+   "frames": 48,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.375,
+     "name": "Vanish"
+    },
+    {
+     "time": 0.5416666666666666,
+     "name": "Appear"
+    }
+   ]
+  },
+  {
+   "name": "SpinShoot",
+   "frames": 76,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.11842105263157894,
+     "name": "Fire"
+    },
+    {
+     "time": 0.19736842105263158,
+     "name": "Fire"
+    },
+    {
+     "time": 0.27631578947368424,
+     "name": "Fire"
+    },
+    {
+     "time": 0.35526315789473684,
+     "name": "Fire"
+    },
+    {
+     "time": 0.4342105263157895,
+     "name": "Fire"
+    },
+    {
+     "time": 0.5131578947368421,
+     "name": "Fire"
+    },
+    {
+     "time": 0.5921052631578947,
+     "name": "Fire"
+    },
+    {
+     "time": 0.6710526315789473,
+     "name": "Fire"
+    },
+    {
+     "time": 0.75,
+     "name": "Fire"
+    },
+    {
+     "time": 0.8289473684210527,
+     "name": "Fire"
+    }
+   ]
+  },
+  {
+   "name": "Throw",
+   "frames": 36,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.4444444444444444,
+     "name": "Fire"
+    }
+   ]
+  },
+  {
+   "name": "Cast",
+   "frames": 40,
+   "loop": true,
+   "events": []
+  }
+ ]
+}
