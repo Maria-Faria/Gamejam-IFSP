@@ -70,7 +70,7 @@ namespace Roguelike
                     var victim = Health.Victim(hit.collider, transform);
                     if (victim)
                     {
-                        if (trampled.Add(victim)) victim.TakeDamage(damage, transform.position);
+                        if (trampled.Add(victim)) victim.TakeDamage(damage, transform.position, M);
                         continue;
                     }
                     if (hit.normal.y > 0.6f)

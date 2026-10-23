@@ -41,6 +41,7 @@ namespace Roguelike
         float _cruise = float.NaN;
         bool _returning;
         Transform _owner;
+        Monster _source;
         Collider _ignore;                   // what a burst was born inside of, for a moment
         float _ignoreUntil;
         readonly HashSet<Health> _pierced = new HashSet<Health>();
@@ -61,7 +62,8 @@ namespace Roguelike
             var flat = Monster.Flat(p._launchDir);
             p._side = flat.sqrMagnitude > 1e-6f ? Vector3.Cross(Vector3.up, flat.normalized) : Vector3.right;
             p._base = p._origin = position;
-            p._damage = damage;
+            p._source = owner ? owner.GetComponent<Monster>() : null;
+            p._damage = damage * (p._source ? p._source.DamageScale : 1f);
             p._owner = owner;
             p._homeHeight = owner ? position.y - owner.position.y : 0f;
             p._gravity = gravity;
@@ -174,7 +176,7 @@ namespace Roguelike
                 {
                     if (victim)
                     {
-                        if (_pierced.Add(victim)) victim.TakeDamage(_damage, transform.position);
+                        if (_pierced.Add(victim)) victim.TakeDamage(_damage, transform.position, _source, false);
                         continue;
                     }
                     if (h.collider.GetComponentInParent<CharacterController>())
@@ -189,11 +191,11 @@ namespace Roguelike
                     _velocity = -_launchDir * _speed * 0.2f;
                     return true;
                 }
-                victim?.TakeDamage(_damage, transform.position);
+                victim?.TakeDamage(_damage, transform.position, _source, false);
                 if (_splash > 0f)
                     foreach (var c in Physics.OverlapSphere(point, _splash, ~0, QueryTriggerInteraction.Ignore))
                         if (c != h.collider)
-                            Health.Victim(c, _owner)?.TakeDamage(_damage * 0.5f, point);
+                            Health.Victim(c, _owner)?.TakeDamage(_damage * 0.5f, point, _source, false);
                 Impact(point, h.collider);
                 return true;
             }

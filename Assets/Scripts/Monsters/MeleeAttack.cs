@@ -61,7 +61,7 @@ namespace Roguelike
                 if (Monster.Flat(to).magnitude <= reach * M.Size && Vector3.Angle(transform.forward, Monster.Flat(to)) < 60f)
                 {
                     var victim = M.Target.GetComponentInParent<Health>();
-                    if (victim && !victim.IsDead) victim.TakeDamage(damage, transform.position);
+                    if (victim && !victim.IsDead) victim.TakeDamage(damage, transform.position, M);
                 }
             }
         }

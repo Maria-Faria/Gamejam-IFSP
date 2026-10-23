@@ -125,7 +125,7 @@ namespace Roguelike
                 {
                     var victim = Health.Victim(h.collider, transform);
                     if (victim && hit.Add(victim))
-                        victim.TakeDamage(damage, from);
+                        victim.TakeDamage(damage, from, M);
                 }
             }
         }

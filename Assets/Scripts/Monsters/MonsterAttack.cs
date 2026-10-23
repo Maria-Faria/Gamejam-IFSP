@@ -38,7 +38,7 @@ namespace Roguelike
 
         public virtual bool CanStart(float distance) => !OnCooldown && distance >= minRange && distance <= maxRange;
 
-        public void MarkUsed() => _readyAt = Time.time + cooldown;
+        public void MarkUsed() => _readyAt = Time.time + cooldown * (M ? M.CooldownScale : 1f);
 
         public abstract IEnumerator Perform();
 
@@ -76,7 +76,7 @@ namespace Roguelike
                 var h = Health.Victim(c, transform);
                 if (h == null || (already != null && !already.Add(h)))
                     continue;
-                h.TakeDamage(amount, point);
+                h.TakeDamage(amount, point, M);
                 n++;
             }
             return n;

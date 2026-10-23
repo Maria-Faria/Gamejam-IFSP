@@ -59,11 +59,11 @@ public static class MonsterGameBridge
     }
   }
 
-  // A vida do monstro dono deste collider (vivo), para as armas da jogadora.
+  // A vida do monstro dono deste collider (vivo e visível), para as armas da jogadora.
   public static Roguelike.Health FindMonsterHealth(Collider collider)
   {
     Monster monster = collider != null ? collider.GetComponentInParent<Monster>() : null;
-    if (monster == null || monster.Health == null || monster.Health.IsDead)
+    if (monster == null || monster.Untargetable || monster.Health == null || monster.Health.IsDead)
     {
       return null;
     }

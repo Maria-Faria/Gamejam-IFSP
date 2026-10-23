@@ -43,7 +43,15 @@ namespace Roguelike
         public Animator Animator { get; private set; }
         public float Size => size;
         public float AggroRange => aggroRange;
-        public float MoveSpeed => moveSpeed;
+        public float MoveSpeed => moveSpeed * SpeedScale;
+        /// Multipliers the game sets per spawn (level difficulty, variants): walking speed, damage of every
+        /// attack and projectile, and attack cooldowns / recovery.
+        public float SpeedScale { get; set; } = 1f;
+        public float DamageScale { get; set; } = 1f;
+        public float CooldownScale { get; set; } = 1f;
+        /// Out of the fight for now (a phantom faded away): it does not think or attack, the player's aim and
+        /// weapons ignore it.
+        public bool Untargetable { get; set; }
         public bool Busy => _current != null;
         public bool Dead => _health && _health.IsDead;
         /// Free to start an attack: none running and recovered from the last one.
@@ -132,7 +140,7 @@ namespace Roguelike
             if (Dead)
                 return;
             UpdateEngaged();
-            if (!Busy && _brain && _brain.enabled)
+            if (!Busy && !Untargetable && _brain && _brain.enabled)
                 _brain.Tick();
         }
 
@@ -197,7 +205,7 @@ namespace Roguelike
             yield return attack.Perform();
             attack.Cleanup();
             _current = null;
-            _nextThink = Time.time + recovery;
+            _nextThink = Time.time + recovery * CooldownScale;
             if (!Animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") && !Animator.IsInTransition(0))
                 Play("Idle", 0.2f);
             AttackFinished?.Invoke(attack);
@@ -269,7 +277,7 @@ namespace Roguelike
                 return false;
             dir.Normalize();
             if (face) FaceTowards(transform.position + dir, 1f);
-            float step = moveSpeed * speedScale * Time.deltaTime;
+            float step = MoveSpeed * speedScale * Time.deltaTime;
             if (Blocked(dir, step, out var normal))
             {
                 var slide = Flat(Vector3.ProjectOnPlane(dir, normal));
@@ -289,7 +297,7 @@ namespace Roguelike
             var to = Flat(point - transform.position);
             if (to.magnitude <= stopAt)
                 return true;
-            return !Move(to, Mathf.Min(speedScale, to.magnitude / Mathf.Max(moveSpeed * Time.deltaTime, 1e-4f)), face);
+            return !Move(to, Mathf.Min(speedScale, to.magnitude / Mathf.Max(MoveSpeed * Time.deltaTime, 1e-4f)), face);
         }
 
         /// Is a wall/obstacle (not the floor, not a monster) within `distance` along `dir`?

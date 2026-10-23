@@ -21,6 +21,9 @@ namespace Roguelike
 
         /// (damage, where it came from)
         public event Action<float, Vector3> Damaged;
+        /// Any victim hit by a monster's attack or projectile: (victim, damage dealt, the monster). The game
+        /// hangs on-hit effects on it (poison, stun...).
+        public static event Action<Health, float, Monster> HitByMonster;
         public event Action Died;
 
         protected virtual void Awake() => _current = maxHealth;
@@ -47,6 +50,17 @@ namespace Roguelike
             Damaged?.Invoke(amount, from);
             if (IsDead)
                 Died?.Invoke();
+        }
+
+        /// A hit from a monster: scaled by its DamageScale (unless the amount already is, as a projectile's
+        /// is when it is fired), then reported through HitByMonster.
+        public void TakeDamage(float amount, Vector3 from, Monster source, bool applyScale = true)
+        {
+            if (IsDead || amount <= 0f)
+                return;
+            if (source && applyScale) amount *= source.DamageScale;
+            TakeDamage(amount, from);
+            HitByMonster?.Invoke(this, amount, source);
         }
 
         protected void RaiseDamaged(float amount, Vector3 from)
