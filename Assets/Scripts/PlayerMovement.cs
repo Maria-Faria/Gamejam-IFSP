@@ -2,22 +2,16 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+  [Tooltip("Velocidade de referência da animação: correr a runSpeed fica com a cadência de corrida.")]
   [SerializeField] private float speed = 5f;
   [SerializeField] private float runSpeed = 10f;
-  [Tooltip("Segundos andando sem soltar as teclas até começar a correr sozinho.")]
-  [SerializeField] private float walkTimeBeforeRun = 4f;
-  [Tooltip("Segundos correndo antes de voltar a andar.")]
-  [SerializeField] private float runDuration = 5f;
   [SerializeField] private float rotationSpeed = 720f;
   [SerializeField] private float gravity = -20f;
 
-  [Header("Sons de passos (tocam em loop enquanto se move)")]
-  [SerializeField] private AudioClip walkSound;
+  [Header("Som de passos (toca em loop enquanto corre)")]
   [SerializeField] private AudioClip runSound;
 
   private float verticalVelocity;
-  private float walkTimer;
-  private float runTimer;
 
   private CharacterController controller;
   private PlayerPowerUps powerUps;
@@ -66,9 +60,8 @@ public class PlayerMovement : MonoBehaviour
     Vector3 direction = new Vector3(horizontal, 0f, vertical);
     direction = Vector3.ClampMagnitude(direction, 1f);
 
-    bool holdingMove = Input.GetAxisRaw("Horizontal") != 0f || Input.GetAxisRaw("Vertical") != 0f;
-    UpdateAutoRun(holdingMove);
-    float currentSpeed = (IsRunning ? runSpeed : speed) * powerUps.MoveSpeedMultiplier;
+    IsRunning = Input.GetAxisRaw("Horizontal") != 0f || Input.GetAxisRaw("Vertical") != 0f;
+    float currentSpeed = runSpeed * powerUps.MoveSpeedMultiplier;
 
     if (controller.isGrounded && verticalVelocity < 0f)
     {
@@ -111,7 +104,7 @@ public class PlayerMovement : MonoBehaviour
     Vector3 velocity = controller.velocity;
     velocity.y = 0f;
     IsMoving = velocity.sqrMagnitude > 0.25f && !health.IsDead;
-    AudioClip clip = IsMoving ? (IsRunning ? runSound : walkSound) : null;
+    AudioClip clip = IsMoving ? runSound : null;
 
     if (clip == null)
     {
@@ -123,35 +116,6 @@ public class PlayerMovement : MonoBehaviour
     {
       footstepAudio.clip = clip;
       footstepAudio.Play();
-    }
-  }
-
-  private void UpdateAutoRun(bool holdingMove)
-  {
-    if (!holdingMove)
-    {
-      IsRunning = false;
-      walkTimer = 0f;
-      runTimer = 0f;
-      return;
-    }
-
-    if (IsRunning)
-    {
-      runTimer += Time.deltaTime;
-      if (runTimer >= runDuration)
-      {
-        IsRunning = false;
-        runTimer = 0f;
-      }
-      return;
-    }
-
-    walkTimer += Time.deltaTime;
-    if (walkTimer >= walkTimeBeforeRun)
-    {
-      IsRunning = true;
-      walkTimer = 0f;
     }
   }
 }

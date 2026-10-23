@@ -495,7 +495,6 @@ MonoBehaviour:
   runSpeed: 10
   rotationSpeed: 720
   gravity: -20
-  walkSound: {fileID: 8300000, guid: 1686d1f760c124346892e0fa29fa8397, type: 3}
   runSound: {fileID: 8300000, guid: b647f90025d95414aa314a15c4819f80, type: 3}
 --- !u!114 &623602284
 MonoBehaviour:
