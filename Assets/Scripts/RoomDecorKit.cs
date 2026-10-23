@@ -27,9 +27,16 @@ namespace GuardiasDaLuz.MapSystem
         private static readonly Dictionary<string, float> PropScales = new Dictionary<string, float>
         {
             { "barrel", 1.1f }, { "bench", 1.7f }, { "bin", 1.0f }, { "cone", 0.8f }, { "crate", 1.1f },
-            { "gate", 2.2f }, { "gun", 1.2f }, { "lamp", 3.0f }, { "laser", 1.6f }, { "led_floor", 1.8f },
+            { "door", 2.4f }, { "window", 1.6f }, { "gate", 2.2f }, { "gun", 1.2f }, { "lamp", 3.0f }, { "laser", 1.6f }, { "led_floor", 1.8f },
             { "led_wall", 1.6f }, { "park", 1.4f }, { "pc", 1.6f }, { "plant", 1.4f }, { "server", 2.1f },
             { "sign", 1.2f }, { "sign_warn", 1.2f }, { "table", 1.6f }, { "toolbox", 1.0f }, { "trafic", 1.7f }
+        };
+
+        private const float WallMountHeight = 1.1f;
+
+        private static readonly Dictionary<string, float> WallMountHeights = new Dictionary<string, float>
+        {
+            { "door", 0f }, { "window", 1.2f }
         };
 
         public void Decorate(Transform roomRoot, Vector3 center, float width, float length, float wallThickness,
@@ -56,7 +63,8 @@ namespace GuardiasDaLuz.MapSystem
                 GameObject prefab = Pick(wallMountedProps);
                 int side = UnityEngine.Random.Range(0, 4);
                 if (TryPlaceAgainstWall(prefab, roomRoot, center, width, length, wallThickness, side, inwards[side],
-                        doorSides[side], doorClearance, 1.1f, false))
+                        doorSides[side], doorClearance,
+                        WallMountHeights.TryGetValue(prefab.name, out float height) ? height : WallMountHeight, false))
                 {
                     placed++;
                 }

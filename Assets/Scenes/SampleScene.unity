@@ -131,7 +131,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a569e308bb84aab9a49918acade9442, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundMusic
-  music: {fileID: 8300000, guid: 019a270e5c7132d42829076e2419b6eb, type: 3}
+  music: {fileID: 8300000, guid: b14d138f3ef202c40a86b9d3aa0b23c7, type: 3}
   volume: 0.35
   fadeInSeconds: 2
 --- !u!1 &330585543
@@ -1166,6 +1166,8 @@ MonoBehaviour:
     - bin
     wallMountedPropNames:
     - led_wall
+    - window
+    - door
     floorPanelNames:
     - led_floor
     standingProps:
@@ -1180,6 +1182,8 @@ MonoBehaviour:
     - {fileID: 919132149155446097, guid: 743ce64bba08c9144aaccfc7c6e4ffc9, type: 3}
     wallMountedProps:
     - {fileID: 919132149155446097, guid: e075c524a743fab479bd88e3fbfc7109, type: 3}
+    - {fileID: 919132149155446097, guid: 6778dcb9e26948d5acc3d75612a35f65, type: 3}
+    - {fileID: 919132149155446097, guid: f04c980982d544028794a40beba71345, type: 3}
     floorPanels:
     - {fileID: 919132149155446097, guid: 0fc595157c286ac43a49061736a4c18b, type: 3}
     minStandingProps: 10
@@ -1199,7 +1203,9 @@ MonoBehaviour:
     - barrel
     - crate
     - gun
-    wallMountedPropNames: []
+    wallMountedPropNames:
+    - window
+    - door
     floorPanelNames: []
     standingProps:
     - {fileID: 919132149155446097, guid: 6070d20fccf03974da778e2b65d8dbc9, type: 3}
@@ -1213,7 +1219,9 @@ MonoBehaviour:
     - {fileID: 919132149155446097, guid: 032d05ff3e010a84293090a5a6170be8, type: 3}
     - {fileID: 919132149155446097, guid: 9f9d4a22095a3c34786fd7a1ed53ec02, type: 3}
     - {fileID: 919132149155446097, guid: 2a3a397b1e55070419463c8dc85b553a, type: 3}
-    wallMountedProps: []
+    wallMountedProps:
+    - {fileID: 919132149155446097, guid: 6778dcb9e26948d5acc3d75612a35f65, type: 3}
+    - {fileID: 919132149155446097, guid: f04c980982d544028794a40beba71345, type: 3}
     floorPanels: []
     minStandingProps: 10
     maxStandingProps: 16
@@ -1229,7 +1237,9 @@ MonoBehaviour:
     - sign
     - table
     - barrel
-    wallMountedPropNames: []
+    wallMountedPropNames:
+    - window
+    - door
     floorPanelNames: []
     standingProps:
     - {fileID: 919132149155446097, guid: 05fdadcf54efe5c4d8d0424de13fdf68, type: 3}
@@ -1240,7 +1250,9 @@ MonoBehaviour:
     - {fileID: 919132149155446097, guid: 1d68f1062f18feb46bdb477496a79abb, type: 3}
     - {fileID: 919132149155446097, guid: e90244f1a9caaf74989ff84c0a42ed68, type: 3}
     - {fileID: 919132149155446097, guid: 032d05ff3e010a84293090a5a6170be8, type: 3}
-    wallMountedProps: []
+    wallMountedProps:
+    - {fileID: 919132149155446097, guid: 6778dcb9e26948d5acc3d75612a35f65, type: 3}
+    - {fileID: 919132149155446097, guid: f04c980982d544028794a40beba71345, type: 3}
     floorPanels: []
     minStandingProps: 10
     maxStandingProps: 16

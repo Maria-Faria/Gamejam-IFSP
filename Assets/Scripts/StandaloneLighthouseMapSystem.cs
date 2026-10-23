@@ -112,21 +112,21 @@ namespace GuardiasDaLuz.MapSystem
             {
                 kitName = "Nível 1 • Laboratório",
                 standingPropNames = new[] { "server", "pc", "table", "toolbox", "crate", "barrel", "laser", "sign_warn", "bin" },
-                wallMountedPropNames = new[] { "led_wall" },
+                wallMountedPropNames = new[] { "led_wall", "window", "door" },
                 floorPanelNames = new[] { "led_floor" }
             },
             new RoomDecorKit
             {
                 kitName = "Nível 2 • Cidade",
                 standingPropNames = new[] { "trafic", "cone", "bench", "bin", "lamp", "park", "sign", "gate", "barrel", "crate", "gun" },
-                wallMountedPropNames = new string[0],
+                wallMountedPropNames = new[] { "window", "door" },
                 floorPanelNames = new string[0]
             },
             new RoomDecorKit
             {
                 kitName = "Nível 3 • Jardim",
                 standingPropNames = new[] { "plant", "bench", "lamp", "bin", "gate", "sign", "table", "barrel" },
-                wallMountedPropNames = new string[0],
+                wallMountedPropNames = new[] { "window", "door" },
                 floorPanelNames = new string[0]
             }
         };

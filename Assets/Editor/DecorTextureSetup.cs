@@ -26,12 +26,27 @@ public static class DecorTextureSetup
     EditorApplication.delayCall += RunMonsters;
   }
 
-  private static void SetupFolder(string folder, string logTag)
+  [InitializeOnLoadMethod]
+  private static void SetupNewDecorOnce()
+  {
+    if (!AssetDatabase.IsValidFolder(DecorFolder)) return;
+    foreach (string modelPath in Directory.GetFiles(DecorFolder, "*.fbx"))
+    {
+      if (!File.Exists($"{DecorFolder}/Materials/{Path.GetFileNameWithoutExtension(modelPath)}.mat"))
+      {
+        EditorApplication.delayCall += () => SetupFolder(DecorFolder, "DECOR", true);
+        return;
+      }
+    }
+  }
+
+  private static void SetupFolder(string folder, string logTag, bool onlyMissing = false)
   {
     foreach (string modelPath in Directory.GetFiles(folder, "*.fbx"))
     {
       string path = modelPath.Replace('\\', '/');
       string modelName = Path.GetFileNameWithoutExtension(path);
+      if (onlyMissing && File.Exists($"{folder}/Materials/{modelName}.mat")) continue;
       string textureFolder = $"{folder}/Textures/{modelName}";
       Directory.CreateDirectory(textureFolder);
 
