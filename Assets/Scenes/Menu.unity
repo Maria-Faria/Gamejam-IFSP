@@ -259,8 +259,8 @@ MonoBehaviour:
   gameScene: Intro
   background: {fileID: 2800000, guid: e8792217667a4007be820cb2f4456c39, type: 3}
   playButton: {fileID: 2800000, guid: dae2c921550a497da1fb7b37e46af20a, type: 3}
-  optionsButton: {fileID: 2800000, guid: 41fce1bcb6d24353b84cbd48c7c46e15, type: 3}
-  extrasButton: {fileID: 2800000, guid: 0f6bf216eafe481084764708d68e0270, type: 3}
+  multiplayerButton: {fileID: 2800000, guid: e1945c31910a4d42adc2ebcc3eb66145, type: 3}
+  settingsButton: {fileID: 2800000, guid: 22a0c842d70144d281421ccbbd5e3aa9, type: 3}
   quitButton: {fileID: 2800000, guid: b094230ed18f4f2abc0848bea23121e0, type: 3}
   buttonWidth: 0.24
   buttonsTop: 0.45

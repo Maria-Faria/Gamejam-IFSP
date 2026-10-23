@@ -11,8 +11,8 @@ public class MainMenu : MonoBehaviour
   [Header("Imagens")]
   [SerializeField] private Texture2D background;
   [SerializeField] private Texture2D playButton;
-  [SerializeField] private Texture2D optionsButton;
-  [SerializeField] private Texture2D extrasButton;
+  [SerializeField] private Texture2D multiplayerButton;
+  [SerializeField] private Texture2D settingsButton;
   [SerializeField] private Texture2D quitButton;
 
   [Header("Layout (proporções da tela)")]
@@ -23,7 +23,7 @@ public class MainMenu : MonoBehaviour
   [SerializeField] private float buttonSpacing = 0.012f;
   [SerializeField] private float fadeSeconds = 0.8f;
 
-  private enum Panel { None, Options, Extras }
+  private enum Panel { None, Multiplayer, Settings }
 
   private Texture2D[] buttons;
   private float[] hover;
@@ -47,7 +47,7 @@ public class MainMenu : MonoBehaviour
     Cursor.lockState = CursorLockMode.None;
     Cursor.visible = true;
 
-    buttons = new[] { playButton, optionsButton, extrasButton, quitButton };
+    buttons = new[] { playButton, multiplayerButton, settingsButton, quitButton };
     hover = new float[buttons.Length];
     buttonRects = new Rect[buttons.Length];
     lastMousePosition = Input.mousePosition;
@@ -104,10 +104,10 @@ public class MainMenu : MonoBehaviour
         starting = true;
         break;
       case 1:
-        panel = Panel.Options;
+        panel = Panel.Multiplayer;
         break;
       case 2:
-        panel = Panel.Extras;
+        panel = Panel.Settings;
         break;
       default:
         Quit();
@@ -203,13 +203,13 @@ public class MainMenu : MonoBehaviour
     Rect content = new Rect(box.x + pad, box.y + pad * 0.6f, box.width - pad * 2f, box.height - pad * 1.2f);
     GUILayout.BeginArea(content);
 
-    if (panel == Panel.Options)
+    if (panel == Panel.Multiplayer)
     {
-      DrawOptions();
+      DrawMultiplayer();
     }
     else
     {
-      DrawExtras();
+      DrawSettings();
     }
 
     GUILayout.FlexibleSpace();
@@ -221,10 +221,17 @@ public class MainMenu : MonoBehaviour
     GUILayout.EndArea();
   }
 
-  private void DrawOptions()
+  private void DrawMultiplayer()
   {
-    GUILayout.Label("OPÇÕES", titleStyle);
+    GUILayout.Label("MULTIPLAYER", titleStyle);
     GUILayout.Space(Screen.height * 0.03f);
+    GUILayout.Label("O modo multiplayer chega em breve!", textStyle);
+  }
+
+  private void DrawSettings()
+  {
+    GUILayout.Label("CONFIGURAÇÕES", titleStyle);
+    GUILayout.Space(Screen.height * 0.015f);
 
     GUILayout.Label($"Volume geral: {Mathf.RoundToInt(volume * 100f)}%", textStyle);
     float newVolume = GUILayout.HorizontalSlider(volume, 0f, 1f, GUILayout.Height(Screen.height * 0.03f));
@@ -235,19 +242,15 @@ public class MainMenu : MonoBehaviour
       PlayerPrefs.SetFloat(VolumeKey, volume);
     }
 
-    GUILayout.Space(Screen.height * 0.03f);
+    GUILayout.Space(Screen.height * 0.015f);
 
     if (GUILayout.Button(fullscreen ? "Tela cheia: ligada" : "Tela cheia: desligada", smallButtonStyle, GUILayout.Height(Screen.height * 0.06f)))
     {
       fullscreen = !fullscreen;
       Screen.fullScreen = fullscreen;
     }
-  }
 
-  private void DrawExtras()
-  {
-    GUILayout.Label("EXTRAS", titleStyle);
-    GUILayout.Space(Screen.height * 0.02f);
+    GUILayout.Space(Screen.height * 0.015f);
     GUILayout.Label("<b>Controles</b>", textStyle);
     GUILayout.Label("WASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 6 / roda do mouse: trocar de arma\nE: consertar postes e interagir", textStyle);
     GUILayout.Space(Screen.height * 0.02f);

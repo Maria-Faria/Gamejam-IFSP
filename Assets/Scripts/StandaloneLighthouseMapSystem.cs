@@ -141,6 +141,12 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Modelos sorteados para os inimigos de sombra. No editor, a lista vazia é preenchida com todos os FBX da pasta.")]
         public GameObject[] monsterModels;
 
+        [Header("=== 3E. POWER-UPS (Assets/Powerups) ===")]
+        [Tooltip("Modelo do power-up de Mana. No editor, o campo vazio é preenchido com battery.fbx.")]
+        public GameObject powerUpBatteryModel;
+        [Tooltip("Modelo dos outros power-ups, tingido com a cor de cada tipo. No editor, o campo vazio é preenchido com crystal.fbx.")]
+        public GameObject powerUpCrystalModel;
+
         [Header("=== 4. DIMENSÕES DAS SALAS & REGRAS DE LEVEL DESIGN ===")]
         public float roomWidthX = 32f;
         public float roomLengthZ = 26f;
@@ -355,7 +361,16 @@ namespace GuardiasDaLuz.MapSystem
             changed |= AssignDecorIfEmpty(ref decorMetalDoor, "metal_door");
             changed |= AssignDecorIfEmpty(ref decorLock, "lock");
             changed |= AssignMonstersIfEmpty();
+            changed |= AssignPowerUpIfEmpty(ref powerUpBatteryModel, PowerUpPickup.BatteryModelName);
+            changed |= AssignPowerUpIfEmpty(ref powerUpCrystalModel, PowerUpPickup.CrystalModelName);
             return changed;
+        }
+
+        private static bool AssignPowerUpIfEmpty(ref GameObject slot, string modelName)
+        {
+            if (slot != null) return false;
+            slot = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Powerups/{modelName}.fbx");
+            return slot != null;
         }
 
         private bool AssignMonstersIfEmpty()
@@ -2075,14 +2090,27 @@ namespace GuardiasDaLuz.MapSystem
 
         private void SpawnRareRecoveryBattery(Vector3 pos)
         {
-            GameObject battery = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            GameObject model = PowerUpPickup.LoadModel(PowerUpPickup.BatteryModelName);
+            GameObject battery;
+            if (model != null)
+            {
+                battery = new GameObject();
+                PowerUpPickup.CreateModelVisual(model, battery.transform, 0.9f);
+                SphereCollider trigger = battery.AddComponent<SphereCollider>();
+                trigger.radius = 0.45f;
+                trigger.isTrigger = true;
+            }
+            else
+            {
+                battery = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                battery.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
+                Collider c = battery.GetComponent<Collider>();
+                if (c != null) c.isTrigger = true;
+                Renderer r = battery.GetComponent<Renderer>();
+                if (r != null) r.material.color = new Color(0.2f, 1f, 0.55f);
+            }
             battery.name = "Bateria_Recuperacao_Rara";
             battery.transform.position = new Vector3(pos.x, 0.7f, pos.z);
-            battery.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
-            Collider c = battery.GetComponent<Collider>();
-            if (c != null) c.isTrigger = true;
-            Renderer r = battery.GetComponent<Renderer>();
-            if (r != null) r.material.color = new Color(0.2f, 1f, 0.55f);
 
             battery.AddComponent<StandaloneRareBatteryPickup>();
         }

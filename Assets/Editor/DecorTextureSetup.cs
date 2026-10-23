@@ -6,6 +6,7 @@ public static class DecorTextureSetup
 {
   private const string DecorFolder = "Assets/Decor";
   private const string MonsterFolder = "Assets/Sprites/Monster";
+  private const string PowerUpFolder = "Assets/Powerups";
 
   [MenuItem("Tools/Decor/Extrair Texturas e Materiais")]
   public static void Run()
@@ -26,15 +27,27 @@ public static class DecorTextureSetup
     EditorApplication.delayCall += RunMonsters;
   }
 
+  [MenuItem("Tools/Power-ups/Extrair Texturas e Materiais")]
+  public static void RunPowerUps()
+  {
+    SetupFolder(PowerUpFolder, "POWERUP");
+  }
+
   [InitializeOnLoadMethod]
   private static void SetupNewDecorOnce()
   {
-    if (!AssetDatabase.IsValidFolder(DecorFolder)) return;
-    foreach (string modelPath in Directory.GetFiles(DecorFolder, "*.fbx"))
+    SetupNewModelsOnce(DecorFolder, "DECOR");
+    SetupNewModelsOnce(PowerUpFolder, "POWERUP");
+  }
+
+  private static void SetupNewModelsOnce(string folder, string logTag)
+  {
+    if (!AssetDatabase.IsValidFolder(folder)) return;
+    foreach (string modelPath in Directory.GetFiles(folder, "*.fbx"))
     {
-      if (!File.Exists($"{DecorFolder}/Materials/{Path.GetFileNameWithoutExtension(modelPath)}.mat"))
+      if (!File.Exists($"{folder}/Materials/{Path.GetFileNameWithoutExtension(modelPath)}.mat"))
       {
-        EditorApplication.delayCall += () => SetupFolder(DecorFolder, "DECOR", true);
+        EditorApplication.delayCall += () => SetupFolder(folder, logTag, true);
         return;
       }
     }
