@@ -100,11 +100,15 @@ public class PlayerShooting : MonoBehaviour
   private AudioSource heldAudio;
   private PlayerMana mana;
   private PlayerPowerUps powerUps;
+  private PlayerHealth health;
+  private PlayerStatus status;
   private float[] ammo;
   private float[] lastShotTimes;
 
   public WeaponType CurrentWeapon => currentWeapon;
   public bool IsFiring { get; private set; }
+  // Segura o disparo sem teclado (usado pelos testes automáticos)
+  public bool SimulatedFire { get; set; }
 
   public event System.Action<WeaponType> Fired;
 
@@ -124,13 +128,18 @@ public class PlayerShooting : MonoBehaviour
 
   public void Update()
   {
-    HandleWeaponSwitch();
+    if (health == null) health = GetComponent<PlayerHealth>();
+    if (status == null) status = GetComponent<PlayerStatus>();
+    // Morta ou atordoada: não atira nem troca de arma
+    bool inputBlocked = (health != null && health.IsDead) || (status != null && status.IsStunned);
+
+    if (!inputBlocked) HandleWeaponSwitch();
     RechargeAmmo();
 
     if (mana == null) mana = GetComponent<PlayerMana>();
     if (powerUps == null) powerUps = GetComponent<PlayerPowerUps>();
 
-    bool firing = (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && bulletPrefab != null && muzzle != null;
+    bool firing = !inputBlocked && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0) || SimulatedFire) && bulletPrefab != null && muzzle != null;
     if (firing && ammo[(int)currentWeapon] < 1f)
     {
       SwitchToNextLoadedWeapon();

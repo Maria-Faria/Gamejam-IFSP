@@ -23,6 +23,8 @@ public class PlayerHealth : MonoBehaviour
   public bool IsDead => dead;
 
   public event System.Action Died;
+  // Disparado a cada dano recebido (inclusive o fatal), com o valor do dano. Usado pela animação de dor.
+  public event System.Action<float> Damaged;
 
   public void Awake()
   {
@@ -44,6 +46,7 @@ public class PlayerHealth : MonoBehaviour
 
     health = Mathf.Max(0f, health - damage);
     hitFlash = 1f;
+    Damaged?.Invoke(damage);
 
     if (health > 0f)
     {
@@ -82,6 +85,14 @@ public class PlayerHealth : MonoBehaviour
 
   private void Restart()
   {
+    // Espera a animação de morte terminar antes de reiniciar
+    PlayerAnimation playerAnimation = GetComponent<PlayerAnimation>();
+    if (playerAnimation != null && playerAnimation.IsPlayingDeath)
+    {
+      Invoke(nameof(Restart), 0.1f);
+      return;
+    }
+
     SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
   }
 

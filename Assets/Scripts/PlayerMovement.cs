@@ -16,12 +16,18 @@ public class PlayerMovement : MonoBehaviour
   private CharacterController controller;
   private PlayerPowerUps powerUps;
   private PlayerHealth health;
+  private PlayerStatus status;
   private AudioSource footstepAudio;
 
   public float WalkSpeed => speed;
   public float RunSpeed => runSpeed;
   public bool IsRunning { get; private set; }
   public bool IsMoving { get; private set; }
+  // Velocidade atual considerando power-ups e lentidão
+  public float CurrentSpeed => runSpeed * (powerUps != null ? powerUps.MoveSpeedMultiplier : 1f) * (status != null ? status.SpeedMultiplier : 1f);
+  // Entrada extra somada ao teclado (usada pelos testes automáticos)
+  public Vector2 SimulatedInput { get; set; }
+  public bool IsInputBlocked => (health != null && health.IsDead) || (status != null && status.IsStunned);
 
   public void Start()
   {
@@ -43,6 +49,12 @@ public class PlayerMovement : MonoBehaviour
       gameObject.AddComponent<PlayerMana>();
     }
 
+    status = GetComponent<PlayerStatus>();
+    if (status == null)
+    {
+      status = gameObject.AddComponent<PlayerStatus>();
+    }
+
     powerUps = GetComponent<PlayerPowerUps>();
     if (powerUps == null)
     {
@@ -54,14 +66,24 @@ public class PlayerMovement : MonoBehaviour
 
   public void Update()
   {
-    float horizontal = Input.GetAxis("Horizontal");
-    float vertical = Input.GetAxis("Vertical");
+    float horizontal = Mathf.Clamp(Input.GetAxis("Horizontal") + SimulatedInput.x, -1f, 1f);
+    float vertical = Mathf.Clamp(Input.GetAxis("Vertical") + SimulatedInput.y, -1f, 1f);
 
     Vector3 direction = new Vector3(horizontal, 0f, vertical);
     direction = Vector3.ClampMagnitude(direction, 1f);
 
-    IsRunning = Input.GetAxisRaw("Horizontal") != 0f || Input.GetAxisRaw("Vertical") != 0f;
-    float currentSpeed = runSpeed * powerUps.MoveSpeedMultiplier;
+    IsRunning = Input.GetAxisRaw("Horizontal") != 0f || Input.GetAxisRaw("Vertical") != 0f || SimulatedInput != Vector2.zero;
+
+    // Morta ou atordoada: ignora os comandos de movimento (gravidade e empurrão continuam)
+    if (IsInputBlocked)
+    {
+      direction = Vector3.zero;
+      IsRunning = false;
+    }
+
+    float statusMultiplier = status != null ? status.SpeedMultiplier : 1f;
+    float currentSpeed = runSpeed * powerUps.MoveSpeedMultiplier * statusMultiplier;
+    Vector3 knockback = status != null ? status.KnockbackVelocity : Vector3.zero;
 
     if (controller.isGrounded && verticalVelocity < 0f)
     {
@@ -69,7 +91,7 @@ public class PlayerMovement : MonoBehaviour
     }
     verticalVelocity += gravity * Time.deltaTime;
 
-    controller.Move((direction * currentSpeed + Vector3.up * verticalVelocity) * Time.deltaTime);
+    controller.Move((direction * currentSpeed + knockback + Vector3.up * verticalVelocity) * Time.deltaTime);
 
     if(direction.sqrMagnitude > 0.01f)
     {
