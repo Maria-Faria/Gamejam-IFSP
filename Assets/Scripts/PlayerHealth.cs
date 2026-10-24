@@ -105,13 +105,20 @@ public class PlayerHealth : MonoBehaviour
 
   public void OnGUI()
   {
+    HudScale.Begin();
+    DrawHud();
+    HudScale.End();
+  }
+
+  private void DrawHud()
+  {
     if (hitFlash > 0f)
     {
       GUI.color = new Color(0.8f, 0f, 0f, 0.3f * hitFlash);
-      GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+      GUI.DrawTexture(new Rect(0f, 0f, HudScale.Width, HudScale.Height), Texture2D.whiteTexture);
     }
 
-    Rect bar = new Rect(20f, Screen.height - 44f, 240f, 24f);
+    Rect bar = new Rect(20f, HudScale.Height - 44f, 240f, 24f);
     GUI.color = new Color(0f, 0f, 0f, 0.6f);
     GUI.DrawTexture(bar, Texture2D.whiteTexture);
     GUI.color = new Color(0.9f, 0.2f, 0.25f);
@@ -122,7 +129,7 @@ public class PlayerHealth : MonoBehaviour
     if (dead)
     {
       GUIStyle style = new GUIStyle(GUI.skin.label) { fontSize = 32, alignment = TextAnchor.MiddleCenter };
-      GUI.Label(new Rect(0f, 0f, Screen.width, Screen.height), "A escuridão venceu...", style);
+      GUI.Label(new Rect(0f, 0f, HudScale.Width, HudScale.Height), "A escuridão venceu...", style);
     }
   }
 }

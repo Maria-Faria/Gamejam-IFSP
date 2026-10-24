@@ -135,19 +135,33 @@ namespace GuardiasDaLuz.MapSystem
         public GameObject decorMetalDoor;
         [Tooltip("Cadeado mostrado nas portas trancadas.")]
         public GameObject decorLock;
+        [Tooltip("Modelos que vestem caixas quebráveis, contêineres e pedestais no lugar dos cubos comuns.")]
+        public GameObject decorCrate;
+        [Tooltip("Modelo que veste pilares e racks no lugar dos cubos comuns.")]
+        public GameObject decorServer;
+        [Tooltip("Modelo que veste pilares redondos (amarração, capacitores) no lugar dos cilindros comuns.")]
+        public GameObject decorBarrel;
+        [Tooltip("Modelo que veste os painéis solares no lugar dos cubos comuns.")]
+        public GameObject decorSolarPanel;
+
+        [Header("=== 3C2. PORTAL PARA O PRÓXIMO ANDAR ===")]
+        [Tooltip("Material da fumaça mística do portal. No editor, o campo vazio é preenchido com Monsters/Generated/SmokeParticle.mat.")]
+        public Material portalSmokeMaterial;
+        [Tooltip("Material das faíscas que sobem do portal. No editor, o campo vazio é preenchido com Monsters/Generated/Mote.mat.")]
+        public Material portalSparkMaterial;
 
         [Header("=== 3D. MONSTROS (Assets/Sprites/Monster) ===")]
         [Tooltip("Modelos sorteados para os inimigos de sombra. No editor, a lista vazia é preenchida com todos os FBX da pasta.")]
         public GameObject[] monsterModels;
 
         [Header("=== 3E. POWER-UPS (Assets/Powerups) ===")]
-        [Tooltip("Modelo do power-up de Mana. No editor, o campo vazio é preenchido com battery.fbx.")]
+        [Tooltip("Modelo do power-up Bateria (recupera vida). No editor, o campo vazio é preenchido com battery.fbx.")]
         public GameObject powerUpBatteryModel;
         [Tooltip("Modelo dos outros power-ups, tingido com a cor de cada tipo. No editor, o campo vazio é preenchido com crystal.fbx.")]
         public GameObject powerUpCrystalModel;
         [Tooltip("Som ao pegar Mais vida. No editor, o campo vazio é preenchido a partir de Assets/Audios/Projeto_UV_4_PowerUps_SFX.")]
         public AudioClip powerUpLightCrystalSound;
-        [Tooltip("Som ao pegar Mais mana e a bateria rara.")]
+        [Tooltip("Som ao pegar a bateria (power-up e bateria rara das caixas).")]
         public AudioClip powerUpEnergySound;
         [Tooltip("Som ao pegar Tiro que ricocheteia e Velocidade de tiro.")]
         public AudioClip powerUpRetroTechSound;
@@ -313,6 +327,8 @@ namespace GuardiasDaLuz.MapSystem
         private readonly Dictionary<string, GameObject> sharedBordersDoors = new Dictionary<string, GameObject>();
         private readonly List<GameObject> spawnedFloorObjects = new List<GameObject>();
         private readonly HashSet<Vector2Int> placedThemePillars = new HashSet<Vector2Int>();
+        // Relíquias já postas em pedestais neste andar: a mesma única não aparece em duas salas
+        private readonly List<RelicType> offeredRelics = new List<RelicType>();
         private LevelVisualTheme activeTheme;
         private RoomDecorKit activeDecorKit;
 
@@ -381,6 +397,12 @@ namespace GuardiasDaLuz.MapSystem
             changed |= AssignDecorIfEmpty(ref decorCenterLight, "center_light");
             changed |= AssignDecorIfEmpty(ref decorMetalDoor, "metal_door");
             changed |= AssignDecorIfEmpty(ref decorLock, "lock");
+            changed |= AssignDecorIfEmpty(ref decorCrate, "crate");
+            changed |= AssignDecorIfEmpty(ref decorServer, "server");
+            changed |= AssignDecorIfEmpty(ref decorBarrel, "barrel");
+            changed |= AssignDecorIfEmpty(ref decorSolarPanel, "led_floor");
+            changed |= AssignMaterialIfEmpty(ref portalSmokeMaterial, "Assets/Monsters/Generated/SmokeParticle.mat");
+            changed |= AssignMaterialIfEmpty(ref portalSparkMaterial, "Assets/Monsters/Generated/Mote.mat");
             changed |= AssignMonstersIfEmpty();
             changed |= AssignPowerUpIfEmpty(ref powerUpBatteryModel, PowerUpPickup.BatteryModelName);
             changed |= AssignPowerUpIfEmpty(ref powerUpCrystalModel, PowerUpPickup.CrystalModelName);
@@ -426,6 +448,13 @@ namespace GuardiasDaLuz.MapSystem
         {
             if (slot != null) return false;
             slot = RoomDecorKit.LoadDecor(propName);
+            return slot != null;
+        }
+
+        private static bool AssignMaterialIfEmpty(ref Material slot, string path)
+        {
+            if (slot != null) return false;
+            slot = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);
             return slot != null;
         }
 #endif
@@ -698,6 +727,7 @@ namespace GuardiasDaLuz.MapSystem
             dungeonGrid.Clear();
             sharedBordersDoors.Clear();
             dimRoomLights.Clear();
+            offeredRelics.Clear();
 
             if (FloorSeedProvider != null) UnityEngine.Random.InitState(FloorSeedProvider(floorIdx));
 
@@ -1050,30 +1080,30 @@ namespace GuardiasDaLuz.MapSystem
                         new Vector3(-7.5f, 1.4f, -5.5f), new Vector3(7.5f, 1.4f, -5.5f)
                     };
                     foreach (var pos in corners)
-                        CreateBlock(parent, "Pilar_Cobertura", pos, new Vector3(2.3f, 2.8f, 2.3f), wallColor * 0.85f);
+                        CreateBlock(parent, "Pilar_Cobertura", pos, new Vector3(2.3f, 2.8f, 2.3f), wallColor * 0.85f, decorServer);
                     break;
 
                 case ObstacleLayoutVariant.TwinLBunkers:
                     Color c = wallColor * 0.82f;
-                    CreateBlock(parent, "Pilar_Bunker_Esq1", new Vector3(-7.5f, 1.2f, 0f), new Vector3(1.5f, 2.4f, 6.5f), c);
-                    CreateBlock(parent, "Pilar_Bunker_Esq2", new Vector3(-5.2f, 1.2f, 3.0f), new Vector3(3.5f, 2.4f, 1.5f), c);
-                    CreateBlock(parent, "Pilar_Bunker_Dir1", new Vector3(7.5f, 1.2f, 0f), new Vector3(1.5f, 2.4f, 6.5f), c);
-                    CreateBlock(parent, "Pilar_Bunker_Dir2", new Vector3(5.2f, 1.2f, -3.0f), new Vector3(3.5f, 2.4f, 1.5f), c);
+                    CreateBlock(parent, "Pilar_Bunker_Esq1", new Vector3(-7.5f, 1.2f, 0f), new Vector3(1.5f, 2.4f, 6.5f), c, decorCrate);
+                    CreateBlock(parent, "Pilar_Bunker_Esq2", new Vector3(-5.2f, 1.2f, 3.0f), new Vector3(3.5f, 2.4f, 1.5f), c, decorCrate);
+                    CreateBlock(parent, "Pilar_Bunker_Dir1", new Vector3(7.5f, 1.2f, 0f), new Vector3(1.5f, 2.4f, 6.5f), c, decorCrate);
+                    CreateBlock(parent, "Pilar_Bunker_Dir2", new Vector3(5.2f, 1.2f, -3.0f), new Vector3(3.5f, 2.4f, 1.5f), c, decorCrate);
                     break;
 
                 case ObstacleLayoutVariant.CentralCrossCorridors:
                     Color cw = wallColor * 0.88f;
-                    CreateBlock(parent, "Pilar_Mureta_NO", new Vector3(-6.0f, 1.1f, 4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
-                    CreateBlock(parent, "Pilar_Mureta_NE", new Vector3(6.0f, 1.1f, 4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
-                    CreateBlock(parent, "Pilar_Mureta_SO", new Vector3(-6.0f, 1.1f, -4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
-                    CreateBlock(parent, "Pilar_Mureta_SE", new Vector3(6.0f, 1.1f, -4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw);
+                    CreateBlock(parent, "Pilar_Mureta_NO", new Vector3(-6.0f, 1.1f, 4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw, decorCrate);
+                    CreateBlock(parent, "Pilar_Mureta_NE", new Vector3(6.0f, 1.1f, 4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw, decorCrate);
+                    CreateBlock(parent, "Pilar_Mureta_SO", new Vector3(-6.0f, 1.1f, -4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw, decorCrate);
+                    CreateBlock(parent, "Pilar_Mureta_SE", new Vector3(6.0f, 1.1f, -4.5f), new Vector3(5.0f, 2.2f, 1.3f), cw, decorCrate);
                     break;
 
                 case ObstacleLayoutVariant.Level1_PierContainers:
-                    CreateBlock(parent, "Pilar_Container_Maritimo_1", new Vector3(-8.2f, 1.35f, 4.8f), new Vector3(5.5f, 2.7f, 2.4f), new Color(0.18f, 0.35f, 0.55f));
-                    CreateBlock(parent, "Pilar_Container_Maritimo_2", new Vector3(8.2f, 1.35f, -4.8f), new Vector3(5.5f, 2.7f, 2.4f), new Color(0.55f, 0.25f, 0.18f));
-                    CreateCylinder(parent, "Pilar_Amarracao_1", new Vector3(7.0f, 0.9f, 5.0f), new Vector3(1.6f, 0.9f, 1.6f), new Color(0.25f, 0.25f, 0.28f));
-                    CreateCylinder(parent, "Pilar_Amarracao_2", new Vector3(-7.0f, 0.9f, -5.0f), new Vector3(1.6f, 0.9f, 1.6f), new Color(0.25f, 0.25f, 0.28f));
+                    CreateBlock(parent, "Pilar_Container_Maritimo_1", new Vector3(-8.2f, 1.35f, 4.8f), new Vector3(5.5f, 2.7f, 2.4f), new Color(0.18f, 0.35f, 0.55f), decorCrate);
+                    CreateBlock(parent, "Pilar_Container_Maritimo_2", new Vector3(8.2f, 1.35f, -4.8f), new Vector3(5.5f, 2.7f, 2.4f), new Color(0.55f, 0.25f, 0.18f), decorCrate);
+                    CreateCylinder(parent, "Pilar_Amarracao_1", new Vector3(7.0f, 0.9f, 5.0f), new Vector3(1.6f, 0.9f, 1.6f), new Color(0.25f, 0.25f, 0.28f), decorBarrel);
+                    CreateCylinder(parent, "Pilar_Amarracao_2", new Vector3(-7.0f, 0.9f, -5.0f), new Vector3(1.6f, 0.9f, 1.6f), new Color(0.25f, 0.25f, 0.28f), decorBarrel);
                     break;
 
                 case ObstacleLayoutVariant.Level2_SolarPanelsArray:
@@ -1084,11 +1114,11 @@ namespace GuardiasDaLuz.MapSystem
                     };
                     foreach (var p in panels)
                     {
-                        GameObject panel = CreateBlock(parent, "Pilar_Painel_Solar", p, new Vector3(4.2f, 0.35f, 2.6f), new Color(0.12f, 0.45f, 0.78f));
+                        GameObject panel = CreateBlock(parent, "Pilar_Painel_Solar", p, new Vector3(4.2f, 0.35f, 2.6f), new Color(0.12f, 0.45f, 0.78f), decorSolarPanel);
                         panel.transform.localRotation = Quaternion.Euler(28f, 0f, 0f);
                     }
-                    CreateCylinder(parent, "Pilar_Capacitor_1", new Vector3(-4.5f, 1.1f, 0f), new Vector3(1.3f, 1.1f, 1.3f), new Color(0.25f, 0.85f, 0.55f));
-                    CreateCylinder(parent, "Pilar_Capacitor_2", new Vector3(4.5f, 1.1f, 0f), new Vector3(1.3f, 1.1f, 1.3f), new Color(0.25f, 0.85f, 0.55f));
+                    CreateCylinder(parent, "Pilar_Capacitor_1", new Vector3(-4.5f, 1.1f, 0f), new Vector3(1.3f, 1.1f, 1.3f), new Color(0.25f, 0.85f, 0.55f), decorBarrel);
+                    CreateCylinder(parent, "Pilar_Capacitor_2", new Vector3(4.5f, 1.1f, 0f), new Vector3(1.3f, 1.1f, 1.3f), new Color(0.25f, 0.85f, 0.55f), decorBarrel);
                     break;
 
                 case ObstacleLayoutVariant.Level3_SmartGridServerRacks:
@@ -1098,12 +1128,12 @@ namespace GuardiasDaLuz.MapSystem
                         new Vector3(8.5f, 1.6f, 4.2f), new Vector3(8.5f, 1.6f, -4.2f)
                     };
                     foreach (var rp in racks)
-                        CreateBlock(parent, "Pilar_Rack_SmartGrid", rp, new Vector3(1.8f, 3.2f, 3.4f), new Color(0.18f, 0.14f, 0.28f));
+                        CreateBlock(parent, "Pilar_Rack_SmartGrid", rp, new Vector3(1.8f, 3.2f, 3.4f), new Color(0.18f, 0.14f, 0.28f), decorServer);
                     break;
             }
         }
 
-        private GameObject CreateBlock(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color)
+        private GameObject CreateBlock(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color, GameObject model = null)
         {
             GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             obj.name = name;
@@ -1112,7 +1142,32 @@ namespace GuardiasDaLuz.MapSystem
             obj.transform.localScale = scale;
             Renderer r = obj.GetComponent<Renderer>();
             if (r != null) r.material.color = color;
+            DressPrimitive(obj, model);
             return obj;
+        }
+
+        // Esconde o cubo/cilindro (fica só o colisor) e encaixa o modelo no mesmo volume
+        public static void DressPrimitive(GameObject primitive, GameObject model)
+        {
+            if (model == null) return;
+
+            Renderer r = primitive.GetComponent<Renderer>();
+            if (r != null) r.enabled = false;
+
+            MeshFilter filter = primitive.GetComponent<MeshFilter>();
+            Vector3 volume = filter != null && filter.sharedMesh != null ? filter.sharedMesh.bounds.size : Vector3.one;
+            Bounds bounds = RoomDecorKit.GetLocalBounds(model);
+
+            GameObject wrapper = new GameObject($"Modelo_{model.name}");
+            wrapper.transform.SetParent(primitive.transform, false);
+            wrapper.transform.localScale = new Vector3(volume.x / Mathf.Max(bounds.size.x, 0.01f),
+                volume.y / Mathf.Max(bounds.size.y, 0.01f), volume.z / Mathf.Max(bounds.size.z, 0.01f));
+
+            GameObject instance = Instantiate(model, wrapper.transform, false);
+            instance.transform.localPosition = model.transform.localPosition - bounds.center;
+            foreach (Camera camera in instance.GetComponentsInChildren<Camera>(true)) Destroy(camera.gameObject);
+            foreach (Light light in instance.GetComponentsInChildren<Light>(true)) Destroy(light.gameObject);
+            foreach (Collider collider in instance.GetComponentsInChildren<Collider>(true)) Destroy(collider);
         }
 
         private GameObject CreateWallBlock(Transform parent, Vector2Int dir, Vector3 localPos, Vector3 scale, Color color)
@@ -1150,7 +1205,7 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
-        private GameObject CreateCylinder(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color)
+        private GameObject CreateCylinder(Transform parent, string name, Vector3 localPos, Vector3 scale, Color color, GameObject model = null)
         {
             GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             obj.name = name;
@@ -1159,6 +1214,7 @@ namespace GuardiasDaLuz.MapSystem
             obj.transform.localScale = scale;
             Renderer r = obj.GetComponent<Renderer>();
             if (r != null) r.material.color = color;
+            DressPrimitive(obj, model);
             return obj;
         }
 
@@ -1415,6 +1471,7 @@ namespace GuardiasDaLuz.MapSystem
                     crate.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(-20f, 20f), 0f);
                     Renderer r = crate.GetComponent<Renderer>();
                     if (r != null) r.material.color = new Color(0.58f, 0.36f, 0.16f);
+                    DressPrimitive(crate, decorCrate);
                 }
                 crate.name = $"Caixa_Quebravel_{i}";
                 StandaloneBreakableCrate bc = crate.GetComponent<StandaloneBreakableCrate>();
@@ -1591,25 +1648,46 @@ namespace GuardiasDaLuz.MapSystem
             return sp;
         }
 
+        // Dois pedestais com relíquias diferentes: pegar uma faz a outra sumir
         private void BuildTreasureRoomPedestals(MapRoomNode node)
         {
-            StandaloneSpecialPedestal p1 = CreatePedestal(node.roomRoot.transform, new Vector3(-4.2f, 1f, 0f),
-                new Color(1f, 0.85f, 0.2f), "CHOICE_ITEM_A", 0,
-                "🌟 [ITEM ÚNICO A] Aperte [E] para escolher este Item (o outro pedestal desaparecerá)!");
-
-            StandaloneSpecialPedestal p2 = CreatePedestal(node.roomRoot.transform, new Vector3(4.2f, 1f, 0f),
-                new Color(0.2f, 0.95f, 1f), "CHOICE_ITEM_B", 0,
-                "⚡ [ITEM ÚNICO B] Aperte [E] para escolher este Item (o outro pedestal desaparecerá)!");
+            RelicType[] relics = RelicCatalog.Draw(2, RelicSeed(node), false, LocalPowerUps(), offeredRelics);
+            offeredRelics.AddRange(relics);
+            StandaloneSpecialPedestal p1 = CreateRelicPedestal(node, new Vector3(-4.2f, 1f, 0f), relics[0], "CHOICE_ITEM_A",
+                "[E] Escolher {0}: {1}. O outro pedestal some.");
+            StandaloneSpecialPedestal p2 = CreateRelicPedestal(node, new Vector3(4.2f, 1f, 0f), relics[1], "CHOICE_ITEM_B",
+                "[E] Escolher {0}: {1}. O outro pedestal some.");
 
             p1.exclusivePartner = p2;
             p2.exclusivePartner = p1;
         }
 
+        // A sala secreta guarda uma relíquia que muda o tiro (arma teleguiada ou tiro duplo) enquanto houver
         private void BuildSecretRoomPedestal(MapRoomNode node)
         {
-            CreatePedestal(node.roomRoot.transform, new Vector3(0f, 1.2f, 0f),
-                new Color(1f, 0.35f, 0.9f), "SECRET_LEGENDARY_RELIC", 0,
-                "💎 [RELÍQUIA DA SALA SECRETA] Aperte [E] para coletar a Relíquia Lendária!");
+            RelicType relic = RelicCatalog.Draw(1, RelicSeed(node), true, LocalPowerUps(), offeredRelics)[0];
+            offeredRelics.Add(relic);
+            CreateRelicPedestal(node, new Vector3(0f, 1.2f, 0f), relic, "SECRET_LEGENDARY_RELIC",
+                "[E] Relíquia lendária — {0}: {1}");
+        }
+
+        private StandaloneSpecialPedestal CreateRelicPedestal(MapRoomNode node, Vector3 localPos, RelicType relic, string itemId, string prompt)
+        {
+            StandaloneSpecialPedestal pedestal = CreatePedestal(node.roomRoot.transform, localPos, RelicCatalog.GetColor(relic), itemId, 0,
+                string.Format(prompt, RelicCatalog.GetName(relic), RelicCatalog.GetDescription(relic)));
+            pedestal.relic = relic;
+            return pedestal;
+        }
+
+        // Semente própria por sala e andar: o sorteio das relíquias não consome o Random do mapa
+        private int RelicSeed(MapRoomNode node)
+        {
+            return node.gridCoord.x * 73856093 ^ node.gridCoord.y * 19349663 ^ (currentFloorIndex + 1) * 83492791;
+        }
+
+        private PlayerPowerUps LocalPowerUps()
+        {
+            return playerTransform != null ? playerTransform.GetComponent<PlayerPowerUps>() : null;
         }
 
         private StandaloneSpecialPedestal CreatePedestal(Transform parent, Vector3 localPos, Color color, string itemId, int cost, string prompt)
@@ -1628,6 +1706,8 @@ namespace GuardiasDaLuz.MapSystem
                 ped.transform.localScale = new Vector3(1.3f, 1.0f, 1.3f);
                 Renderer r = ped.GetComponent<Renderer>();
                 if (r != null) r.material.color = color;
+                DressPrimitive(ped, decorCrate);
+                AddPedestalRelic(ped.transform, color);
             }
             ped.name = $"Pedestal_{itemId}";
             StandaloneSpecialPedestal sp = ped.AddComponent<StandaloneSpecialPedestal>();
@@ -1635,6 +1715,30 @@ namespace GuardiasDaLuz.MapSystem
             sp.crystalCost = cost;
             sp.promptText = prompt;
             return sp;
+        }
+
+        // Cristal girando em cima do pedestal, na cor do item
+        private void AddPedestalRelic(Transform pedestal, Color color)
+        {
+            GameObject relic = new GameObject("Reliquia_Pedestal");
+            relic.transform.SetParent(pedestal, false);
+            relic.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+            Vector3 s = pedestal.localScale;
+            relic.transform.localScale = new Vector3(1f / s.x, 1f / s.y, 1f / s.z);
+            relic.AddComponent<StandalonePedestalRelicSpin>();
+
+            GameObject model = PowerUpPickup.LoadModel(PowerUpPickup.CrystalModelName);
+            if (model != null)
+            {
+                PowerUpPickup.CreateModelVisual(model, relic.transform, 0.9f);
+                foreach (Renderer body in relic.GetComponentsInChildren<Renderer>()) PowerUpPickup.Tint(body, color);
+            }
+
+            Light glow = relic.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = color;
+            glow.range = 5f;
+            glow.intensity = 2f;
         }
 
         private void UpdatePlayerRoomTracking(Vector3 playerWorldPos)
@@ -1802,19 +1906,141 @@ namespace GuardiasDaLuz.MapSystem
 
         private void SpawnLighthouseStaircasePortal(Vector3 pos)
         {
-            GameObject portal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            portal.name = "Portal_Escadaria_Proximo_Andar";
+            GameObject portal = new GameObject("Portal_Escadaria_Proximo_Andar");
             portal.transform.SetParent(transform);
-            portal.transform.position = pos + new Vector3(0f, 1.2f, 0f);
-            portal.transform.localScale = new Vector3(2.8f, 1.2f, 2.8f);
-            Collider c = portal.GetComponent<Collider>();
-            if (c != null) c.isTrigger = true;
+            portal.transform.position = new Vector3(pos.x, 0f, pos.z);
 
-            Renderer r = portal.GetComponent<Renderer>();
-            if (r != null) r.material.color = new Color(0.1f, 0.95f, 1f);
+            CapsuleCollider trigger = portal.AddComponent<CapsuleCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 1.4f;
+            trigger.height = 2.4f;
+            trigger.center = new Vector3(0f, 1.2f, 0f);
+
+            Color cyan = new Color(0.1f, 0.95f, 1f);
+            Color violet = new Color(0.62f, 0.3f, 1f);
+
+            // fumaça mística: um redemoinho que gira em volta do centro e sobe se desfazendo
+            ParticleSystem swirl = CreatePortalParticles(portal.transform, "Fumaca_Redemoinho", portalSmokeMaterial, 60);
+            var main = swirl.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.2f, 3.4f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.9f, 1.6f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, 2f * Mathf.PI);
+            main.startColor = new ParticleSystem.MinMaxGradient(cyan, violet);
+            var emission = swirl.emission;
+            emission.rateOverTime = 26f;
+            var shape = swirl.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 1.3f;
+            shape.radiusThickness = 0.35f;
+            shape.rotation = new Vector3(90f, 0f, 0f);
+            var velocity = swirl.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.y = new ParticleSystem.MinMaxCurve(0.55f, 0.95f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.orbitalX = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.orbitalY = new ParticleSystem.MinMaxCurve(1.4f, 2.1f);
+            velocity.orbitalZ = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.radial = new ParticleSystem.MinMaxCurve(-0.25f);
+            FadeInAndOut(swirl, 0.55f, 0.6f, 1.25f);
+
+            // névoa baixa que se espalha pelo chão
+            ParticleSystem mist = CreatePortalParticles(portal.transform, "Fumaca_Nevoa", portalSmokeMaterial, 30);
+            main = mist.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.5f, 4f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.45f);
+            main.startSize = new ParticleSystem.MinMaxCurve(1.4f, 2.4f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, 2f * Mathf.PI);
+            main.startColor = new ParticleSystem.MinMaxGradient(violet * 0.8f, cyan * 0.7f);
+            emission = mist.emission;
+            emission.rateOverTime = 9f;
+            shape = mist.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 0.6f;
+            shape.rotation = new Vector3(90f, 0f, 0f);
+            mist.transform.localPosition = new Vector3(0f, 0.25f, 0f);
+            FadeInAndOut(mist, 0.35f, 0.8f, 1.4f);
+
+            // faíscas de luz subindo pelo meio
+            ParticleSystem sparks = CreatePortalParticles(portal.transform, "Faiscas_Portal", portalSparkMaterial, 50);
+            main = sparks.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.18f);
+            main.startColor = new ParticleSystem.MinMaxGradient(Color.white, cyan);
+            emission = sparks.emission;
+            emission.rateOverTime = 18f;
+            shape = sparks.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 1f;
+            shape.rotation = new Vector3(90f, 0f, 0f);
+            velocity = sparks.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.Local;
+            velocity.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.y = new ParticleSystem.MinMaxCurve(1.2f, 2.2f);
+            velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.orbitalX = new ParticleSystem.MinMaxCurve(0f, 0f);
+            velocity.orbitalY = new ParticleSystem.MinMaxCurve(2.5f, 3.5f);
+            velocity.orbitalZ = new ParticleSystem.MinMaxCurve(0f, 0f);
+            FadeInAndOut(sparks, 1f, 1f, 0.4f);
+
+            Light glow = new GameObject("Luz_Portal").AddComponent<Light>();
+            glow.transform.SetParent(portal.transform, false);
+            glow.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+            glow.type = LightType.Point;
+            glow.color = Color.Lerp(cyan, violet, 0.35f);
+            glow.range = 7f;
+            glow.intensity = 3f;
 
             portal.AddComponent<StandaloneNextFloorPortal>();
             spawnedFloorObjects.Add(portal);
+        }
+
+        private static ParticleSystem CreatePortalParticles(Transform parent, string name, Material material, int maxParticles)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            ParticleSystem ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            var main = ps.main;
+            main.loop = true;
+            main.prewarm = true;
+            main.maxParticles = maxParticles;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+
+            var rotation = ps.rotationOverLifetime;
+            rotation.enabled = true;
+            rotation.z = new ParticleSystem.MinMaxCurve(-0.8f, 0.8f);
+
+            ParticleSystemRenderer renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.sharedMaterial = material != null ? material : new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+
+            ps.Play();
+            return ps;
+        }
+
+        // Surge, fica no pico de opacidade e some enquanto cresce
+        private static void FadeInAndOut(ParticleSystem ps, float peakAlpha, float sizeFrom, float sizeTo)
+        {
+            var color = ps.colorOverLifetime;
+            color.enabled = true;
+            Gradient gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(peakAlpha, 0.25f), new GradientAlphaKey(peakAlpha * 0.6f, 0.7f), new GradientAlphaKey(0f, 1f) });
+            color.color = new ParticleSystem.MinMaxGradient(gradient);
+
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, sizeFrom, 1f, sizeTo));
         }
 
         public void AdvanceToNextFloor()
@@ -1842,7 +2068,7 @@ namespace GuardiasDaLuz.MapSystem
 
         private void OnGUI()
         {
-            float scale = Mathf.Max(0.75f, Screen.height / 1080f);
+            float scale = Mathf.Max(0.85f, Screen.height / 1080f);
             CreateHudStyles(scale);
 
             if (showBuiltInMinimapHUD)
@@ -1864,7 +2090,7 @@ namespace GuardiasDaLuz.MapSystem
 
             bannerStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = Mathf.RoundToInt(24f * scale),
+                fontSize = Mathf.RoundToInt(31f * scale),
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 wordWrap = true,
@@ -1872,12 +2098,12 @@ namespace GuardiasDaLuz.MapSystem
             };
             bannerStyle.normal.textColor = new Color(1f, 0.95f, 0.7f);
 
-            promptStyle = new GUIStyle(bannerStyle) { fontSize = Mathf.RoundToInt(22f * scale) };
+            promptStyle = new GUIStyle(bannerStyle) { fontSize = Mathf.RoundToInt(29f * scale) };
             promptStyle.normal.textColor = Color.white;
 
             mapTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = Mathf.RoundToInt(17f * scale),
+                fontSize = Mathf.RoundToInt(21f * scale),
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -1885,7 +2111,7 @@ namespace GuardiasDaLuz.MapSystem
 
             legendStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = Mathf.RoundToInt(14f * scale),
+                fontSize = Mathf.RoundToInt(18f * scale),
                 alignment = TextAnchor.MiddleLeft
             };
             legendStyle.normal.textColor = new Color(0.85f, 0.88f, 0.95f);
@@ -1898,7 +2124,7 @@ namespace GuardiasDaLuz.MapSystem
             if (string.IsNullOrEmpty(activeSubtitleBanner) || age > BannerSeconds) return;
 
             float alpha = Mathf.Clamp01((BannerSeconds - age) / BannerFadeSeconds);
-            float width = Mathf.Min(Screen.width * 0.5f, 900f * scale);
+            float width = Mathf.Min(Screen.width * 0.6f, 1100f * scale);
             DrawHudText(StripEmoji(activeSubtitleBanner), bannerStyle, (Screen.width - width) * 0.5f, 18f * scale, width, alpha, new Color(1f, 0.75f, 0.25f), scale);
         }
 
@@ -1907,7 +2133,7 @@ namespace GuardiasDaLuz.MapSystem
         {
             if (string.IsNullOrEmpty(hoverPromptBanner)) return;
 
-            float width = Mathf.Min(Screen.width * 0.42f, 760f * scale);
+            float width = Mathf.Min(Screen.width * 0.55f, 980f * scale);
             DrawHudText(StripEmoji(hoverPromptBanner), promptStyle, (Screen.width - width) * 0.5f, Screen.height * 0.7f, width, 1f, new Color(0.35f, 0.8f, 1f), scale);
         }
 
@@ -1944,8 +2170,8 @@ namespace GuardiasDaLuz.MapSystem
             float gap = 10f * scale;
             float step = cell + gap;
             float pad = 12f * scale;
-            float titleHeight = 28f * scale;
-            float legendRow = 20f * scale;
+            float titleHeight = 32f * scale;
+            float legendRow = 25f * scale;
             int legendRows = Mathf.CeilToInt(MinimapLegendCount / 2f);
 
             float gridSize = step * (range * 2 + 1) - gap;
@@ -2254,24 +2480,23 @@ namespace GuardiasDaLuz.MapSystem
         private void SpawnRareRecoveryBattery(Vector3 pos)
         {
             GameObject model = PowerUpPickup.LoadModel(PowerUpPickup.BatteryModelName);
-            GameObject battery;
+            GameObject battery = new GameObject();
             if (model != null)
             {
-                battery = new GameObject();
                 PowerUpPickup.CreateModelVisual(model, battery.transform, 0.9f);
-                SphereCollider trigger = battery.AddComponent<SphereCollider>();
-                trigger.radius = 0.45f;
-                trigger.isTrigger = true;
             }
             else
             {
-                battery = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                battery.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
-                Collider c = battery.GetComponent<Collider>();
-                if (c != null) c.isTrigger = true;
-                Renderer r = battery.GetComponent<Renderer>();
-                if (r != null) r.material.color = new Color(0.2f, 1f, 0.55f);
+                // sem o modelo, só um brilho verde marca a bateria
+                Light glow = battery.AddComponent<Light>();
+                glow.type = LightType.Point;
+                glow.color = new Color(0.2f, 1f, 0.55f);
+                glow.range = 3f;
+                glow.intensity = 3f;
             }
+            SphereCollider trigger = battery.AddComponent<SphereCollider>();
+            trigger.radius = 0.45f;
+            trigger.isTrigger = true;
             battery.name = "Bateria_Recuperacao_Rara";
             battery.transform.position = new Vector3(pos.x, 0.7f, pos.z);
 
@@ -2290,9 +2515,11 @@ namespace GuardiasDaLuz.MapSystem
 
             if (Vector3.Distance(transform.position, StandaloneLighthouseMapSystem.Instance.playerTransform.position) < 1.8f)
             {
+                PlayerHealth health = StandaloneLighthouseMapSystem.Instance.playerTransform.GetComponent<PlayerHealth>();
+                if (health != null) health.IncreaseMax(0f, recoveryAmount);
                 StandaloneLighthouseMapSystem.Instance.onRareRecoveryItemCollected?.Invoke(recoveryAmount);
                 PowerUpPickup.PlaySound(PowerUpPickup.LoadSound(PowerUpPickup.EnergySoundName));
-                StandaloneLighthouseMapSystem.Instance.ShowBannerMessage($"🔋 BATERIA RARA COLETADA! (+{recoveryAmount} Recuperação)");
+                StandaloneLighthouseMapSystem.Instance.ShowBannerMessage($"🔋 BATERIA RARA COLETADA! (+{recoveryAmount:0} de vida)");
                 Destroy(gameObject);
             }
         }
@@ -2301,6 +2528,7 @@ namespace GuardiasDaLuz.MapSystem
     public class StandaloneSpecialPedestal : MonoBehaviour
     {
         public string itemID;
+        public RelicType relic;
         public int crystalCost = 0;
         public string promptText;
         public StandaloneSpecialPedestal exclusivePartner;
@@ -2339,7 +2567,9 @@ namespace GuardiasDaLuz.MapSystem
             if (exclusivePartner != null) Destroy(exclusivePartner.gameObject);
 
             sys.SetHoverPrompt("");
-            sys.ShowBannerMessage($"✨ Item obtido: {itemID}!");
+            PlayerPowerUps powerUps = sys.playerTransform != null ? sys.playerTransform.GetComponent<PlayerPowerUps>() : null;
+            if (powerUps != null) powerUps.ApplyRelic(relic);
+            sys.ShowBannerMessage($"Relíquia: {RelicCatalog.GetName(relic)} — {RelicCatalog.GetDescription(relic)}!");
             sys.onSpecialItemAcquired?.Invoke(itemID);
             Destroy(gameObject);
         }
@@ -2350,10 +2580,28 @@ namespace GuardiasDaLuz.MapSystem
         private void Update()
         {
             if (StandaloneLighthouseMapSystem.Instance == null || StandaloneLighthouseMapSystem.Instance.playerTransform == null) return;
-            if (Vector3.Distance(transform.position, StandaloneLighthouseMapSystem.Instance.playerTransform.position) < 2.2f)
+            Vector3 offset = StandaloneLighthouseMapSystem.Instance.playerTransform.position - transform.position;
+            offset.y = 0f;
+            if (offset.magnitude < 2.2f)
             {
                 StandaloneLighthouseMapSystem.Instance.AdvanceToNextFloor();
             }
+        }
+    }
+
+    public class StandalonePedestalRelicSpin : MonoBehaviour
+    {
+        private Vector3 basePosition;
+
+        private void Start()
+        {
+            basePosition = transform.localPosition;
+        }
+
+        private void Update()
+        {
+            transform.Rotate(0f, 70f * Time.deltaTime, 0f, Space.World);
+            transform.localPosition = basePosition + Vector3.up * Mathf.Sin(Time.time * 2f) * 0.12f;
         }
     }
 

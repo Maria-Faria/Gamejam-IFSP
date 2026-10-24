@@ -44,11 +44,6 @@ public class PlayerMovement : MonoBehaviour
       health = gameObject.AddComponent<PlayerHealth>();
     }
 
-    if (GetComponent<PlayerMana>() == null)
-    {
-      gameObject.AddComponent<PlayerMana>();
-    }
-
     status = GetComponent<PlayerStatus>();
     if (status == null)
     {

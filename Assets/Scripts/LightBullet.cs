@@ -23,6 +23,14 @@ public class LightBullet : MonoBehaviour
   private float fragmentDamage;
 
   private int bouncesLeft;
+  private float damageMultiplier = 1f;
+
+  // Teleguiado: curva em direção ao alvo mais próximo à frente
+  private const float HomingRange = 16f;
+  private const float HomingRetargetSeconds = 0.25f;
+  private float homingTurnRate;
+  private Transform homingTarget;
+  private float retargetTimer;
 
   private Vector3 origin;
   private Vector3 moveDirection;
@@ -44,6 +52,22 @@ public class LightBullet : MonoBehaviour
   public void SetSpeed(float newSpeed)
   {
     speed = newSpeed;
+  }
+
+  // Bônus de dano das relíquias; vale para o impacto, a explosão e os fragmentos
+  public void SetDamageMultiplier(float multiplier)
+  {
+    damageMultiplier = multiplier;
+  }
+
+  public void SetLifetime(float seconds)
+  {
+    lifetime = seconds;
+  }
+
+  public void ConfigureHoming(float turnDegreesPerSecond)
+  {
+    homingTurnRate = turnDegreesPerSecond;
   }
 
   public void ConfigureWave(float amplitude, float frequency)
@@ -99,7 +123,7 @@ public class LightBullet : MonoBehaviour
       System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
       foreach (RaycastHit hit in hits)
       {
-        if (WeaponDamage.TryDamage(hit.collider, damage))
+        if (WeaponDamage.TryDamage(hit.collider, damage * damageMultiplier))
         {
           transform.position += direction * hit.distance;
           Finish();
@@ -124,6 +148,46 @@ public class LightBullet : MonoBehaviour
     }
 
     transform.position = next;
+    SteerTowardTarget();
+  }
+
+  private void SteerTowardTarget()
+  {
+    if (homingTurnRate <= 0f) return;
+
+    retargetTimer -= Time.deltaTime;
+    if (retargetTimer <= 0f || homingTarget == null)
+    {
+      retargetTimer = HomingRetargetSeconds;
+      homingTarget = FindHomingTarget();
+    }
+    if (homingTarget == null) return;
+
+    Vector3 toTarget = homingTarget.position - transform.position;
+    toTarget.y = 0f;
+    if (toTarget.sqrMagnitude < 0.01f) return;
+
+    Vector3 direction = Vector3.RotateTowards(moveDirection, toTarget.normalized, homingTurnRate * Mathf.Deg2Rad * Time.deltaTime, 0f);
+    transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+    StartSegment(transform.position, direction);
+  }
+
+  // O alvo mais perto, sem contar os que ficaram muito para trás
+  private Transform FindHomingTarget()
+  {
+    Transform best = null;
+    float bestDistance = HomingRange;
+    foreach (MonoBehaviour target in PlayerShooting.FindAimTargets())
+    {
+      if (target is GuardiasDaLuz.MapSystem.StandaloneBreakableCrate) continue;
+      Vector3 toTarget = target.transform.position - transform.position;
+      toTarget.y = 0f;
+      float distance = toTarget.magnitude;
+      if (distance >= bestDistance || Vector3.Angle(moveDirection, toTarget) > 120f) continue;
+      bestDistance = distance;
+      best = target.transform;
+    }
+    return best;
   }
 
   private static bool IsBlocking(RaycastHit hit)
@@ -165,7 +229,7 @@ public class LightBullet : MonoBehaviour
       return;
     }
 
-    if (WeaponDamage.TryDamage(other, damage))
+    if (WeaponDamage.TryDamage(other, damage * damageMultiplier))
     {
       Finish();
     }
@@ -202,7 +266,7 @@ public class LightBullet : MonoBehaviour
 
       float distance = Vector3.Distance(center, hit.ClosestPoint(center));
       float falloff = Mathf.Lerp(1f, 0.3f, distance / explosionRadius);
-      WeaponDamage.Damage(target, explosionDamage * falloff);
+      WeaponDamage.Damage(target, explosionDamage * damageMultiplier * falloff);
     }
 
     ExplosionFlash.Spawn(center, explosionRadius, explosionColor);
@@ -228,6 +292,7 @@ public class LightBullet : MonoBehaviour
       if (bullet != null)
       {
         bullet.SetDamage(fragmentDamage);
+        bullet.SetDamageMultiplier(damageMultiplier);
         bullet.lifetime = 0.5f;
       }
     }

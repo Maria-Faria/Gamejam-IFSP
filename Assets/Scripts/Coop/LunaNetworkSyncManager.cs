@@ -691,21 +691,18 @@ namespace GuardiasDaLuz
             if (local == null) return;
 
             PlayerHealth health = local.GetComponent<PlayerHealth>();
-            PlayerMana mana = local.GetComponent<PlayerMana>();
             PlayerShooting shooting = local.GetComponent<PlayerShooting>();
             PlayerMovement movement = local.GetComponent<PlayerMovement>();
 
             Vector3 pos = local.position;
             string packet = string.Format(
                 CultureInfo.InvariantCulture,
-                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7:F1}|{8:F1}|{9}|{10}|{11}|{12}",
+                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7}|{8}|{9}|{10}",
                 myPlayerId,
                 pos.x, pos.y, pos.z,
                 local.eulerAngles.y,
                 health != null ? health.Health : 0f,
                 health != null ? health.MaxHealth : 100f,
-                mana != null ? mana.Mana : 0f,
-                mana != null ? mana.MaxMana : 100f,
                 health != null && health.IsDead ? 1 : 0,
                 shooting != null ? (int)shooting.CurrentWeapon : 0,
                 movement != null && movement.IsMoving ? 1 : 0,
@@ -716,7 +713,7 @@ namespace GuardiasDaLuz
 
         private void HandleRemotePlayerStatePacket(string[] parts, IPEndPoint sender)
         {
-            if (parts.Length < 14 || !int.TryParse(parts[1], out int pid) || pid == myPlayerId) return;
+            if (parts.Length < 12 || !int.TryParse(parts[1], out int pid) || pid == myPlayerId) return;
 
             if (TryFloat(parts[2], out float px) && TryFloat(parts[3], out float py) && TryFloat(parts[4], out float pz) && TryFloat(parts[5], out float ry))
             {
@@ -734,12 +731,10 @@ namespace GuardiasDaLuz
                     }
                     TryFloat(parts[6], out slot.avatar.health);
                     TryFloat(parts[7], out slot.avatar.maxHealth);
-                    TryFloat(parts[8], out slot.avatar.mana);
-                    TryFloat(parts[9], out slot.avatar.maxMana);
-                    slot.avatar.isDead = parts[10] == "1";
-                    if (int.TryParse(parts[11], out int weapon)) slot.avatar.weapon = (WeaponType)weapon;
-                    slot.avatar.isMoving = parts[12] == "1";
-                    if (int.TryParse(parts[13], out int floor)) slot.avatar.floorIndex = floor;
+                    slot.avatar.isDead = parts[8] == "1";
+                    if (int.TryParse(parts[9], out int weapon)) slot.avatar.weapon = (WeaponType)weapon;
+                    slot.avatar.isMoving = parts[10] == "1";
+                    if (int.TryParse(parts[11], out int floor)) slot.avatar.floorIndex = floor;
                 }
             }
 

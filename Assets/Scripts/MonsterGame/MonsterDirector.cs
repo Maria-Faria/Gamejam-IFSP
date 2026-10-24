@@ -448,6 +448,13 @@ public class MonsterDirector : MonoBehaviour
   // Rótulo de cada monstro com variação (e dos fantasmas), acima da cabeça.
   public void OnGUI()
   {
+    HudScale.Begin();
+    DrawHud();
+    HudScale.End();
+  }
+
+  private void DrawHud()
+  {
     if (!showVariantLabels) return;
     Camera cam = Camera.main;
     if (cam == null) return;
@@ -482,7 +489,8 @@ public class MonsterDirector : MonoBehaviour
     Vector3 head = monster.transform.position + Vector3.up * (monster.Size * monster.transform.localScale.y + 0.35f);
     Vector3 screen = cam.WorldToScreenPoint(head);
     if (screen.z <= 0f) return;
-    Rect rect = new Rect(screen.x - 60f, Screen.height - screen.y - 10f, 120f, 20f);
+    Vector2 point = HudScale.FromScreenPoint(screen);
+    Rect rect = new Rect(point.x - 60f, point.y - 10f, 120f, 20f);
     labelStyle.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
     GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), text, labelStyle);
     labelStyle.normal.textColor = color;
