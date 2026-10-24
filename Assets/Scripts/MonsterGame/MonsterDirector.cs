@@ -9,7 +9,8 @@ using UnityEngine;
 // (3-2), com mais monstros, ondas extras, variações (venenoso, veloz, atordoante...) e atributos maiores
 // a cada andar. O segundo andar de cada nível termina com um chefe: Muscle Boss (1-2), Fat (2-2) e
 // Skull Face (3-2). O primeiro andar de cada nível termina numa sala de elite (todos com variação).
-// Os monstros contam para a cota da sala: as sombras do EnemySpawner completam o resto.
+// Só estes monstros (rigados e animados, Assets/Monsters) povoam o farol: as sombras antigas do EnemySpawner
+// não nascem mais.
 [RequireComponent(typeof(StandaloneLighthouseMapSystem))]
 public class MonsterDirector : MonoBehaviour
 {
@@ -48,8 +49,6 @@ public class MonsterDirector : MonoBehaviour
   [SerializeField] private float minDistanceFromPlayer = 6f;
   [Tooltip("Segundos entre o aviso de fumaça e o monstro aparecer.")]
   [SerializeField] private float spawnTell = 0.6f;
-  [Tooltip("Sombras extras permitidas na sala do chefe (o resto da cota é cortado).")]
-  [SerializeField] private int shadowsInBossRoom = 3;
   [SerializeField] private bool showVariantLabels = true;
 
   private class RoomState
@@ -93,33 +92,33 @@ public class MonsterDirector : MonoBehaviour
       new FloorPlan
       {
         label = "1-1", types = new[] { "BallShadow", "Regular", "Ghost" }, weights = new[] { 3f, 2f, 2f },
-        perWave = new Vector2Int(2, 3), waves = 1, variantChance = 0f, variants = level1,
+        perWave = new Vector2Int(2, 3), waves = 2, variantChance = 0f, variants = level1,
         health = 1f, damage = 0.5f, speed = 1f, cooldown = 1.2f
       },
       new FloorPlan
       {
         label = "1-2", types = new[] { "BallShadow", "TwistedBall", "Regular", "Ghost", "Muscle" }, weights = new[] { 2f, 2f, 2f, 2f, 1f },
-        perWave = new Vector2Int(3, 4), waves = 1, variantChance = 0.12f, variants = level1,
+        perWave = new Vector2Int(3, 4), waves = 2, variantChance = 0.12f, variants = level1,
         health = 1.2f, damage = 0.6f, speed = 1.05f, cooldown = 1.1f,
         boss = "MuscleBoss", bossHealth = 1100f, bossDamage = 0.6f
       },
       new FloorPlan
       {
         label = "2-1", types = new[] { "TwistedBall", "Ghoul", "Crescent", "ThreeEyed" }, weights = new[] { 2f, 3f, 2f, 2f },
-        perWave = new Vector2Int(3, 4), waves = 2, variantChance = 0.2f, variants = level2,
+        perWave = new Vector2Int(3, 4), waves = 3, variantChance = 0.2f, variants = level2,
         health = 1.5f, damage = 0.75f, speed = 1.1f, cooldown = 1f
       },
       new FloorPlan
       {
         label = "2-2", types = new[] { "Ghoul", "Crescent", "ThreeEyed", "Muscle", PhantomGhost }, weights = new[] { 2f, 2f, 2f, 1.5f, 2f },
-        perWave = new Vector2Int(3, 5), waves = 2, variantChance = 0.28f, variants = level2,
+        perWave = new Vector2Int(3, 5), waves = 3, variantChance = 0.28f, variants = level2,
         health = 1.8f, damage = 0.85f, speed = 1.15f, cooldown = 0.95f,
         boss = "Fat", bossHealth = 1600f, bossDamage = 0.75f
       },
       new FloorPlan
       {
         label = "3-1", types = new[] { "Horned", "Claw", "ThreeEyed", PhantomGhoul }, weights = new[] { 2f, 2f, 2f, 2f },
-        perWave = new Vector2Int(4, 5), waves = 2, variantChance = 0.35f, variants = level3,
+        perWave = new Vector2Int(4, 5), waves = 3, variantChance = 0.35f, variants = level3,
         health = 2.2f, damage = 0.95f, speed = 1.22f, cooldown = 0.88f
       },
       new FloorPlan
@@ -259,10 +258,6 @@ public class MonsterDirector : MonoBehaviour
       }
     }
 
-    // a sala do chefe só deixa algumas sombras nascerem além dele
-    StandaloneLighthouseMapSystem.MapRoomNode node = state.node;
-    node.monsterQuota = Mathf.Min(node.monsterQuota, node.monstersSpawned + shadowsInBossRoom);
-    if (node.mergedGiantPartner != null) node.mergedGiantPartner.monsterQuota = node.mergedGiantPartner.monstersSpawned;
     state.spawning = false;
   }
 

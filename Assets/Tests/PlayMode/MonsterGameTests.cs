@@ -155,7 +155,8 @@ namespace Roguelike.Tests
                 yield return null;
             var player = Object.FindAnyObjectByType(GameType("PlayerMovement")) as Component;
             Assert.IsNotNull(player, "SampleScene has a player");
-            Assert.IsNotNull(Object.FindAnyObjectByType(GameType("EnemySpawner")), "and the shadow enemy spawner");
+            Assert.IsNotNull(Object.FindAnyObjectByType(GameType("MonsterDirector")), "the monster director runs the rooms");
+            Assert.IsNull(Object.FindAnyObjectByType(GameType("EnemySpawner")), "and the old shadow enemy spawner is gone");
             var at = player.transform.position + Vector3.right * 4f * MonsterScale.Factor;
             var m = MonsterCatalog.Load().Spawn("Regular", at);
             for (int i = 0; i < 5; i++)

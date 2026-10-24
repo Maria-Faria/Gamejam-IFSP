@@ -290,6 +290,12 @@ namespace Roguelike.Tests
                 Assert.AreEqual(player.transform, m.Target);
                 Assert.Greater(Monster.Flat(m.transform.position - player.transform.position).magnitude, 5f, "not on top of the player");
             }
+            // only our rigged monsters: none of the old untextured shadow enemies, nothing in the room that is not one
+            yield return new WaitForSeconds(3f);
+            Assert.IsNull(Object.FindAnyObjectByType(System.Type.GetType("EnemySpawner, Assembly-CSharp", true)), "no shadow spawner");
+            Assert.IsNull(Object.FindAnyObjectByType(System.Type.GetType("ShadowEnemy, Assembly-CSharp", true)), "no shadow enemies");
+            foreach (GameObject g in (IList)Field(room, "roomMonsters"))
+                if (g) Assert.IsNotNull(g.GetComponent<Monster>(), $"{g.name} is one of our monsters");
         }
 
         [UnityTest]

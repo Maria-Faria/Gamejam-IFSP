@@ -435,7 +435,7 @@ namespace GuardiasDaLuz.MapSystem
             EnsurePlayerExistsOrFind();
             ApplyDarkAmbience();
             GenerateFloor(0);
-            if (GetComponent<EnemySpawner>() == null) gameObject.AddComponent<EnemySpawner>();
+            // os inimigos do jogo são só os monstros do MonsterDirector (sem as sombras do EnemySpawner)
             if (GetComponent<MonsterDirector>() == null) gameObject.AddComponent<MonsterDirector>();
         }
 
