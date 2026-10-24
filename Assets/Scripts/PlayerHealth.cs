@@ -1,10 +1,9 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class PlayerHealth : MonoBehaviour
 {
   [SerializeField] private float maxHealth = 100f;
-  [Tooltip("Segundos até reiniciar a cena depois que a vida chega a zero.")]
+  [Tooltip("Segundos até aparecer a tela de derrota depois que a vida chega a zero.")]
   [SerializeField] private float restartDelay = 2.5f;
   [SerializeField] private AudioClip hitSound;
   [Tooltip("Toca no golpe fatal, no lugar do som de dano.")]
@@ -37,7 +36,7 @@ public class PlayerHealth : MonoBehaviour
 
   public void TakeDamage(float damage)
   {
-    if (dead)
+    if (dead || GameResult.IsShowing)
     {
       return;
     }
@@ -54,7 +53,7 @@ public class PlayerHealth : MonoBehaviour
       dead = true;
       if (audioSource != null && deathSound != null) audioSource.PlayOneShot(deathSound);
       Died?.Invoke();
-      Invoke(nameof(Restart), restartDelay);
+      GameResult.Show(GameResult.Outcome.Defeat, "Sua vida chegou a zero e a escuridão tomou conta do farol.", restartDelay);
     }
   }
 
@@ -78,11 +77,6 @@ public class PlayerHealth : MonoBehaviour
 
     audioSource.PlayOneShot(hitSound);
     nextHitSoundTime = Time.time + hitSoundInterval;
-  }
-
-  private void Restart()
-  {
-    SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
   }
 
   public void OnGUI()

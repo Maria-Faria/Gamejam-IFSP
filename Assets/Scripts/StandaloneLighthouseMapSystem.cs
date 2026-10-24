@@ -19,7 +19,6 @@ namespace GuardiasDaLuz.MapSystem
             Combat,
             GiantHall,
             TreasureChoice,
-            Shop,
             Secret,
             BossExit
         }
@@ -61,7 +60,7 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Lista de Companheiros/Bots aliados. Qualquer aliado aqui (ou com a Tag 'Companion'/'Ally') é puxado para dentro da sala quando as portas fecham!")]
         public List<Transform> companionTransforms = new List<Transform>();
 
-        [Tooltip("Quantidade atual de Cristais/Moedas da jogadora (usado na Sala de Loja caso você use o sistema de compra embutido).")]
+        [Tooltip("Quantidade atual de Cristais/Moedas da jogadora (usado pelos pedestais que têm custo).")]
         public int playerCurrencyCrystals = 25;
 
         [Header("=== 2. PREFABS DE MONSTROS (DA PROGRAMADORA DE PERSONAGENS) ===")]
@@ -146,6 +145,15 @@ namespace GuardiasDaLuz.MapSystem
         public GameObject powerUpBatteryModel;
         [Tooltip("Modelo dos outros power-ups, tingido com a cor de cada tipo. No editor, o campo vazio é preenchido com crystal.fbx.")]
         public GameObject powerUpCrystalModel;
+        [Tooltip("Som ao pegar Mais vida. No editor, o campo vazio é preenchido a partir de Assets/Audios/Projeto_UV_4_PowerUps_SFX.")]
+        public AudioClip powerUpLightCrystalSound;
+        [Tooltip("Som ao pegar Mais mana e a bateria rara.")]
+        public AudioClip powerUpEnergySound;
+        [Tooltip("Som ao pegar Tiro que ricocheteia e Velocidade de tiro.")]
+        public AudioClip powerUpRetroTechSound;
+        [Tooltip("Som ao pegar Velocidade de movimento.")]
+        public AudioClip powerUpSpecialSound;
+        [Range(0f, 1f)] public float powerUpSoundVolume = 0.9f;
 
         [Header("=== 4. DIMENSÕES DAS SALAS & REGRAS DE LEVEL DESIGN ===")]
         public float roomWidthX = 32f;
@@ -158,7 +166,7 @@ namespace GuardiasDaLuz.MapSystem
         [Range(1, MonsterQuotaCap)] public int minMonstersPerRoom = 6;
         [Range(1, MonsterQuotaCap)] public int maxMonstersPerRoom = MonsterQuotaCap;
         private const int MonsterQuotaCap = 20;
-        [Tooltip("Salas sem poste (loja, tesouro, secreta) ficam no escuro e atraem alguns monstros, mas as portas continuam abertas.")]
+        [Tooltip("Salas sem poste (tesouro, secreta) ficam no escuro e atraem alguns monstros, mas as portas continuam abertas.")]
         [Range(0, MonsterQuotaCap)] public int minMonstersInPostlessRoom = 2;
         [Range(0, MonsterQuotaCap)] public int maxMonstersInPostlessRoom = 4;
 
@@ -236,7 +244,7 @@ namespace GuardiasDaLuz.MapSystem
         [Tooltip("Disparado quando a jogadora conserta um Poste Inteligente! A menina dos personagens pode ligar o menu de Power-up (Hades) aqui!")]
         public UnityEvent<GameObject> onSmartPostRepaired;
 
-        [Tooltip("Disparado quando a jogadora pega um Item Único, compra na Loja ou pega a Relíquia da Sala Secreta! Parâmetro: ID do Item.")]
+        [Tooltip("Disparado quando a jogadora pega um Item Único ou pega a Relíquia da Sala Secreta! Parâmetro: ID do Item.")]
         public UnityEvent<string> onSpecialItemAcquired;
 
         [Tooltip("Disparado quando a jogadora coleta uma Célula de Bateria rara dropada de uma Caixa Quebrável!")]
@@ -307,6 +315,14 @@ namespace GuardiasDaLuz.MapSystem
         private const float WallThickness = 0.7f;
         private string activeSubtitleBanner = "";
         private string hoverPromptBanner = "";
+        private float bannerShownAt = -100f;
+        private const float BannerSeconds = 7f;
+        private const float BannerFadeSeconds = 1f;
+        private GUIStyle bannerStyle;
+        private GUIStyle promptStyle;
+        private GUIStyle mapTitleStyle;
+        private GUIStyle legendStyle;
+        private float hudStyleScale = -1f;
 
         private readonly List<Light> sceneDirectionalLights = new List<Light>();
         private readonly List<float> sceneDirectionalIntensities = new List<float>();
@@ -363,6 +379,10 @@ namespace GuardiasDaLuz.MapSystem
             changed |= AssignMonstersIfEmpty();
             changed |= AssignPowerUpIfEmpty(ref powerUpBatteryModel, PowerUpPickup.BatteryModelName);
             changed |= AssignPowerUpIfEmpty(ref powerUpCrystalModel, PowerUpPickup.CrystalModelName);
+            changed |= AssignPowerUpSoundIfEmpty(ref powerUpLightCrystalSound, PowerUpPickup.LightCrystalSoundName);
+            changed |= AssignPowerUpSoundIfEmpty(ref powerUpEnergySound, PowerUpPickup.EnergySoundName);
+            changed |= AssignPowerUpSoundIfEmpty(ref powerUpRetroTechSound, PowerUpPickup.RetroTechSoundName);
+            changed |= AssignPowerUpSoundIfEmpty(ref powerUpSpecialSound, PowerUpPickup.SpecialSoundName);
             return changed;
         }
 
@@ -370,6 +390,13 @@ namespace GuardiasDaLuz.MapSystem
         {
             if (slot != null) return false;
             slot = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Powerups/{modelName}.fbx");
+            return slot != null;
+        }
+
+        private static bool AssignPowerUpSoundIfEmpty(ref AudioClip slot, string soundName)
+        {
+            if (slot != null) return false;
+            slot = PowerUpPickup.LoadSoundAsset(soundName);
             return slot != null;
         }
 
@@ -612,6 +639,7 @@ namespace GuardiasDaLuz.MapSystem
         public void ShowBannerMessage(string message)
         {
             activeSubtitleBanner = message;
+            bannerShownAt = Time.unscaledTime;
         }
 
         private void EnsurePlayerExistsOrFind()
@@ -733,15 +761,6 @@ namespace GuardiasDaLuz.MapSystem
             {
                 int idx = UnityEngine.Random.Range(0, candidates.Count);
                 candidates[idx].roomType = RoomType.TreasureChoice;
-                candidates[idx].obstacleVariant = ObstacleLayoutVariant.None;
-                candidates[idx].isClearedAndLit = true;
-                candidates.RemoveAt(idx);
-            }
-
-            if (candidates.Count > 0)
-            {
-                int idx = UnityEngine.Random.Range(0, candidates.Count);
-                candidates[idx].roomType = RoomType.Shop;
                 candidates[idx].obstacleVariant = ObstacleLayoutVariant.None;
                 candidates[idx].isClearedAndLit = true;
                 candidates.RemoveAt(idx);
@@ -874,8 +893,7 @@ namespace GuardiasDaLuz.MapSystem
                 floor.transform.localScale = new Vector3(roomWidthX, 1f, roomLengthZ);
                 floor.GetComponent<Renderer>().enabled = false;
 
-                bool specialRoom = node.roomType == RoomType.BossExit || node.roomType == RoomType.Shop
-                                   || node.roomType == RoomType.TreasureChoice || node.roomType == RoomType.Secret;
+                bool specialRoom = node.roomType == RoomType.BossExit || node.roomType == RoomType.TreasureChoice || node.roomType == RoomType.Secret;
                 activeTheme.BuildFloor(root.transform, roomWidthX, roomLengthZ, specialRoom);
             }
             else if (customFloorPrefab != null)
@@ -894,7 +912,6 @@ namespace GuardiasDaLuz.MapSystem
                 if (fr != null)
                 {
                     fr.material.color = node.roomType == RoomType.BossExit ? new Color(0.25f, 0.14f, 0.28f)
-                                      : node.roomType == RoomType.Shop ? new Color(0.12f, 0.24f, 0.26f)
                                       : node.roomType == RoomType.TreasureChoice ? new Color(0.26f, 0.22f, 0.12f)
                                       : node.roomType == RoomType.Secret ? new Color(0.18f, 0.12f, 0.26f)
                                       : cfg.floorColor;
@@ -931,10 +948,6 @@ namespace GuardiasDaLuz.MapSystem
 
                 case RoomType.TreasureChoice:
                     BuildTreasureRoomPedestals(node);
-                    break;
-
-                case RoomType.Shop:
-                    BuildShopRoomPedestals(node);
                     break;
 
                 case RoomType.Secret:
@@ -989,21 +1002,28 @@ namespace GuardiasDaLuz.MapSystem
 
             if (room.roomType == RoomType.BossExit)
             {
-                if (currentFloorIndex < floors.Length - 1)
-                {
-                    SpawnLighthouseStaircasePortal(room.worldCenter + new Vector3(0f, 0f, 5.0f));
-                    ShowBannerMessage("🌀 Escadaria Espiral do Farol Aberta! Entre no Portal Ciano ao Norte para subir ao próximo andar!");
-                }
-                else
-                {
-                    isLighthouseCompleted = true;
-                    ShowBannerMessage("🏆 TOPO DO FAROL ACESO! O Feixe Mestre iluminou toda a costa! Parabéns!");
-                    onLighthouseMasterBeaconLit?.Invoke();
-                }
+                OpenFloorExit(room);
             }
             else
             {
-                ShowBannerMessage("🔓 Poste consertado e monstros derrotados! As portas desta sala se abriram!");
+                ShowBannerMessage("Poste consertado e monstros derrotados! As portas desta sala se abriram!");
+            }
+        }
+
+        // Derrotar o chefão abre a escada para o próximo andar; no último andar, é a vitória
+        private void OpenFloorExit(MapRoomNode bossRoom)
+        {
+            if (currentFloorIndex < floors.Length - 1)
+            {
+                SpawnLighthouseStaircasePortal(bossRoom.worldCenter + new Vector3(0f, 0f, 5.0f));
+                ShowBannerMessage("Chefão derrotado! A escadaria do farol se abriu: entre no portal ciano ao norte para subir ao próximo andar.");
+            }
+            else
+            {
+                isLighthouseCompleted = true;
+                ShowBannerMessage("TOPO DO FAROL ACESO! O Feixe Mestre iluminou toda a costa!");
+                onLighthouseMasterBeaconLit?.Invoke();
+                GameResult.Show(GameResult.Outcome.Victory, "Você derrotou os chefões de todos os andares e acendeu o topo do farol!", 3f);
             }
         }
 
@@ -1574,21 +1594,6 @@ namespace GuardiasDaLuz.MapSystem
             p2.exclusivePartner = p1;
         }
 
-        private void BuildShopRoomPedestals(MapRoomNode node)
-        {
-            CreatePedestal(node.roomRoot.transform, new Vector3(-5.5f, 1f, 1.5f),
-                new Color(0.3f, 1f, 0.4f), "SHOP_FULL_HEAL", 10,
-                "🛒 [LOJA: 10 Cristais] Bateria Solar Completa — Aperte [E] para comprar!");
-
-            CreatePedestal(node.roomRoot.transform, new Vector3(0f, 1f, 2.5f),
-                new Color(1f, 0.6f, 0.2f), "SHOP_DAMAGE_SPEED", 15,
-                "🛒 [LOJA: 15 Cristais] Lente Superfoco — Aperte [E] para comprar!");
-
-            CreatePedestal(node.roomRoot.transform, new Vector3(5.5f, 1f, 1.5f),
-                new Color(0.85f, 0.4f, 1f), "SHOP_SCIENTIST_BOON", 20,
-                "🛒 [LOJA: 20 Cristais] Transmissão de Cientista — Aperte [E] para comprar!");
-        }
-
         private void BuildSecretRoomPedestal(MapRoomNode node)
         {
             CreatePedestal(node.roomRoot.transform, new Vector3(0f, 1.2f, 0f),
@@ -1722,7 +1727,8 @@ namespace GuardiasDaLuz.MapSystem
             {
                 room.doorsUnlocked = true;
                 SetRoomDoorsOpen(room, true);
-                ShowBannerMessage($"🌗 Sala Especial ({room.roomType}) sem poste: a escuridão atrai monstros! As portas continuam abertas — aproxime-se dos pedestais e aperte [E]!");
+                string roomName = room.roomType == RoomType.Secret ? "Sala Secreta" : "Sala do Item";
+                ShowBannerMessage($"{roomName}: sem poste, a escuridão atrai monstros! As portas continuam abertas. Chegue perto de um pedestal e aperte [E].");
                 return;
             }
 
@@ -1808,72 +1814,207 @@ namespace GuardiasDaLuz.MapSystem
             }
         }
 
+        // Cores do minimapa, na mesma ordem da legenda
+        private static readonly (string label, Color color)[] MinimapLegend =
+        {
+            ("Você", new Color(0.25f, 1f, 0.45f)),
+            ("Saída", new Color(1f, 0.32f, 0.32f)),
+            ("Item", new Color(1f, 0.82f, 0.2f)),
+            ("Secreta", new Color(0.9f, 0.45f, 1f)),
+            ("Acesa", new Color(1f, 0.95f, 0.6f)),
+            ("Escura", new Color(0.4f, 0.42f, 0.55f))
+        };
+
         private void OnGUI()
         {
+            float scale = Mathf.Max(0.75f, Screen.height / 1080f);
+            CreateHudStyles(scale);
+
             if (showBuiltInMinimapHUD)
             {
-                DrawMinimapHUD();
+                DrawMinimapHUD(scale);
             }
 
             if (showBuiltInSubtitleHUD)
             {
-                string msg = !string.IsNullOrEmpty(hoverPromptBanner) ? hoverPromptBanner : activeSubtitleBanner;
-                if (!string.IsNullOrEmpty(msg))
-                {
-                    GUIStyle s = new GUIStyle(GUI.skin.box)
-                    {
-                        fontSize = 14,
-                        fontStyle = FontStyle.Bold,
-                        alignment = TextAnchor.MiddleCenter,
-                        wordWrap = true
-                    };
-                    s.normal.textColor = new Color(1f, 0.95f, 0.55f);
-                    GUI.Box(new Rect(Screen.width * 0.15f, Screen.height - 60f, Screen.width * 0.70f, 44f), msg, s);
-                }
+                DrawBanner(scale);
+                DrawHoverPrompt(scale);
             }
         }
 
-        private void DrawMinimapHUD()
+        private void CreateHudStyles(float scale)
         {
-            float mapW = 240f;
-            float mapH = 195f;
-            Rect mapRect = new Rect(Screen.width - mapW - 18f, 18f, mapW, mapH);
-            GUI.Box(mapRect, "🗺️ Mapa do Andar");
+            if (bannerStyle != null && Mathf.Approximately(hudStyleScale, scale)) return;
+            hudStyleScale = scale;
 
-            float centerX = mapRect.x + mapRect.width * 0.5f;
-            float centerY = mapRect.y + mapRect.height * 0.54f;
-            float cellW = 26f;
-            float cellH = 20f;
-            float stepX = 29f;
-            float stepY = 23f;
+            bannerStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = Mathf.RoundToInt(24f * scale),
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = true,
+                padding = new RectOffset(Mathf.RoundToInt(22f * scale), Mathf.RoundToInt(22f * scale), Mathf.RoundToInt(12f * scale), Mathf.RoundToInt(12f * scale))
+            };
+            bannerStyle.normal.textColor = new Color(1f, 0.95f, 0.7f);
 
-            GUIStyle cellStyle = new GUIStyle(GUI.skin.box) { fontSize = 9, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            promptStyle = new GUIStyle(bannerStyle) { fontSize = Mathf.RoundToInt(22f * scale) };
+            promptStyle.normal.textColor = Color.white;
+
+            mapTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = Mathf.RoundToInt(17f * scale),
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            mapTitleStyle.normal.textColor = new Color(0.85f, 0.92f, 1f);
+
+            legendStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = Mathf.RoundToInt(14f * scale),
+                alignment = TextAnchor.MiddleLeft
+            };
+            legendStyle.normal.textColor = new Color(0.85f, 0.88f, 0.95f);
+        }
+
+        // Mensagem do andar no topo da tela; some sozinha depois de alguns segundos
+        private void DrawBanner(float scale)
+        {
+            float age = Time.unscaledTime - bannerShownAt;
+            if (string.IsNullOrEmpty(activeSubtitleBanner) || age > BannerSeconds) return;
+
+            float alpha = Mathf.Clamp01((BannerSeconds - age) / BannerFadeSeconds);
+            float width = Mathf.Min(Screen.width * 0.5f, 900f * scale);
+            DrawHudText(StripEmoji(activeSubtitleBanner), bannerStyle, (Screen.width - width) * 0.5f, 18f * scale, width, alpha, new Color(1f, 0.75f, 0.25f), scale);
+        }
+
+        // Dica de interação (postes, pedestais) acima da jogadora, no centro da tela
+        private void DrawHoverPrompt(float scale)
+        {
+            if (string.IsNullOrEmpty(hoverPromptBanner)) return;
+
+            float width = Mathf.Min(Screen.width * 0.42f, 760f * scale);
+            DrawHudText(StripEmoji(hoverPromptBanner), promptStyle, (Screen.width - width) * 0.5f, Screen.height * 0.7f, width, 1f, new Color(0.35f, 0.8f, 1f), scale);
+        }
+
+        private static void DrawHudText(string text, GUIStyle style, float x, float y, float width, float alpha, Color accent, float scale)
+        {
+            float height = style.CalcHeight(new GUIContent(text), width);
+            Rect box = new Rect(x, y, width, height);
+
+            GUI.color = new Color(0.03f, 0.04f, 0.1f, 0.82f * alpha);
+            GUI.DrawTexture(box, Texture2D.whiteTexture);
+            GUI.color = new Color(accent.r, accent.g, accent.b, alpha);
+            GUI.DrawTexture(new Rect(box.x, box.y, 5f * scale, box.height), Texture2D.whiteTexture);
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+            GUI.Label(box, text, style);
+            GUI.color = Color.white;
+        }
+
+        // A fonte padrão do Unity não tem emojis: eles apareciam como quadrados
+        private static string StripEmoji(string text)
+        {
+            System.Text.StringBuilder result = new System.Text.StringBuilder(text.Length);
+            foreach (char c in text)
+            {
+                bool emoji = char.IsSurrogate(c) || (c >= '←' && c <= '⯿') || c == '️' || c == '‍';
+                if (!emoji) result.Append(c);
+            }
+            return result.ToString().Trim();
+        }
+
+        private void DrawMinimapHUD(float scale)
+        {
+            const int range = 3;
+            float cell = 30f * scale;
+            float gap = 10f * scale;
+            float step = cell + gap;
+            float pad = 12f * scale;
+            float titleHeight = 28f * scale;
+            float legendRow = 20f * scale;
+            int legendRows = Mathf.CeilToInt(MinimapLegend.Length / 2f);
+
+            float gridSize = step * (range * 2 + 1) - gap;
+            float width = gridSize + pad * 2f;
+            float height = titleHeight + gridSize + pad * 2f + legendRows * legendRow + pad * 0.5f;
+            Rect panel = new Rect(Screen.width - width - 18f * scale, 18f * scale, width, height);
+
+            GUI.color = new Color(0.03f, 0.04f, 0.1f, 0.78f);
+            GUI.DrawTexture(panel, Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(panel.x, panel.y + pad * 0.5f, panel.width, titleHeight), "MAPA DO ANDAR", mapTitleStyle);
+
+            Vector2 center = new Vector2(panel.x + panel.width * 0.5f, panel.y + titleHeight + pad + gridSize * 0.5f);
+            Vector2 CellCenter(Vector2Int coord) => new Vector2(
+                center.x + (coord.x - currentPlayerRoomCoord.x) * step,
+                center.y - (coord.y - currentPlayerRoomCoord.y) * step);
+            bool Visible(MapRoomNode node) => !(node.isSecretRoom && !node.isSecretRevealed)
+                && Mathf.Abs(node.gridCoord.x - currentPlayerRoomCoord.x) <= range
+                && Mathf.Abs(node.gridCoord.y - currentPlayerRoomCoord.y) <= range;
+
+            // Passagens entre salas vizinhas
+            GUI.color = new Color(0.55f, 0.6f, 0.75f, 0.8f);
+            float corridor = 6f * scale;
+            foreach (var kvp in dungeonGrid)
+            {
+                MapRoomNode node = kvp.Value;
+                if (!Visible(node)) continue;
+                foreach (Vector2Int dir in new[] { Vector2Int.right, Vector2Int.up })
+                {
+                    if (!dungeonGrid.TryGetValue(node.gridCoord + dir, out MapRoomNode neighbor) || !Visible(neighbor)) continue;
+                    Vector2 a = CellCenter(node.gridCoord);
+                    Vector2 b = CellCenter(neighbor.gridCoord);
+                    bool merged = node.mergedGiantPartner == neighbor;
+                    float thickness = merged ? cell : corridor;
+                    Rect link = dir.x != 0
+                        ? new Rect(a.x, a.y - thickness * 0.5f, b.x - a.x, thickness)
+                        : new Rect(a.x - thickness * 0.5f, b.y, thickness, a.y - b.y);
+                    if (merged) GUI.color = RoomMinimapColor(node);
+                    GUI.DrawTexture(link, Texture2D.whiteTexture);
+                    GUI.color = new Color(0.55f, 0.6f, 0.75f, 0.8f);
+                }
+            }
 
             foreach (var kvp in dungeonGrid)
             {
                 MapRoomNode node = kvp.Value;
-                if (node.isSecretRoom && !node.isSecretRevealed) continue;
+                if (!Visible(node)) continue;
 
-                int relX = node.gridCoord.x - currentPlayerRoomCoord.x;
-                int relY = node.gridCoord.y - currentPlayerRoomCoord.y;
-                if (Mathf.Abs(relX) > 3 || Mathf.Abs(relY) > 3) continue;
+                Vector2 c = CellCenter(node.gridCoord);
+                Rect rect = new Rect(c.x - cell * 0.5f, c.y - cell * 0.5f, cell, cell);
+                bool current = node.gridCoord == currentPlayerRoomCoord;
+                if (current)
+                {
+                    float border = 3f * scale;
+                    GUI.color = Color.white;
+                    GUI.DrawTexture(new Rect(rect.x - border, rect.y - border, rect.width + border * 2f, rect.height + border * 2f), Texture2D.whiteTexture);
+                }
+                GUI.color = RoomMinimapColor(node);
+                GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            }
 
-                float rx = centerX + relX * stepX - cellW * 0.5f;
-                float ry = centerY - relY * stepY - cellH * 0.5f;
-
-                string label = "SALA";
-                if (node.gridCoord == currentPlayerRoomCoord) { GUI.color = new Color(0.2f, 1f, 0.4f); label = "VOCÊ"; }
-                else if (node.roomType == RoomType.BossExit) { GUI.color = new Color(1f, 0.3f, 0.3f); label = "★FIM"; }
-                else if (node.roomType == RoomType.Shop) { GUI.color = new Color(0.2f, 0.95f, 1f); label = "🛒LOJA"; }
-                else if (node.roomType == RoomType.TreasureChoice) { GUI.color = new Color(1f, 0.85f, 0.2f); label = "🎁ITEM"; }
-                else if (node.roomType == RoomType.Secret) { GUI.color = new Color(0.95f, 0.4f, 1f); label = "🕵️SEC"; }
-                else if (node.roomType == RoomType.GiantHall) { GUI.color = new Color(1f, 0.6f, 0.2f); label = "🏛️BIG"; }
-                else if (node.isClearedAndLit) { GUI.color = new Color(1f, 0.9f, 0.3f); label = "💡OK"; }
-                else { GUI.color = new Color(0.65f, 0.65f, 0.78f); }
-
-                GUI.Box(new Rect(rx, ry, cellW, cellH), label, cellStyle);
+            float legendY = panel.y + titleHeight + pad * 2f + gridSize;
+            float columnWidth = (panel.width - pad * 2f) * 0.5f;
+            float swatch = 12f * scale;
+            for (int i = 0; i < MinimapLegend.Length; i++)
+            {
+                float x = panel.x + pad + (i % 2) * columnWidth;
+                float y = legendY + (i / 2) * legendRow;
+                GUI.color = MinimapLegend[i].color;
+                GUI.DrawTexture(new Rect(x, y + (legendRow - swatch) * 0.5f, swatch, swatch), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+                GUI.Label(new Rect(x + swatch + 6f * scale, y, columnWidth - swatch, legendRow), MinimapLegend[i].label, legendStyle);
             }
             GUI.color = Color.white;
+        }
+
+        private Color RoomMinimapColor(MapRoomNode node)
+        {
+            if (node.gridCoord == currentPlayerRoomCoord) return MinimapLegend[0].color;
+            if (node.roomType == RoomType.BossExit) return MinimapLegend[1].color;
+            if (node.roomType == RoomType.TreasureChoice) return MinimapLegend[2].color;
+            if (node.roomType == RoomType.Secret) return MinimapLegend[3].color;
+            if (node.isClearedAndLit) return MinimapLegend[4].color;
+            return MinimapLegend[5].color;
         }
     }
 
@@ -2128,6 +2269,7 @@ namespace GuardiasDaLuz.MapSystem
             if (Vector3.Distance(transform.position, StandaloneLighthouseMapSystem.Instance.playerTransform.position) < 1.8f)
             {
                 StandaloneLighthouseMapSystem.Instance.onRareRecoveryItemCollected?.Invoke(recoveryAmount);
+                PowerUpPickup.PlaySound(PowerUpPickup.LoadSound(PowerUpPickup.EnergySoundName));
                 StandaloneLighthouseMapSystem.Instance.ShowBannerMessage($"🔋 BATERIA RARA COLETADA! (+{recoveryAmount} Recuperação)");
                 Destroy(gameObject);
             }
