@@ -1,0 +1,70 @@
+{
+ "name": "Annie",
+ "source": "annie.fbx",
+ "height": 1.1049,
+ "width": 0.7748,
+ "rigged": true,
+ "hand": "RightHand",
+ "clips": [
+  {
+   "name": "Idle",
+   "frames": 60,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_F",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_B",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_L",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_R",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_FL",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_FR",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_BL",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run_BR",
+   "frames": 16,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Aim",
+   "frames": 10,
+   "loop": true,
+   "events": []
+  }
+ ]
+}

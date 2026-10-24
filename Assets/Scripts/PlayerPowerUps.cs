@@ -51,6 +51,14 @@ public class PlayerPowerUps : MonoBehaviour
 
   public void Collect(PowerUpType type)
   {
+    // Cristais (todos menos a bateria de mana) melhoram de vez um atributo sorteado da cientista
+    CharacterStats stats = GetComponent<CharacterStats>();
+    if (type != PowerUpType.Mana && stats != null)
+    {
+      stats.Enhance();
+      return;
+    }
+
     switch (type)
     {
       case PowerUpType.Ricochet:

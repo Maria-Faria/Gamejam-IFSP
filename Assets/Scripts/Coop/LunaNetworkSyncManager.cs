@@ -698,7 +698,7 @@ namespace GuardiasDaLuz
             Vector3 pos = local.position;
             string packet = string.Format(
                 CultureInfo.InvariantCulture,
-                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7:F1}|{8:F1}|{9}|{10}|{11}|{12}",
+                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7:F1}|{8:F1}|{9}|{10}|{11}|{12}|{13}",
                 myPlayerId,
                 pos.x, pos.y, pos.z,
                 local.eulerAngles.y,
@@ -709,7 +709,8 @@ namespace GuardiasDaLuz
                 health != null && health.IsDead ? 1 : 0,
                 shooting != null ? (int)shooting.CurrentWeapon : 0,
                 movement != null && movement.IsMoving ? 1 : 0,
-                boundMap != null ? boundMap.currentFloorIndex : 0
+                boundMap != null ? boundMap.currentFloorIndex : 0,
+                CharacterRoster.Selected
             );
             SendRawPacket(packet);
         }
@@ -740,6 +741,8 @@ namespace GuardiasDaLuz
                     if (int.TryParse(parts[11], out int weapon)) slot.avatar.weapon = (WeaponType)weapon;
                     slot.avatar.isMoving = parts[12] == "1";
                     if (int.TryParse(parts[13], out int floor)) slot.avatar.floorIndex = floor;
+                    // a cientista que a parceira escolheu (campo novo no fim: versões antigas não mandam)
+                    if (parts.Length > 14 && int.TryParse(parts[14], out int character)) slot.avatar.UseCharacter(character);
                 }
             }
 

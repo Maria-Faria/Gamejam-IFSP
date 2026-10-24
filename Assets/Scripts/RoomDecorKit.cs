@@ -116,7 +116,10 @@ namespace GuardiasDaLuz.MapSystem
 
         public static GameObject SpawnProp(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, bool solid)
         {
-            return SpawnWrapped(prefab, parent, position, rotation, Vector3.one * GetScale(prefab), solid, $"Decor_{prefab.name}");
+            GameObject prop = SpawnWrapped(prefab, parent, position, rotation, Vector3.one * GetScale(prefab), solid, $"Decor_{prefab.name}");
+            // barris explodem com um tiro (luz e dano em volta)
+            if (prop != null && solid && prefab.name == "barrel") prop.AddComponent<ExplosiveBarrel>();
+            return prop;
         }
 
         public static GameObject SpawnWrapped(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation,

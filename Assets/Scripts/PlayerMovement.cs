@@ -18,13 +18,15 @@ public class PlayerMovement : MonoBehaviour
   private PlayerHealth health;
   private PlayerStatus status;
   private AudioSource footstepAudio;
+  private PlayerShooting shooting;
 
   public float WalkSpeed => speed;
   public float RunSpeed => runSpeed;
   public bool IsRunning { get; private set; }
   public bool IsMoving { get; private set; }
   // Velocidade atual considerando power-ups e lentidão
-  public float CurrentSpeed => runSpeed * (powerUps != null ? powerUps.MoveSpeedMultiplier : 1f) * (status != null ? status.SpeedMultiplier : 1f);
+  public float CurrentSpeed => runSpeed * (powerUps != null ? powerUps.MoveSpeedMultiplier : 1f) * (status != null ? status.SpeedMultiplier : 1f)
+    * CharacterStats.SpeedOf(this);
   // Entrada extra somada ao teclado (usada pelos testes automáticos)
   public Vector2 SimulatedInput { get; set; }
   public bool IsInputBlocked => (health != null && health.IsDead) || (status != null && status.IsStunned);
@@ -82,7 +84,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     float statusMultiplier = status != null ? status.SpeedMultiplier : 1f;
-    float currentSpeed = runSpeed * powerUps.MoveSpeedMultiplier * statusMultiplier;
+    float currentSpeed = runSpeed * powerUps.MoveSpeedMultiplier * statusMultiplier * CharacterStats.SpeedOf(this);
     Vector3 knockback = status != null ? status.KnockbackVelocity : Vector3.zero;
 
     if (controller.isGrounded && verticalVelocity < 0f)
@@ -93,9 +95,17 @@ public class PlayerMovement : MonoBehaviour
 
     controller.Move((direction * currentSpeed + knockback + Vector3.up * verticalVelocity) * Time.deltaTime);
 
-    if(direction.sqrMagnitude > 0.01f)
+    // Atirando com um inimigo por perto: vira para ele e corre em qualquer direção (para trás, de lado...);
+    // senão vira para onde está correndo
+    if (shooting == null) shooting = GetComponent<PlayerShooting>();
+    Vector3 facing = direction;
+    if (!IsInputBlocked && shooting != null && shooting.IsFiring && shooting.TryGetAimTarget(out Vector3 aim))
     {
-      Quaternion targetRotation = Quaternion.LookRotation(direction);
+      facing = aim;
+    }
+    if (facing.sqrMagnitude > 0.01f)
+    {
+      Quaternion targetRotation = Quaternion.LookRotation(facing);
       transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 

@@ -23,6 +23,8 @@ public class LightBullet : MonoBehaviour
   private float fragmentDamage;
 
   private int bouncesLeft;
+  private float damageScale = 1f;
+  private float knockback;
 
   private Vector3 origin;
   private Vector3 moveDirection;
@@ -35,6 +37,20 @@ public class LightBullet : MonoBehaviour
   {
     damage = newDamage;
   }
+
+  // Multiplica todo o dano deste tiro (personagem e cristais), inclusive explosão e fragmentos
+  public void SetDamageScale(float scale)
+  {
+    damageScale = scale;
+  }
+
+  // Empurrão (m/s) no monstro atingido; na explosão, para fora do centro
+  public void SetKnockback(float speed)
+  {
+    knockback = speed;
+  }
+
+  public float Damage => damage * damageScale;
 
   public void SetBounces(int bounces)
   {
@@ -99,8 +115,9 @@ public class LightBullet : MonoBehaviour
       System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
       foreach (RaycastHit hit in hits)
       {
-        if (WeaponDamage.TryDamage(hit.collider, damage))
+        if (WeaponDamage.TryDamage(hit.collider, Damage))
         {
+          WeaponDamage.Push(hit.collider, direction * knockback);
           transform.position += direction * hit.distance;
           Finish();
           return;
@@ -165,8 +182,9 @@ public class LightBullet : MonoBehaviour
       return;
     }
 
-    if (WeaponDamage.TryDamage(other, damage))
+    if (WeaponDamage.TryDamage(other, Damage))
     {
+      WeaponDamage.Push(other, transform.forward * knockback);
       Finish();
     }
   }
@@ -202,7 +220,8 @@ public class LightBullet : MonoBehaviour
 
       float distance = Vector3.Distance(center, hit.ClosestPoint(center));
       float falloff = Mathf.Lerp(1f, 0.3f, distance / explosionRadius);
-      WeaponDamage.Damage(target, explosionDamage * falloff);
+      WeaponDamage.Damage(target, explosionDamage * damageScale * falloff);
+      WeaponDamage.Push(hit, (hit.transform.position - center).normalized * knockback * falloff);
     }
 
     ExplosionFlash.Spawn(center, explosionRadius, explosionColor);
@@ -228,6 +247,7 @@ public class LightBullet : MonoBehaviour
       if (bullet != null)
       {
         bullet.SetDamage(fragmentDamage);
+        bullet.SetDamageScale(damageScale);
         bullet.lifetime = 0.5f;
       }
     }

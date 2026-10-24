@@ -76,6 +76,8 @@ public class CharacterSelect
   private const float InfoHeight = 1086f;
 
   private int selected;
+  private CharacterPreviewStage stage;
+  private GUIStyle statStyle;
   private float position;
   private bool showInfo;
   private float[] buttonHover = new float[7];
@@ -92,6 +94,8 @@ public class CharacterSelect
 
   public void Open()
   {
+    // as cientistas em 3D (CharacterPreviewStage): o mesmo modelo que vai para o jogo
+    stage = CharacterPreviewStage.Ensure();
     selected = Mathf.Clamp(PlayerPrefs.GetInt(SelectedCharacterKey, 0), 0, Count - 1);
     position = selected;
     showInfo = false;
@@ -133,6 +137,8 @@ public class CharacterSelect
     DrawFit(pedestal, R(CenterX, 718f, 700f, 0f), true);
 
     bool confirmed = false;
+    if (stage == null) stage = CharacterPreviewStage.Ensure();
+    stage.Focus(selected);
     foreach (int index in DrawOrder())
     {
       float d = Wrap(index - position);
@@ -143,7 +149,8 @@ public class CharacterSelect
       float brightness = Sample(SlotBrightness, t);
       float alpha = Mathf.Clamp01((3.5f - t) * 2f);
 
-      Texture2D portrait = portraits != null && index < portraits.Length ? portraits[index] : null;
+      Texture portrait = stage != null ? stage.TextureFor(index) : null;
+      if (portrait == null) portrait = portraits != null && index < portraits.Length ? portraits[index] : null;
       if (portrait == null) continue;
 
       float width = height * portrait.width / portrait.height;
@@ -163,6 +170,8 @@ public class CharacterSelect
     DrawFit(namePlate, plate, false);
     nameStyle.fontSize = Mathf.Max(12, Mathf.RoundToInt(32f * scale));
     GUI.Label(plate, SelectedName.ToUpperInvariant(), nameStyle);
+
+    DrawStats(R(1440f, 835f, 430f, 215f), scale);
 
     Rect left = R(90f, 545f, 175f, 175f);
     Rect right = R(1580f, 545f, 175f, 175f);
@@ -211,7 +220,8 @@ public class CharacterSelect
     titleStyle.fontSize = Mathf.Max(14, Mathf.RoundToInt(54f * scale));
     GUI.Label(Box(150f, 92f, 1150f, 96f), scientist.Name.ToUpperInvariant(), titleStyle);
 
-    Texture2D portrait = portraits != null && selected < portraits.Length ? portraits[selected] : null;
+    Texture portrait = stage != null ? stage.TextureFor(selected) : null;
+    if (portrait == null) portrait = portraits != null && selected < portraits.Length ? portraits[selected] : null;
     if (portrait != null) GUI.DrawTexture(Box(90f, 250f, 400f, 590f), portrait, ScaleMode.ScaleToFit);
 
     subtitleStyle.fontSize = Mathf.Max(11, Mathf.RoundToInt(36f * scale));
@@ -232,6 +242,49 @@ public class CharacterSelect
     GUI.Label(choose, "ESCOLHER", buttonTextStyle);
 
     return confirmed && Confirm();
+  }
+
+  // Atributos da cientista do centro: barras comparando com as outras e o ponto forte dela
+  private void DrawStats(Rect area, float scale)
+  {
+    CharacterRoster.Entry entry = CharacterRoster.Get(selected);
+    CharacterRoster.Stats st = entry.Stats;
+    (string label, float value, float min, float max)[] rows =
+    {
+      ("Vida", st.maxHealth, 70f, 140f),
+      ("Velocidade", st.moveSpeed, 0.85f, 1.3f),
+      ("Cadência", st.fireRate, 0.8f, 1.35f),
+      ("Dano", st.damage, 0.85f, 1.5f),
+      ("Energia", st.maxMana * st.manaRegen, 80f, 210f),
+    };
+
+    if (statStyle == null) statStyle = new GUIStyle(GUI.skin.label);
+    statStyle.fontSize = Mathf.Max(10, Mathf.RoundToInt(19f * scale));
+    statStyle.normal.textColor = new Color(0.9f, 0.95f, 1f);
+    statStyle.wordWrap = true;
+
+    GUI.color = new Color(0f, 0f, 0f, 0.55f);
+    GUI.DrawTexture(area, Texture2D.whiteTexture);
+    GUI.color = Color.white;
+    float pad = 10f * scale;
+    float rowHeight = (area.height - pad * 2f) / (rows.Length + 1.4f);
+    float labelWidth = area.width * 0.36f;
+    for (int i = 0; i < rows.Length; i++)
+    {
+      float y = area.y + pad + i * rowHeight;
+      GUI.Label(new Rect(area.x + pad, y, labelWidth, rowHeight), rows[i].label, statStyle);
+      Rect bar = new Rect(area.x + pad + labelWidth, y + rowHeight * 0.25f, area.width - labelWidth - pad * 2f, rowHeight * 0.5f);
+      GUI.color = new Color(1f, 1f, 1f, 0.15f);
+      GUI.DrawTexture(bar, Texture2D.whiteTexture);
+      float fill = Mathf.Clamp01(Mathf.InverseLerp(rows[i].min, rows[i].max, rows[i].value) * 0.85f + 0.15f);
+      GUI.color = Color.Lerp(new Color(1f, 0.45f, 0.35f), new Color(0.35f, 1f, 0.6f), fill);
+      GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * fill, bar.height), Texture2D.whiteTexture);
+      GUI.color = Color.white;
+    }
+    statStyle.fontStyle = FontStyle.Italic;
+    statStyle.normal.textColor = new Color(1f, 0.85f, 0.4f);
+    GUI.Label(new Rect(area.x + pad, area.y + pad + rows.Length * rowHeight, area.width - pad * 2f, rowHeight * 1.4f), entry.Strength, statStyle);
+    statStyle.fontStyle = FontStyle.Normal;
   }
 
   private bool IconButton(int index, Texture2D texture, Rect rect)

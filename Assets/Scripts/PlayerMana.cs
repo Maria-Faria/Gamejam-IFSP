@@ -7,6 +7,7 @@ public class PlayerMana : MonoBehaviour
   [SerializeField] private float regenPerSecond = 20f;
 
   private float mana;
+  private float regenScale = 1f;
   private float emptyFlash;
 
   public float Mana => mana;
@@ -19,7 +20,7 @@ public class PlayerMana : MonoBehaviour
 
   public void Update()
   {
-    mana = Mathf.Min(maxMana, mana + regenPerSecond * Time.deltaTime);
+    mana = Mathf.Min(maxMana, mana + regenPerSecond * regenScale * Time.deltaTime);
     emptyFlash = Mathf.MoveTowards(emptyFlash, 0f, Time.deltaTime * 4f);
   }
 
@@ -33,6 +34,14 @@ public class PlayerMana : MonoBehaviour
 
     mana -= amount;
     return true;
+  }
+
+  // Mana máxima e recarga da personagem (CharacterStats)
+  public void SetMax(float max, float regenMultiplier, bool fill)
+  {
+    maxMana = Mathf.Max(1f, max);
+    regenScale = Mathf.Max(0.1f, regenMultiplier);
+    mana = fill ? maxMana : Mathf.Min(maxMana, mana);
   }
 
   public void IncreaseMax(float amount)

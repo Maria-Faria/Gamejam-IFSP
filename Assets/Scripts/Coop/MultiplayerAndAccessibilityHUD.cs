@@ -257,7 +257,7 @@ namespace GuardiasDaLuz
             GUILayout.EndHorizontal();
             GUILayout.Space(6f);
             GUILayout.BeginHorizontal();
-            DrawCompactControlCard(cardW, cardH, stepSwitchedShotDone, "[1-6 / Roda]", "Trocar de arma", "6 padrões de tiro.");
+            DrawCompactControlCard(cardW, cardH, stepSwitchedShotDone, "[1-7 / Roda]", "Trocar de arma", "Compre armas na loja do andar.");
             GUILayout.Space(6f);
             DrawCompactControlCard(cardW, cardH, stepRepairedPostDone, "[Segurar E]", "Consertar poste", "Abre as portas da sala.");
             GUILayout.EndHorizontal();

@@ -143,6 +143,32 @@ public class PlayerAnimation : MonoBehaviour
     CacheBodyMaterials();
   }
 
+  // Troca o modelo animado (PlayerCharacter põe a cientista escolhida no lugar do modelo da cena)
+  public void UseModel(Transform newModel, Transform newGun, Animator newAnimator)
+  {
+    model = newModel;
+    gun = newGun;
+    animator = newAnimator;
+    if (model != null)
+    {
+      modelBasePosition = model.localPosition;
+      modelBaseRotation = model.localRotation;
+      modelBaseScale = model.localScale;
+    }
+    if (gun != null)
+    {
+      gunBasePosition = gun.localPosition;
+      gunBaseRotation = gun.localRotation;
+    }
+    hasSpeedParam = hasRunningParam = hasShootParam = false;
+    CacheAnimatorParameters();
+    foreach (Material material in bodyMaterials)
+    {
+      if (material != null) Destroy(material);
+    }
+    CacheBodyMaterials();
+  }
+
   public void OnEnable()
   {
     if (shooting != null) shooting.Fired += OnFired;

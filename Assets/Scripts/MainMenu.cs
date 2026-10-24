@@ -345,7 +345,7 @@ public class MainMenu : MonoBehaviour
 
     GUILayout.Space(Screen.height * 0.015f);
     GUILayout.Label("<b>Controles</b>", textStyle);
-    GUILayout.Label("WASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 6 / roda do mouse: trocar de arma\nE: consertar postes e interagir", textStyle);
+    GUILayout.Label("WASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma (compre armas na loja de cada andar)\nE: consertar postes, comprar e interagir", textStyle);
     GUILayout.Space(Screen.height * 0.02f);
     GUILayout.Label("<b>Créditos</b>", textStyle);
     GUILayout.Label("Projeto UV — Game Jam IFSP", textStyle);

@@ -24,6 +24,12 @@ public static class WeaponDamage
       return roguelikeMonster;
     }
 
+    MonoBehaviour barrel = collider.GetComponentInParent<ExplosiveBarrel>();
+    if (barrel != null)
+    {
+      return barrel;
+    }
+
     MonoBehaviour crate = collider.GetComponentInParent<StandaloneBreakableCrate>();
     if (crate != null)
     {
@@ -46,12 +52,30 @@ public static class WeaponDamage
       case Roguelike.Health roguelikeMonster:
         roguelikeMonster.TakeDamage(damage, roguelikeMonster.transform.position);
         break;
+      case ExplosiveBarrel barrel:
+        barrel.TakeHit(damage);
+        break;
       case StandaloneBreakableCrate crate:
         crate.TakeHit();
         break;
       case StandaloneSecretCrackedWall wall:
         wall.RegisterProjectileHit();
         break;
+    }
+  }
+
+  // Empurra o monstro dono deste collider (tiros da jogadora); outros alvos ignoram
+  public static void Push(Collider collider, Vector3 velocity)
+  {
+    if (collider == null || velocity.sqrMagnitude < 0.01f)
+    {
+      return;
+    }
+
+    Roguelike.Monster monster = collider.GetComponentInParent<Roguelike.Monster>();
+    if (monster != null && !monster.Dead)
+    {
+      monster.Push(velocity);
     }
   }
 

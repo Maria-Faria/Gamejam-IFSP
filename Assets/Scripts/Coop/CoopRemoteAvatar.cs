@@ -4,9 +4,10 @@ using UnityEngine;
 namespace GuardiasDaLuz
 {
     /// <summary>
-    /// A parceira de outra máquina no modo cooperativo: uma cópia só visual da personagem local (malhas e
-    /// materiais, sem scripts), com a luz e o anel na cor da vaga dela, o nome acima da cabeça e os tiros
-    /// repetidos a partir dos pacotes SHOT (os projéteis ferem os monstros desta máquina).
+    /// A parceira de outra máquina no modo cooperativo: a cientista que ela escolheu (o mesmo modelo rigado,
+    /// correndo e erguendo a pistola como a dela), com a luz e o anel na cor da vaga dela, o nome acima da
+    /// cabeça e os tiros repetidos a partir dos pacotes SHOT (os projéteis ferem os monstros desta máquina).
+    /// Sem os modelos gerados, é uma cópia só visual das malhas da personagem local.
     /// </summary>
     public class CoopRemoteAvatar : MonoBehaviour
     {
@@ -21,6 +22,7 @@ namespace GuardiasDaLuz
         public bool isMoving;
         public WeaponType weapon;
         public int floorIndex;
+        public int character = -1;
 
         private Transform visual;
         private Light auraLight;
@@ -28,6 +30,9 @@ namespace GuardiasDaLuz
         private float bob;
         private bool visible = true;
         private GUIStyle nameStyle;
+        private CharacterRig rig;
+        private Vector3 lastPosition;
+        private float lastShot = -10f;
 
         public bool IsVisible => visible;
 
@@ -46,12 +51,32 @@ namespace GuardiasDaLuz
             return avatar;
         }
 
+        /// <summary>Mostra a parceira com o modelo da cientista `index` (CharacterRoster).</summary>
+        public void UseCharacter(int index)
+        {
+            if (index == character && rig != null) return;
+            CharacterRig prefab = CharacterRoster.LoadPrefab(index);
+            if (prefab == null) return;
+            character = index;
+            for (int i = visual.childCount - 1; i >= 0; i--) Destroy(visual.GetChild(i).gameObject);
+            rig = Instantiate(prefab, visual, false);
+            rig.name = "Cientista";
+            if (!visible) foreach (Renderer r in rig.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
+        }
+
         private void Build(Transform source)
         {
             visual = new GameObject("Visual").transform;
             visual.SetParent(transform, false);
+            lastPosition = transform.position;
 
-            if (source != null)
+            CharacterRig defaultRig = CharacterRoster.LoadPrefab(CharacterRoster.Selected);
+            if (defaultRig != null)
+            {
+                rig = Instantiate(defaultRig, visual, false);
+                rig.name = "Cientista";
+            }
+            else if (source != null)
             {
                 foreach (MeshRenderer r in source.GetComponentsInChildren<MeshRenderer>())
                 {
@@ -114,6 +139,20 @@ namespace GuardiasDaLuz
         private void Update()
         {
             if (visual == null) return;
+            if (rig != null)
+            {
+                // corrida em 8 direções pela velocidade dela, como a personagem local
+                float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+                Vector3 velocity = (transform.position - lastPosition) / dt;
+                velocity.y = 0f;
+                lastPosition = transform.position;
+                Vector3 local = isDead ? Vector3.zero : transform.InverseTransformDirection(velocity) / 10f;
+                rig.SetLocomotion(local, Time.deltaTime);
+                rig.SetAim(!isDead && Time.time - lastShot < 0.7f);
+                visual.localRotation = Quaternion.Slerp(visual.localRotation, Quaternion.Euler(isDead ? 85f : 0f, 0f, 0f), Time.deltaTime * 8f);
+                if (auraLight != null) auraLight.intensity = isDead ? 0.6f : 2.5f;
+                return;
+            }
             // caminhada simples: balanço enquanto anda; caída de lado quando morta
             bob = isMoving && !isDead ? bob + Time.deltaTime * 10f : Mathf.MoveTowards(bob, 0f, Time.deltaTime * 6f);
             float lean = isDead ? 85f : 0f;
@@ -130,9 +169,15 @@ namespace GuardiasDaLuz
             forward.y = 0f;
             if (forward.sqrMagnitude < 1e-4f) forward = transform.forward;
             Quaternion aim = Quaternion.LookRotation(forward.normalized);
+            lastShot = Time.time;
+            if (rig != null) rig.Kick(PlayerCharacter.KickOf(weaponType));
 
             switch (weaponType)
             {
+                case WeaponType.Pistol:
+                    LightBullet pistolShot = Fire(prefab, origin, aim);
+                    if (pistolShot != null) pistolShot.SetDamage(11f);
+                    break;
                 case WeaponType.AimedTriple:
                     for (int i = -1; i <= 1; i++) Fire(prefab, origin, aim * Quaternion.Euler(0f, i * 12f, 0f));
                     break;

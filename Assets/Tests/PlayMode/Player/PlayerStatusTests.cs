@@ -138,7 +138,10 @@ public class PlayerStatusTests
 
     Debug.Log($"[PlayerStatusTests] distância normal {normal:0.00}, lenta {slowed:0.00} (razão {slowed / normal:0.00})");
     // A velocidade aplicada é exata; o deslocamento real pode ser menor se a jogadora esbarrar em algo
-    Assert.AreEqual(0.5f, Get<float>(movement, "CurrentSpeed") / Get<float>(movement, "RunSpeed"), 0.001f);
+    // a velocidade da cientista escolhida (CharacterStats) também entra na conta
+    Component stats = player.GetComponent(Type.GetType("CharacterStats, Assembly-CSharp"));
+    float character = stats != null ? Get<float>(stats, "MoveSpeed") : 1f;
+    Assert.AreEqual(0.5f, Get<float>(movement, "CurrentSpeed") / Get<float>(movement, "RunSpeed") / character, 0.001f);
     Assert.Greater(normal, 2f, "deveria andar livre antes da lentidão");
     Assert.Less(slowed / normal, 0.7f);
     Assert.Greater(slowed, 0.1f);

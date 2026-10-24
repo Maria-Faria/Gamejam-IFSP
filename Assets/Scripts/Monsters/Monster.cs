@@ -37,6 +37,7 @@ namespace Roguelike
         MonsterAttack _current;
         MonsterBrain _brain;
         CapsuleCollider _body;
+        Vector3 _push;
         float _nextThink, _lastMoved = -1f;
         Health _health;
 
@@ -52,6 +53,8 @@ namespace Roguelike
         /// Out of the fight for now (a phantom faded away): it does not think or attack, the player's aim and
         /// weapons ignore it.
         public bool Untargetable { get; set; }
+        /// Speed (m/s) it is being shoved at right now (Push), dying away.
+        public Vector3 PushVelocity => _push;
         public bool Busy => _current != null;
         public bool Dead => _health && _health.IsDead;
         /// Free to start an attack: none running and recovered from the last one.
@@ -146,7 +149,10 @@ namespace Roguelike
 
         void LateUpdate()
         {
-            if (Dead || Busy)
+            if (Dead)
+                return;
+            ApplyPush();
+            if (Busy)
                 return;
             Separate();
             Locomotion();
@@ -357,6 +363,31 @@ namespace Roguelike
                 return false;
             }
             return true;
+        }
+
+        /// Shoves it (a hit from the player's shots): `velocity` m/s, less the bigger it is, that dies away in a
+        /// fraction of a second; walls stop it.
+        public void Push(Vector3 velocity)
+        {
+            if (Dead)
+                return;
+            float heft = Mathf.Max(1f, size / MonsterScale.Factor);
+            _push = Vector3.ClampMagnitude(_push + Flat(velocity) / heft, 12f * MonsterScale.Factor);
+        }
+
+        void ApplyPush()
+        {
+            if (_push.sqrMagnitude < 0.01f)
+            {
+                _push = Vector3.zero;
+                return;
+            }
+            var step = _push * Time.deltaTime;
+            if (!Blocked(step.normalized, step.magnitude, out _))
+                transform.position += step;
+            else
+                _push = Vector3.zero;
+            _push = Vector3.MoveTowards(_push, Vector3.zero, 30f * Time.deltaTime);
         }
 
         /// Pushes overlapping monsters apart, so a pack does not merge into one blob.

@@ -20,7 +20,9 @@ namespace GuardiasDaLuz.MapSystem
             GiantHall,
             TreasureChoice,
             Secret,
-            BossExit
+            BossExit,
+            // Loja de armas (WeaponShop): uma por andar, iluminada e sem monstros
+            Shop
         }
 
         public enum ObstacleLayoutVariant
@@ -774,6 +776,16 @@ namespace GuardiasDaLuz.MapSystem
                 candidates.RemoveAt(idx);
             }
 
+            // uma loja de armas em todo andar
+            if (candidates.Count > 0)
+            {
+                int idx = UnityEngine.Random.Range(0, candidates.Count);
+                candidates[idx].roomType = RoomType.Shop;
+                candidates[idx].obstacleVariant = ObstacleLayoutVariant.None;
+                candidates[idx].isClearedAndLit = true;
+                candidates.RemoveAt(idx);
+            }
+
             AssignGiantHalls(cfg.giantHallPairsCount, dirs);
 
             SpawnSecretRoomNodes(cfg.secretRoomsCount, dirs);
@@ -901,7 +913,8 @@ namespace GuardiasDaLuz.MapSystem
                 floor.transform.localScale = new Vector3(roomWidthX, 1f, roomLengthZ);
                 floor.GetComponent<Renderer>().enabled = false;
 
-                bool specialRoom = node.roomType == RoomType.BossExit || node.roomType == RoomType.TreasureChoice || node.roomType == RoomType.Secret;
+                bool specialRoom = node.roomType == RoomType.BossExit || node.roomType == RoomType.TreasureChoice
+                                   || node.roomType == RoomType.Secret || node.roomType == RoomType.Shop;
                 activeTheme.BuildFloor(root.transform, roomWidthX, roomLengthZ, specialRoom);
             }
             else if (customFloorPrefab != null)
@@ -921,6 +934,7 @@ namespace GuardiasDaLuz.MapSystem
                 {
                     fr.material.color = node.roomType == RoomType.BossExit ? new Color(0.25f, 0.14f, 0.28f)
                                       : node.roomType == RoomType.TreasureChoice ? new Color(0.26f, 0.22f, 0.12f)
+                                      : node.roomType == RoomType.Shop ? new Color(0.12f, 0.24f, 0.26f)
                                       : node.roomType == RoomType.Secret ? new Color(0.18f, 0.12f, 0.26f)
                                       : cfg.floorColor;
                 }
@@ -960,6 +974,10 @@ namespace GuardiasDaLuz.MapSystem
 
                 case RoomType.Secret:
                     BuildSecretRoomPedestal(node);
+                    break;
+
+                case RoomType.Shop:
+                    WeaponShop.Build(node.roomRoot.transform, node.worldCenter);
                     break;
             }
 
@@ -1734,6 +1752,15 @@ namespace GuardiasDaLuz.MapSystem
             SetRoomLit(room.isClearedAndLit && !postless);
             if (darkRooms) ApplyRoomBrightness(roomBrightness);
 
+            if (room.roomType == RoomType.Shop)
+            {
+                room.doorsUnlocked = true;
+                SetRoomDoorsOpen(room, true);
+                SetRoomLit(true);
+                ShowBannerMessage("🛒 Loja de armas! Chegue perto de uma arma e aperte [E] para comprar com as moedas dos monstros.");
+                return;
+            }
+
             if (postless)
             {
                 room.doorsUnlocked = true;
@@ -1834,6 +1861,7 @@ namespace GuardiasDaLuz.MapSystem
             ("Secreta", new Color(0.9f, 0.45f, 1f)),
             ("Acesa", new Color(1f, 0.95f, 0.6f)),
             ("Escura", new Color(0.4f, 0.42f, 0.55f)),
+            ("Loja", new Color(0.2f, 0.95f, 1f)),
             ("Não visitada", new Color(0.22f, 0.24f, 0.32f))
         };
 
@@ -2025,10 +2053,11 @@ namespace GuardiasDaLuz.MapSystem
         private Color RoomMinimapColor(MapRoomNode node)
         {
             if (node.gridCoord == currentPlayerRoomCoord) return MinimapLegend[0].color;
-            if (HideUnvisitedRoomsOnMinimap && !node.isVisited) return MinimapLegend[6].color;
+            if (HideUnvisitedRoomsOnMinimap && !node.isVisited) return MinimapLegend[7].color;
             if (node.roomType == RoomType.BossExit) return MinimapLegend[1].color;
             if (node.roomType == RoomType.TreasureChoice) return MinimapLegend[2].color;
             if (node.roomType == RoomType.Secret) return MinimapLegend[3].color;
+            if (node.roomType == RoomType.Shop) return MinimapLegend[6].color;
             if (node.isClearedAndLit) return MinimapLegend[4].color;
             return MinimapLegend[5].color;
         }

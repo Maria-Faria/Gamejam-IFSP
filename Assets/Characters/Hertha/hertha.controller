@@ -1,0 +1,309 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1102 &-8900926112643063059
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Aim
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 6031603338165271173, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &-4835203530503214316
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Locomotion
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 789102846613690110}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1107 &-3665738711401686492
+AnimatorStateMachine:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Aim
+  m_ChildStates:
+  - serializedVersion: 1
+    m_State: {fileID: -8900926112643063059}
+    m_Position: {x: 200, y: 0, z: 0}
+  m_ChildStateMachines: []
+  m_AnyStateTransitions: []
+  m_EntryTransitions: []
+  m_StateMachineTransitions: {}
+  m_StateMachineBehaviours: []
+  m_AnyStatePosition: {x: 50, y: 20, z: 0}
+  m_EntryPosition: {x: 50, y: 120, z: 0}
+  m_ExitPosition: {x: 800, y: 120, z: 0}
+  m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
+  m_DefaultState: {fileID: -8900926112643063059}
+--- !u!91 &9100000
+AnimatorController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: hertha
+  serializedVersion: 6
+  m_AnimatorParameters:
+  - m_Name: MoveX
+    m_Type: 1
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 9100000}
+  - m_Name: MoveZ
+    m_Type: 1
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 9100000}
+  m_AnimatorLayers:
+  - serializedVersion: 5
+    m_Name: Base Layer
+    m_StateMachine: {fileID: 8885075374987395488}
+    m_Mask: {fileID: 0}
+    m_Motions: []
+    m_Behaviours: []
+    m_BlendingMode: 0
+    m_SyncedLayerIndex: -1
+    m_DefaultWeight: 0
+    m_IKPass: 0
+    m_SyncedLayerAffectsTiming: 0
+    m_Controller: {fileID: 9100000}
+  - serializedVersion: 5
+    m_Name: Aim
+    m_StateMachine: {fileID: -3665738711401686492}
+    m_Mask: {fileID: 3205501882551763568}
+    m_Motions: []
+    m_Behaviours: []
+    m_BlendingMode: 0
+    m_SyncedLayerIndex: -1
+    m_DefaultWeight: 0
+    m_IKPass: 0
+    m_SyncedLayerAffectsTiming: 0
+    m_Controller: {fileID: 9100000}
+  m_EvaluateTransitionsOnStart: 1
+--- !u!206 &789102846613690110
+BlendTree:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Locomotion
+  m_Childs:
+  - serializedVersion: 2
+    m_Motion: {fileID: -646043373100776936, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: 0, y: 0}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: -7457122875077970579, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: 0, y: 1}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: 1618141245003788560, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: 0, y: -1}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: -1811242771768592450, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: -1, y: 0}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: -3240260355905432828, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: 1, y: 0}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: 922896832812801268, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: -0.7071, y: 0.7071}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: 6633094289133852931, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: 0.7071, y: 0.7071}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: 5343062046196646991, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: -0.7071, y: -0.7071}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: -2277005433666077269, guid: 58756c50644cd8043b0ccda7bc4dab53, type: 3}
+    m_Threshold: 0
+    m_Position: {x: 0.7071, y: -0.7071}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: Blend
+    m_Mirror: 0
+  m_BlendParameter: MoveX
+  m_BlendParameterY: MoveZ
+  m_MinThreshold: 0
+  m_MaxThreshold: 1
+  m_UseAutomaticThresholds: 0
+  m_NormalizedBlendValues: 0
+  m_BlendType: 2
+--- !u!319 &3205501882551763568
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BracoDireito
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path: hertha
+    m_Weight: 0
+  - m_Path: Hertha_rig
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/LeftUpLeg
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/LeftUpLeg/LeftLeg
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/LeftUpLeg/LeftLeg/LeftFoot
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase/LeftToe_End
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/LeftUpLeg/LeftLeg/LeftFoot/LeftToeBase/LeftToe_End/LeftToe_End_end
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/RightUpLeg
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/RightUpLeg/RightLeg
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/RightUpLeg/RightLeg/RightFoot
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/RightUpLeg/RightLeg/RightFoot/RightToeBase
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/RightUpLeg/RightLeg/RightFoot/RightToeBase/RightToe_End
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/RightUpLeg/RightLeg/RightFoot/RightToeBase/RightToe_End/RightToe_End_end
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/LeftShoulder
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm/LeftHand
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandEnd
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandEnd/LeftHandEnd_end
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/Neck
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/Neck/Head
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/Neck/Head/HeadTop_End
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/Neck/Head/HeadTop_End/HeadTop_End_end
+    m_Weight: 0
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/RightShoulder
+    m_Weight: 1
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/RightShoulder/RightArm
+    m_Weight: 1
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/RightShoulder/RightArm/RightForeArm
+    m_Weight: 1
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/RightShoulder/RightArm/RightForeArm/RightHand
+    m_Weight: 1
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/RightShoulder/RightArm/RightForeArm/RightHand/RightHandEnd
+    m_Weight: 1
+  - m_Path: Hertha_rig/Hips/Spine/Spine1/Spine2/RightShoulder/RightArm/RightForeArm/RightHand/RightHandEnd/RightHandEnd_end
+    m_Weight: 1
+--- !u!1107 &8885075374987395488
+AnimatorStateMachine:
+  serializedVersion: 7
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Base Layer
+  m_ChildStates:
+  - serializedVersion: 1
+    m_State: {fileID: -4835203530503214316}
+    m_Position: {x: 200, y: 0, z: 0}
+  m_ChildStateMachines: []
+  m_AnyStateTransitions: []
+  m_EntryTransitions: []
+  m_StateMachineTransitions: {}
+  m_StateMachineBehaviours: []
+  m_AnyStatePosition: {x: 50, y: 20, z: 0}
+  m_EntryPosition: {x: 50, y: 120, z: 0}
+  m_ExitPosition: {x: 800, y: 120, z: 0}
+  m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
+  m_DefaultState: {fileID: -4835203530503214316}

@@ -61,6 +61,31 @@ public class PlayerHealth : MonoBehaviour
     }
   }
 
+  // Vida máxima da personagem (CharacterStats); fill enche a barra, senão só cura `heal`
+  public void SetMax(float max, bool fill, float heal = 0f)
+  {
+    if (dead)
+    {
+      return;
+    }
+
+    maxHealth = Mathf.Max(1f, max);
+    health = fill ? maxHealth : Mathf.Min(maxHealth, health + heal);
+  }
+
+  // Cura (corações): devolve quanto curou de fato
+  public float Heal(float amount)
+  {
+    if (dead || amount <= 0f)
+    {
+      return 0f;
+    }
+
+    float before = health;
+    health = Mathf.Min(maxHealth, health + amount);
+    return health - before;
+  }
+
   public void IncreaseMax(float amount, float heal)
   {
     if (dead)

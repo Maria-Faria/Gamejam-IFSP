@@ -8,7 +8,10 @@ public enum WeaponType
   Shotgun,
   SineWave,
   Exploding,
-  RapidFire
+  RapidFire,
+  // A arma com que toda personagem começa: um tiro mirado, sem gastar munição nem mana. As outras são
+  // compradas na loja de cada andar (WeaponShop). Fica no fim para não mudar os números das outras (co-op).
+  Pistol
 }
 
 public class PlayerShooting : MonoBehaviour
@@ -16,7 +19,7 @@ public class PlayerShooting : MonoBehaviour
   [Header("Geral")]
   [SerializeField] private Transform muzzle;
   [SerializeField] private AudioSource audioSource;
-  [SerializeField] private WeaponType currentWeapon = WeaponType.AimedTriple;
+  [SerializeField] private WeaponType currentWeapon = WeaponType.Pistol;
   [Tooltip("Tempo mínimo, em segundos, entre duas trocas de arma.")]
   [SerializeField] private float weaponSwitchCooldown = 0.3f;
   [Tooltip("Projétil roxo usado por todos os padrões de tiro.")]
@@ -24,7 +27,17 @@ public class PlayerShooting : MonoBehaviour
   [Tooltip("Som padrão, usado quando uma arma não tem som próprio.")]
   [SerializeField] private AudioClip shootSound;
 
-  [Header("Triplo Mirado (tecla 1) - mira no inimigo ou caixa mais alinhado com a frente")]
+  [Header("Pistola (tecla 1) - a arma inicial: um tiro mirado, munição e mana infinitas")]
+  [SerializeField] private float pistolFireRate = 3.2f;
+  [SerializeField] private float pistolDamage = 11f;
+  [SerializeField] private AudioClip pistolSound;
+
+  [Header("Empurrão nos monstros (m/s por acerto)")]
+  [SerializeField] private float bulletKnockback = 3.5f;
+  [SerializeField] private float shotgunKnockback = 5f;
+  [SerializeField] private float explosionKnockback = 9f;
+
+  [Header("Triplo Mirado (tecla 2) - mira no inimigo ou caixa mais alinhado com a frente")]
   [SerializeField] private float aimedTripleFireRate = 4f;
   [SerializeField] private float aimedTripleSpreadAngle = 12f;
   [SerializeField] private float aimRange = 20f;
@@ -32,12 +45,12 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private float aimMaxAngle = 60f;
   [SerializeField] private AudioClip aimedTripleSound;
 
-  [Header("Rajada em 8 Direções (tecla 2)")]
+  [Header("Rajada em 8 Direções (tecla 3)")]
   [SerializeField] private float eightWayFireRate = 2.5f;
   [SerializeField] private int eightWayBullets = 8;
   [SerializeField] private AudioClip eightWaySound;
 
-  [Header("Escopeta (tecla 3)")]
+  [Header("Escopeta (tecla 4)")]
   [Tooltip("Se vazio, usa o bulletPrefab.")]
   [SerializeField] private GameObject shotgunPelletPrefab;
   [SerializeField] private float shotgunFireRate = 1.2f;
@@ -45,7 +58,7 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private float shotgunSpreadAngle = 30f;
   [SerializeField] private AudioClip shotgunSound;
 
-  [Header("Onda Senoidal (tecla 4)")]
+  [Header("Onda Senoidal (tecla 5)")]
   [SerializeField] private float sineWaveFireRate = 5f;
   [SerializeField] private float sineWaveAmplitude = 0.8f;
   [Tooltip("Oscilações por segundo.")]
@@ -53,7 +66,7 @@ public class PlayerShooting : MonoBehaviour
   [Tooltip("Toca em sequência enquanto o disparo estiver segurado.")]
   [SerializeField] private AudioClip sineWaveSound;
 
-  [Header("Explosivo (tecla 5)")]
+  [Header("Explosivo (tecla 6)")]
   [SerializeField] private float explodingFireRate = 1f;
   [SerializeField] private float explodingSpeed = 12f;
   [SerializeField] private float explodingRadius = 3f;
@@ -66,7 +79,7 @@ public class PlayerShooting : MonoBehaviour
   [Tooltip("Toca no IMPACTO, quando o projétil explode.")]
   [SerializeField] private AudioClip impactSound;
 
-  [Header("Tiro Rápido (tecla 6)")]
+  [Header("Tiro Rápido (tecla 7)")]
   [SerializeField] private float rapidFireRate = 16f;
   [SerializeField] private float rapidFireSpreadAngle = 6f;
   [SerializeField] private float rapidFireDamage = 5f;
@@ -93,7 +106,13 @@ public class PlayerShooting : MonoBehaviour
   [Tooltip("Segundos sem disparar uma arma até ela começar a recarregar.")]
   [SerializeField] private float ammoRechargeDelay = 1f;
 
-  private static readonly string[] WeaponNames = { "Triplo", "8 Direções", "Escopeta", "Senoidal", "Explosivo", "Rápido" };
+  private static readonly string[] WeaponNames = { "Triplo", "8 Direções", "Escopeta", "Senoidal", "Explosivo", "Rápido", "Pistola" };
+  // Ordem das teclas 1 a 7 e da lista na tela: a pistola primeiro, depois as armas especiais
+  public static readonly WeaponType[] SlotOrder =
+  {
+    WeaponType.Pistol, WeaponType.AimedTriple, WeaponType.EightWayBurst, WeaponType.Shotgun,
+    WeaponType.SineWave, WeaponType.Exploding, WeaponType.RapidFire
+  };
 
   private float nextFireTime;
   private float nextSwitchTime;
@@ -104,8 +123,13 @@ public class PlayerShooting : MonoBehaviour
   private PlayerStatus status;
   private float[] ammo;
   private float[] lastShotTimes;
+  private bool[] owned;
 
   public WeaponType CurrentWeapon => currentWeapon;
+  public static string GetName(WeaponType weapon) => WeaponNames[(int)weapon];
+  public bool Owns(WeaponType weapon) => owned != null && owned[(int)weapon];
+  // Fim do último tiro, para a personagem manter a pistola erguida um pouco depois de atirar
+  public float LastShotTime { get; private set; } = float.NegativeInfinity;
   public bool IsFiring { get; private set; }
   // Segura o disparo sem teclado (usado pelos testes automáticos)
   public bool SimulatedFire { get; set; }
@@ -122,6 +146,9 @@ public class PlayerShooting : MonoBehaviour
     int count = System.Enum.GetValues(typeof(WeaponType)).Length;
     ammo = new float[count];
     lastShotTimes = new float[count];
+    owned = new bool[count];
+    owned[(int)WeaponType.Pistol] = true;
+    currentWeapon = WeaponType.Pistol;
     for (int i = 0; i < count; i++)
     {
       ammo[i] = GetMaxAmmo((WeaponType)i);
@@ -143,14 +170,14 @@ public class PlayerShooting : MonoBehaviour
     if (powerUps == null) powerUps = GetComponent<PlayerPowerUps>();
 
     bool firing = !inputBlocked && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0) || SimulatedFire) && bulletPrefab != null && muzzle != null;
-    if (firing && ammo[(int)currentWeapon] < 1f)
+    if (firing && currentWeapon != WeaponType.Pistol && ammo[(int)currentWeapon] < 1f)
     {
       SwitchToNextLoadedWeapon();
     }
 
     float cost = GetManaCost();
     int weaponIndex = (int)currentWeapon;
-    bool canShoot = ammo[weaponIndex] >= 1f && (mana == null || mana.Mana >= cost);
+    bool canShoot = (currentWeapon == WeaponType.Pistol || ammo[weaponIndex] >= 1f) && (mana == null || mana.Mana >= cost);
     IsFiring = firing && canShoot;
     UpdateHeldAudio(IsFiring ? GetHeldClip() : null);
 
@@ -159,10 +186,11 @@ public class PlayerShooting : MonoBehaviour
       return;
     }
 
-    ammo[weaponIndex] -= 1f;
+    if (currentWeapon != WeaponType.Pistol) ammo[weaponIndex] -= 1f;
     lastShotTimes[weaponIndex] = Time.time;
+    LastShotTime = Time.time;
 
-    float fireRateMultiplier = powerUps != null ? powerUps.FireRateMultiplier : 1f;
+    float fireRateMultiplier = (powerUps != null ? powerUps.FireRateMultiplier : 1f) * CharacterStats.FireRateOf(this);
     nextFireTime = Time.time + 1f / (GetFireRate() * fireRateMultiplier);
 
     switch (currentWeapon)
@@ -185,30 +213,46 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.RapidFire:
         ShootRapidFire();
         break;
+      case WeaponType.Pistol:
+        ShootPistol();
+        break;
     }
 
-    if (ammo[weaponIndex] < 1f)
+    if (currentWeapon != WeaponType.Pistol && ammo[weaponIndex] < 1f)
     {
       SwitchToNextLoadedWeapon();
     }
   }
 
+  // Arma vazia: passa para a próxima arma comprada com munição (a pistola nunca acaba)
   private void SwitchToNextLoadedWeapon()
   {
-    int count = ammo.Length;
-    for (int step = 1; step < count; step++)
+    int slot = System.Array.IndexOf(SlotOrder, currentWeapon);
+    for (int step = 1; step <= SlotOrder.Length; step++)
     {
-      int index = ((int)currentWeapon + step) % count;
-      if (ammo[index] >= 1f)
+      WeaponType next = SlotOrder[(slot + step) % SlotOrder.Length];
+      if (Owns(next) && (next == WeaponType.Pistol || ammo[(int)next] >= 1f))
       {
-        SetWeapon((WeaponType)index);
+        SetWeapon(next);
         return;
       }
     }
   }
 
+  // Compra na loja: a arma fica disponível, cheia, e já na mão
+  public void Unlock(WeaponType weapon)
+  {
+    owned[(int)weapon] = true;
+    ammo[(int)weapon] = GetMaxAmmo(weapon);
+    SetWeapon(weapon);
+  }
+
   public void SetWeapon(WeaponType weapon)
   {
+    if (!Owns(weapon))
+    {
+      return;
+    }
     currentWeapon = weapon;
     nextFireTime = Time.time;
   }
@@ -221,19 +265,26 @@ public class PlayerShooting : MonoBehaviour
     }
 
     WeaponType requested = currentWeapon;
-    if (Input.GetKeyDown(KeyCode.Alpha1)) requested = WeaponType.AimedTriple;
-    if (Input.GetKeyDown(KeyCode.Alpha2)) requested = WeaponType.EightWayBurst;
-    if (Input.GetKeyDown(KeyCode.Alpha3)) requested = WeaponType.Shotgun;
-    if (Input.GetKeyDown(KeyCode.Alpha4)) requested = WeaponType.SineWave;
-    if (Input.GetKeyDown(KeyCode.Alpha5)) requested = WeaponType.Exploding;
-    if (Input.GetKeyDown(KeyCode.Alpha6)) requested = WeaponType.RapidFire;
+    for (int i = 0; i < SlotOrder.Length; i++)
+    {
+      if (Input.GetKeyDown(KeyCode.Alpha1 + i) && Owns(SlotOrder[i])) requested = SlotOrder[i];
+    }
 
+    // a roda do mouse passa só pelas armas compradas
     float scroll = Input.GetAxis("Mouse ScrollWheel");
     if (scroll != 0f)
     {
-      int count = System.Enum.GetValues(typeof(WeaponType)).Length;
       int step = scroll > 0f ? 1 : -1;
-      requested = (WeaponType)(((int)currentWeapon + step + count) % count);
+      int slot = System.Array.IndexOf(SlotOrder, currentWeapon);
+      for (int i = 1; i <= SlotOrder.Length; i++)
+      {
+        WeaponType next = SlotOrder[(slot + step * i + SlotOrder.Length * 8) % SlotOrder.Length];
+        if (Owns(next))
+        {
+          requested = next;
+          break;
+        }
+      }
     }
 
     if (requested != currentWeapon)
@@ -267,6 +318,7 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.SineWave: return sineWaveAmmo;
       case WeaponType.Exploding: return explodingAmmo;
       case WeaponType.RapidFire: return rapidFireAmmo;
+      case WeaponType.Pistol: return 1;
       default: return aimedTripleAmmo;
     }
   }
@@ -276,24 +328,33 @@ public class PlayerShooting : MonoBehaviour
     const float width = 200f;
     const float rowHeight = 22f;
     float x = Screen.width - width - 20f;
-    float y = Screen.height - 20f - rowHeight * ammo.Length;
-
-    for (int i = 0; i < ammo.Length; i++)
+    int rows = 0;
+    foreach (WeaponType weapon in SlotOrder)
     {
-      Rect row = new Rect(x, y + i * rowHeight, width, rowHeight - 3f);
+      if (Owns(weapon)) rows++;
+    }
+    float y = Screen.height - 20f - rowHeight * rows;
+
+    int shown = 0;
+    for (int slot = 0; slot < SlotOrder.Length; slot++)
+    {
+      int i = (int)SlotOrder[slot];
+      if (!owned[i]) continue;
+      Rect row = new Rect(x, y + shown++ * rowHeight, width, rowHeight - 3f);
       bool selected = i == (int)currentWeapon;
+      bool pistol = SlotOrder[slot] == WeaponType.Pistol;
       float max = GetMaxAmmo((WeaponType)i);
-      bool empty = ammo[i] < 1f;
+      bool empty = !pistol && ammo[i] < 1f;
 
       GUI.color = selected ? new Color(1f, 1f, 1f, 0.9f) : new Color(0f, 0f, 0f, 0.6f);
       GUI.DrawTexture(row, Texture2D.whiteTexture);
       GUI.color = new Color(0.08f, 0.05f, 0.12f, 0.9f);
       GUI.DrawTexture(new Rect(row.x + 2f, row.y + 2f, row.width - 4f, row.height - 4f), Texture2D.whiteTexture);
       GUI.color = empty ? new Color(0.5f, 0.2f, 0.25f) : new Color(0.6f, 0.3f, 1f);
-      GUI.DrawTexture(new Rect(row.x + 2f, row.y + 2f, (row.width - 4f) * ammo[i] / max, row.height - 4f), Texture2D.whiteTexture);
+      GUI.DrawTexture(new Rect(row.x + 2f, row.y + 2f, (row.width - 4f) * (pistol ? 1f : ammo[i] / max), row.height - 4f), Texture2D.whiteTexture);
       GUI.color = Color.white;
-      string count = empty ? "VAZIA" : $"{Mathf.FloorToInt(ammo[i])}/{max}";
-      GUI.Label(new Rect(row.x + 6f, row.y + 1f, row.width, row.height), $"{i + 1} {WeaponNames[i]}  {count}");
+      string count = pistol ? "∞" : empty ? "VAZIA" : $"{Mathf.FloorToInt(ammo[i])}/{max}";
+      GUI.Label(new Rect(row.x + 6f, row.y + 1f, row.width, row.height), $"{slot + 1} {WeaponNames[i]}  {count}");
     }
   }
 
@@ -306,6 +367,7 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.SineWave: return sineWaveFireRate;
       case WeaponType.Exploding: return explodingFireRate;
       case WeaponType.RapidFire: return rapidFireRate;
+      case WeaponType.Pistol: return pistolFireRate;
       default: return aimedTripleFireRate;
     }
   }
@@ -319,8 +381,51 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.SineWave: return sineWaveManaCost;
       case WeaponType.Exploding: return explodingManaCost;
       case WeaponType.RapidFire: return rapidFireManaCost;
+      case WeaponType.Pistol: return 0f;
       default: return aimedTripleManaCost;
     }
+  }
+
+  private void ShootPistol()
+  {
+    LightBullet bullet = Spawn(bulletPrefab, GetAimRotation());
+    if (bullet != null)
+    {
+      bullet.SetDamage(pistolDamage);
+    }
+
+    PlaySound(OrDefault(pistolSound));
+    Fired?.Invoke(currentWeapon);
+  }
+
+  // O inimigo vivo mais perto dentro do alcance, em qualquer direção: para onde a personagem se vira ao
+  // atirar (assim ela pode correr para um lado atirando para outro)
+  public bool TryGetAimTarget(out Vector3 direction)
+  {
+    direction = Vector3.zero;
+    if (muzzle == null)
+    {
+      return false;
+    }
+
+    float best = aimRange;
+    foreach (MonoBehaviour target in FindAimTargets())
+    {
+      if (target is GuardiasDaLuz.MapSystem.StandaloneBreakableCrate)
+      {
+        continue;
+      }
+      Vector3 toTarget = Flatten(target.transform.position - transform.position);
+      float distance = toTarget.magnitude;
+      if (distance < 0.01f || distance > best)
+      {
+        continue;
+      }
+      best = distance;
+      direction = toTarget / distance;
+    }
+
+    return direction != Vector3.zero;
   }
 
   private void ShootAimedTriple()
@@ -417,7 +522,8 @@ public class PlayerShooting : MonoBehaviour
       float t = shotgunPellets == 1 ? 0.5f : (float)i / (shotgunPellets - 1);
       float yaw = Mathf.Lerp(-shotgunSpreadAngle / 2f, shotgunSpreadAngle / 2f, t) + Random.Range(-2f, 2f);
       float pitch = Random.Range(-2f, 2f);
-      Spawn(pellet, muzzle.rotation * Quaternion.Euler(pitch, yaw, 0f));
+      LightBullet bullet = Spawn(pellet, muzzle.rotation * Quaternion.Euler(pitch, yaw, 0f));
+      if (bullet != null) bullet.SetKnockback(shotgunKnockback);
     }
 
     PlaySound(OrDefault(shotgunSound));
@@ -447,6 +553,7 @@ public class PlayerShooting : MonoBehaviour
       bullet.SetSpeed(explodingSpeed);
       bullet.ConfigureExplosion(explodingRadius, explodingDamage, explodingColor, impactSound,
         bulletPrefab, explodingFragments, explodingFragmentDamage);
+      bullet.SetKnockback(explosionKnockback);
     }
 
     PlaySound(OrDefault(explodingLaunchSound));
@@ -468,9 +575,12 @@ public class PlayerShooting : MonoBehaviour
   private LightBullet Spawn(GameObject prefab, Quaternion rotation)
   {
     LightBullet bullet = Instantiate(prefab, muzzle.position, rotation).GetComponent<LightBullet>();
-    if (bullet != null && powerUps != null)
+    if (bullet != null)
     {
-      bullet.SetBounces(powerUps.RicochetBounces);
+      if (powerUps != null) bullet.SetBounces(powerUps.RicochetBounces);
+      // o dano da personagem (e dos cristais) vale para tudo que o tiro fizer, inclusive a explosão
+      bullet.SetDamageScale(CharacterStats.DamageOf(this));
+      bullet.SetKnockback(bulletKnockback);
     }
 
     return bullet;
