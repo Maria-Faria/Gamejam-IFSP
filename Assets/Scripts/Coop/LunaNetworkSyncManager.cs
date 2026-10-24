@@ -697,11 +697,7 @@ namespace GuardiasDaLuz
             Vector3 pos = local.position;
             string packet = string.Format(
                 CultureInfo.InvariantCulture,
-<<<<<<< HEAD
-                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7:F1}|{8:F1}|{9}|{10}|{11}|{12}|{13}",
-=======
-                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7}|{8}|{9}|{10}",
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
+                "PLYR|{0}|{1:F2}|{2:F2}|{3:F2}|{4:F1}|{5:F1}|{6:F1}|{7}|{8}|{9}|{10}|{11}",
                 myPlayerId,
                 pos.x, pos.y, pos.z,
                 local.eulerAngles.y,
@@ -736,21 +732,12 @@ namespace GuardiasDaLuz
                     }
                     TryFloat(parts[6], out slot.avatar.health);
                     TryFloat(parts[7], out slot.avatar.maxHealth);
-<<<<<<< HEAD
-                    TryFloat(parts[8], out slot.avatar.mana);
-                    TryFloat(parts[9], out slot.avatar.maxMana);
-                    slot.avatar.isDead = parts[10] == "1";
-                    if (int.TryParse(parts[11], out int weapon)) slot.avatar.weapon = (WeaponType)weapon;
-                    slot.avatar.isMoving = parts[12] == "1";
-                    if (int.TryParse(parts[13], out int floor)) slot.avatar.floorIndex = floor;
-                    // a cientista que a parceira escolheu (campo novo no fim: versões antigas não mandam)
-                    if (parts.Length > 14 && int.TryParse(parts[14], out int character)) slot.avatar.UseCharacter(character);
-=======
                     slot.avatar.isDead = parts[8] == "1";
                     if (int.TryParse(parts[9], out int weapon)) slot.avatar.weapon = (WeaponType)weapon;
                     slot.avatar.isMoving = parts[10] == "1";
                     if (int.TryParse(parts[11], out int floor)) slot.avatar.floorIndex = floor;
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
+                    // a cientista que a parceira escolheu (campo novo no fim: versões antigas não mandam)
+                    if (parts.Length > 12 && int.TryParse(parts[12], out int character)) slot.avatar.UseCharacter(character);
                 }
             }
 

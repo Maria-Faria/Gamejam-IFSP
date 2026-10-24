@@ -164,7 +164,6 @@ public class PlayerShooting : MonoBehaviour
     {
       ammo[i] = GetMaxAmmo((WeaponType)i);
       lastShotTimes[i] = float.NegativeInfinity;
-      unlocked[i] = (WeaponType)i != WeaponType.Homing;
     }
   }
 
@@ -320,7 +319,7 @@ public class PlayerShooting : MonoBehaviour
       }
     }
 
-    if (requested != currentWeapon && unlocked[(int)requested])
+    if (requested != currentWeapon && Owns(requested))
     {
       SetWeapon(requested);
       nextSwitchTime = Time.time + weaponSwitchCooldown;

@@ -336,15 +336,7 @@ public class MainMenu : MonoBehaviour
       Screen.fullScreen = fullscreen;
     }
 
-<<<<<<< HEAD
-    GUILayout.Space(Screen.height * 0.015f);
-    GUILayout.Label("<b>Controles</b>", textStyle);
-    GUILayout.Label("WASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma (compre armas na loja de cada andar)\nE: consertar postes, comprar e interagir", textStyle);
-    GUILayout.Space(Screen.height * 0.02f);
-    GUILayout.Label("<b>Créditos</b>", textStyle);
-    GUILayout.Label("Projeto UV — Game Jam IFSP", textStyle);
-=======
-    Text(Box(760f, 230f, 580f, 310f), "<b><color=#FFCC59>Controles</color></b>\nWASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma\nE: consertar postes e pegar itens", textStyle, 32f);
+    Text(Box(760f, 230f, 580f, 310f), "<b><color=#FFCC59>Controles</color></b>\nWASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma\nE: consertar postes, comprar e interagir", textStyle, 32f);
     Text(Box(760f, 570f, 580f, 110f), "<b><color=#FFCC59>Créditos</color></b>\nProjeto UV — Game Jam IFSP", textStyle, 32f);
   }
 
@@ -450,7 +442,6 @@ public class MainMenu : MonoBehaviour
     Rect thumb = new Rect(left + width * value - knob * 0.5f, rect.y, knob, knob);
     if (modalSliderKnob != null) GUI.DrawTexture(thumb, modalSliderKnob, ScaleMode.ScaleToFit);
     return value;
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
   }
 
   private void CreateStyles()

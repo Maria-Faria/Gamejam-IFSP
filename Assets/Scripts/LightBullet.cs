@@ -23,10 +23,8 @@ public class LightBullet : MonoBehaviour
   private float fragmentDamage;
 
   private int bouncesLeft;
-<<<<<<< HEAD
   private float damageScale = 1f;
   private float knockback;
-=======
   private float damageMultiplier = 1f;
 
   // Teleguiado: curva em direção ao alvo mais próximo à frente
@@ -35,7 +33,6 @@ public class LightBullet : MonoBehaviour
   private float homingTurnRate;
   private Transform homingTarget;
   private float retargetTimer;
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
 
   private Vector3 origin;
   private Vector3 moveDirection;
@@ -61,7 +58,7 @@ public class LightBullet : MonoBehaviour
     knockback = speed;
   }
 
-  public float Damage => damage * damageScale;
+  public float Damage => damage * damageScale * damageMultiplier;
 
   public void SetBounces(int bounces)
   {
@@ -142,11 +139,7 @@ public class LightBullet : MonoBehaviour
       System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
       foreach (RaycastHit hit in hits)
       {
-<<<<<<< HEAD
         if (WeaponDamage.TryDamage(hit.collider, Damage))
-=======
-        if (WeaponDamage.TryDamage(hit.collider, damage * damageMultiplier))
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
         {
           WeaponDamage.Push(hit.collider, direction * knockback);
           transform.position += direction * hit.distance;
@@ -253,11 +246,7 @@ public class LightBullet : MonoBehaviour
       return;
     }
 
-<<<<<<< HEAD
     if (WeaponDamage.TryDamage(other, Damage))
-=======
-    if (WeaponDamage.TryDamage(other, damage * damageMultiplier))
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
     {
       WeaponDamage.Push(other, transform.forward * knockback);
       Finish();
@@ -295,12 +284,8 @@ public class LightBullet : MonoBehaviour
 
       float distance = Vector3.Distance(center, hit.ClosestPoint(center));
       float falloff = Mathf.Lerp(1f, 0.3f, distance / explosionRadius);
-<<<<<<< HEAD
-      WeaponDamage.Damage(target, explosionDamage * damageScale * falloff);
+      WeaponDamage.Damage(target, explosionDamage * damageScale * damageMultiplier * falloff);
       WeaponDamage.Push(hit, (hit.transform.position - center).normalized * knockback * falloff);
-=======
-      WeaponDamage.Damage(target, explosionDamage * damageMultiplier * falloff);
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
     }
 
     ExplosionFlash.Spawn(center, explosionRadius, explosionColor);
@@ -326,11 +311,8 @@ public class LightBullet : MonoBehaviour
       if (bullet != null)
       {
         bullet.SetDamage(fragmentDamage);
-<<<<<<< HEAD
         bullet.SetDamageScale(damageScale);
-=======
         bullet.SetDamageMultiplier(damageMultiplier);
->>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
         bullet.lifetime = 0.5f;
       }
     }
