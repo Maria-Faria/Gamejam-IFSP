@@ -9,9 +9,11 @@ public enum WeaponType
   SineWave,
   Exploding,
   RapidFire,
-  // A arma com que toda personagem começa: um tiro mirado, sem gastar munição nem mana. As outras são
-  // compradas na loja de cada andar (WeaponShop). Fica no fim para não mudar os números das outras (co-op).
-  Pistol
+  // A arma com que toda personagem começa: um tiro mirado, sem gastar munição. As outras são compradas na
+  // loja de cada andar (WeaponShop). Ficam no fim para não mudar os números das outras (co-op).
+  Pistol,
+  // Liberada pela relíquia Núcleo Teleguiado
+  Homing
 }
 
 public class PlayerShooting : MonoBehaviour
@@ -86,13 +88,20 @@ public class PlayerShooting : MonoBehaviour
   [Tooltip("Toca em sequência enquanto o disparo estiver segurado.")]
   [SerializeField] private AudioClip rapidFireSound;
 
-  [Header("Custo de mana por disparo")]
-  [SerializeField] private float aimedTripleManaCost = 4f;
-  [SerializeField] private float eightWayManaCost = 10f;
-  [SerializeField] private float shotgunManaCost = 12f;
-  [SerializeField] private float sineWaveManaCost = 4f;
-  [SerializeField] private float explodingManaCost = 15f;
-  [SerializeField] private float rapidFireManaCost = 2f;
+  [Header("Teleguiado (tecla 7) - liberado pela relíquia Núcleo Teleguiado")]
+  [SerializeField] private float homingFireRate = 3f;
+  [SerializeField] private float homingSpeed = 15f;
+  [SerializeField] private float homingDamage = 14f;
+  [Tooltip("Graus por segundo que o tiro consegue virar atrás do alvo.")]
+  [SerializeField] private float homingTurnRate = 260f;
+  [SerializeField] private float homingSpreadAngle = 16f;
+  [SerializeField] private AudioClip homingSound;
+
+  [Header("Lente Prismática (relíquia)")]
+  [Tooltip("Ângulo do feixe gêmeo em relação ao disparo normal.")]
+  [SerializeField] private float twinShotAngle = 9f;
+  [Tooltip("Dano do feixe gêmeo em relação ao normal.")]
+  [SerializeField] private float twinShotDamage = 0.7f;
 
   [Header("Munição por arma (disparos até esvaziar)")]
   [SerializeField] private int aimedTripleAmmo = 20;
@@ -101,29 +110,31 @@ public class PlayerShooting : MonoBehaviour
   [SerializeField] private int sineWaveAmmo = 25;
   [SerializeField] private int explodingAmmo = 5;
   [SerializeField] private int rapidFireAmmo = 60;
+  [SerializeField] private int homingAmmo = 16;
   [Tooltip("Segundos para uma arma vazia recarregar por completo.")]
   [SerializeField] private float ammoRefillSeconds = 8f;
   [Tooltip("Segundos sem disparar uma arma até ela começar a recarregar.")]
   [SerializeField] private float ammoRechargeDelay = 1f;
 
-  private static readonly string[] WeaponNames = { "Triplo", "8 Direções", "Escopeta", "Senoidal", "Explosivo", "Rápido", "Pistola" };
-  // Ordem das teclas 1 a 7 e da lista na tela: a pistola primeiro, depois as armas especiais
+  private static readonly string[] WeaponNames = { "Triplo", "8 Direções", "Escopeta", "Senoidal", "Explosivo", "Rápido", "Pistola", "Teleguiado" };
+  // Ordem das teclas 1 a 8 e da lista na tela: a pistola primeiro, depois as armas especiais
   public static readonly WeaponType[] SlotOrder =
   {
     WeaponType.Pistol, WeaponType.AimedTriple, WeaponType.EightWayBurst, WeaponType.Shotgun,
-    WeaponType.SineWave, WeaponType.Exploding, WeaponType.RapidFire
+    WeaponType.SineWave, WeaponType.Exploding, WeaponType.RapidFire, WeaponType.Homing
   };
 
   private float nextFireTime;
   private float nextSwitchTime;
   private AudioSource heldAudio;
-  private PlayerMana mana;
   private PlayerPowerUps powerUps;
   private PlayerHealth health;
   private PlayerStatus status;
   private float[] ammo;
   private float[] lastShotTimes;
   private bool[] owned;
+  // Enquanto a Lente Prismática repete o disparo: gira os tiros e não toca som nem avisa de novo
+  private bool echoing;
 
   public WeaponType CurrentWeapon => currentWeapon;
   public static string GetName(WeaponType weapon) => WeaponNames[(int)weapon];
@@ -153,6 +164,7 @@ public class PlayerShooting : MonoBehaviour
     {
       ammo[i] = GetMaxAmmo((WeaponType)i);
       lastShotTimes[i] = float.NegativeInfinity;
+      unlocked[i] = (WeaponType)i != WeaponType.Homing;
     }
   }
 
@@ -166,7 +178,6 @@ public class PlayerShooting : MonoBehaviour
     if (!inputBlocked) HandleWeaponSwitch();
     RechargeAmmo();
 
-    if (mana == null) mana = GetComponent<PlayerMana>();
     if (powerUps == null) powerUps = GetComponent<PlayerPowerUps>();
 
     bool firing = !inputBlocked && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0) || SimulatedFire) && bulletPrefab != null && muzzle != null;
@@ -175,13 +186,12 @@ public class PlayerShooting : MonoBehaviour
       SwitchToNextLoadedWeapon();
     }
 
-    float cost = GetManaCost();
     int weaponIndex = (int)currentWeapon;
-    bool canShoot = (currentWeapon == WeaponType.Pistol || ammo[weaponIndex] >= 1f) && (mana == null || mana.Mana >= cost);
+    bool canShoot = currentWeapon == WeaponType.Pistol || ammo[weaponIndex] >= 1f;
     IsFiring = firing && canShoot;
     UpdateHeldAudio(IsFiring ? GetHeldClip() : null);
 
-    if (!IsFiring || Time.time < nextFireTime || (mana != null && !mana.TrySpend(cost)))
+    if (!IsFiring || Time.time < nextFireTime)
     {
       return;
     }
@@ -193,6 +203,22 @@ public class PlayerShooting : MonoBehaviour
     float fireRateMultiplier = (powerUps != null ? powerUps.FireRateMultiplier : 1f) * CharacterStats.FireRateOf(this);
     nextFireTime = Time.time + 1f / (GetFireRate() * fireRateMultiplier);
 
+    FireCurrentWeapon();
+    if (powerUps != null && powerUps.TwinShot)
+    {
+      echoing = true;
+      FireCurrentWeapon();
+      echoing = false;
+    }
+
+    if (ammo[weaponIndex] < 1f)
+    {
+      SwitchToNextLoadedWeapon();
+    }
+  }
+
+  private void FireCurrentWeapon()
+  {
     switch (currentWeapon)
     {
       case WeaponType.AimedTriple:
@@ -216,12 +242,19 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.Pistol:
         ShootPistol();
         break;
+      case WeaponType.Homing:
+        ShootHoming();
+        break;
     }
+  }
 
-    if (currentWeapon != WeaponType.Pistol && ammo[weaponIndex] < 1f)
-    {
-      SwitchToNextLoadedWeapon();
-    }
+  public bool IsUnlocked(WeaponType weapon) => Owns(weapon);
+
+  // Relíquia (Núcleo Teleguiado): a arma fica disponível e cheia, sem passar pela loja
+  public void UnlockWeapon(WeaponType weapon)
+  {
+    owned[(int)weapon] = true;
+    ammo[(int)weapon] = GetMaxAmmo(weapon);
   }
 
   // Arma vazia: passa para a próxima arma comprada com munição (a pistola nunca acaba)
@@ -287,7 +320,7 @@ public class PlayerShooting : MonoBehaviour
       }
     }
 
-    if (requested != currentWeapon)
+    if (requested != currentWeapon && unlocked[(int)requested])
     {
       SetWeapon(requested);
       nextSwitchTime = Time.time + weaponSwitchCooldown;
@@ -319,21 +352,29 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.Exploding: return explodingAmmo;
       case WeaponType.RapidFire: return rapidFireAmmo;
       case WeaponType.Pistol: return 1;
+      case WeaponType.Homing: return homingAmmo;
       default: return aimedTripleAmmo;
     }
   }
 
   public void OnGUI()
   {
+    HudScale.Begin();
+    DrawHud();
+    HudScale.End();
+  }
+
+  private void DrawHud()
+  {
     const float width = 200f;
     const float rowHeight = 22f;
-    float x = Screen.width - width - 20f;
+    float x = HudScale.Width - width - 20f;
     int rows = 0;
     foreach (WeaponType weapon in SlotOrder)
     {
       if (Owns(weapon)) rows++;
     }
-    float y = Screen.height - 20f - rowHeight * rows;
+    float y = HudScale.Height - 20f - rowHeight * rows;
 
     int shown = 0;
     for (int slot = 0; slot < SlotOrder.Length; slot++)
@@ -368,21 +409,8 @@ public class PlayerShooting : MonoBehaviour
       case WeaponType.Exploding: return explodingFireRate;
       case WeaponType.RapidFire: return rapidFireRate;
       case WeaponType.Pistol: return pistolFireRate;
+      case WeaponType.Homing: return homingFireRate;
       default: return aimedTripleFireRate;
-    }
-  }
-
-  private float GetManaCost()
-  {
-    switch (currentWeapon)
-    {
-      case WeaponType.EightWayBurst: return eightWayManaCost;
-      case WeaponType.Shotgun: return shotgunManaCost;
-      case WeaponType.SineWave: return sineWaveManaCost;
-      case WeaponType.Exploding: return explodingManaCost;
-      case WeaponType.RapidFire: return rapidFireManaCost;
-      case WeaponType.Pistol: return 0f;
-      default: return aimedTripleManaCost;
     }
   }
 
@@ -395,7 +423,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     PlaySound(OrDefault(pistolSound));
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   // O inimigo vivo mais perto dentro do alcance, em qualquer direção: para onde a personagem se vira ao
@@ -437,7 +465,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     PlaySound(OrDefault(aimedTripleSound));
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   private Quaternion GetAimRotation()
@@ -464,7 +492,7 @@ public class PlayerShooting : MonoBehaviour
     return Quaternion.LookRotation(bestDirection.normalized, Vector3.up);
   }
 
-  private static IEnumerable<MonoBehaviour> FindAimTargets()
+  public static IEnumerable<MonoBehaviour> FindAimTargets()
   {
     foreach (var crate in FindObjectsByType<GuardiasDaLuz.MapSystem.StandaloneBreakableCrate>())
     {
@@ -506,7 +534,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     PlaySound(OrDefault(eightWaySound));
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   private void ShootShotgun()
@@ -527,7 +555,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     PlaySound(OrDefault(shotgunSound));
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   private void ShootSineWave()
@@ -541,7 +569,7 @@ public class PlayerShooting : MonoBehaviour
       }
     }
 
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   private void ShootExploding()
@@ -557,7 +585,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     PlaySound(OrDefault(explodingLaunchSound));
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   private void ShootRapidFire()
@@ -569,17 +597,39 @@ public class PlayerShooting : MonoBehaviour
       bullet.SetDamage(rapidFireDamage);
     }
 
-    Fired?.Invoke(currentWeapon);
+    if (!echoing) Fired?.Invoke(currentWeapon);
+  }
+
+  // Dois tiros teleguiados abertos em V, que depois curvam atrás dos monstros
+  private void ShootHoming()
+  {
+    foreach (float side in new[] { -1f, 1f })
+    {
+      LightBullet bullet = Spawn(bulletPrefab, muzzle.rotation * Quaternion.Euler(0f, side * homingSpreadAngle, 0f));
+      if (bullet != null)
+      {
+        bullet.SetSpeed(homingSpeed);
+        bullet.SetDamage(homingDamage);
+        bullet.SetLifetime(3.5f);
+        bullet.ConfigureHoming(homingTurnRate);
+      }
+    }
+
+    PlaySound(OrDefault(homingSound));
+    if (!echoing) Fired?.Invoke(currentWeapon);
   }
 
   private LightBullet Spawn(GameObject prefab, Quaternion rotation)
   {
+    if (echoing) rotation = Quaternion.Euler(0f, twinShotAngle, 0f) * rotation;
     LightBullet bullet = Instantiate(prefab, muzzle.position, rotation).GetComponent<LightBullet>();
     if (bullet != null)
     {
       if (powerUps != null) bullet.SetBounces(powerUps.RicochetBounces);
-      // o dano da personagem (e dos cristais) vale para tudo que o tiro fizer, inclusive a explosão
-      bullet.SetDamageScale(CharacterStats.DamageOf(this));
+      // o dano da personagem (e dos cristais), das relíquias e do feixe gêmeo vale para tudo que o tiro
+      // fizer, inclusive a explosão
+      float relics = powerUps != null ? powerUps.DamageMultiplier : 1f;
+      bullet.SetDamageMultiplier(CharacterStats.DamageOf(this) * relics * (echoing ? twinShotDamage : 1f));
       bullet.SetKnockback(bulletKnockback);
     }
 
@@ -636,7 +686,7 @@ public class PlayerShooting : MonoBehaviour
 
   private void PlaySound(AudioClip clip)
   {
-    if (audioSource != null && clip != null)
+    if (!echoing && audioSource != null && clip != null)
     {
       audioSource.PlayOneShot(clip);
     }

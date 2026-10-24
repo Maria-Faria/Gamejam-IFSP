@@ -4,7 +4,7 @@ public enum PowerUpType
 {
   Ricochet,
   Health,
-  Mana,
+  Battery,
   MoveSpeed,
   FireRate
 }
@@ -19,8 +19,8 @@ public class PlayerPowerUps : MonoBehaviour
   [Tooltip("Quanto a vida máxima aumenta, e quanto de vida é recuperada, a cada coleta.")]
   [SerializeField] private float healthIncrease = 20f;
   [SerializeField] private float healthHeal = 40f;
-  [Tooltip("Quanto a mana máxima aumenta a cada coleta. A barra também enche.")]
-  [SerializeField] private float manaIncrease = 20f;
+  [Tooltip("Quanto de vida a bateria recupera (sem passar da vida máxima).")]
+  [SerializeField] private float batteryHeal = 35f;
 
   private float ricochetTimer;
   private float moveSpeedTimer;
@@ -28,9 +28,53 @@ public class PlayerPowerUps : MonoBehaviour
   private PlayerShooting shooting;
   private PlayerMovement movement;
 
-  public int RicochetBounces => ricochetTimer > 0f ? ricochetBounces : 0;
-  public float MoveSpeedMultiplier => moveSpeedTimer > 0f ? moveSpeedMultiplier : 1f;
-  public float FireRateMultiplier => fireRateTimer > 0f ? fireRateMultiplier : 1f;
+  // Relíquias dos pedestais: valem até o fim da expedição e somam com os power-ups temporários
+  private readonly System.Collections.Generic.List<RelicType> relics = new System.Collections.Generic.List<RelicType>();
+  private int relicBounces;
+  private float relicDamage = 1f;
+  private float relicFireRate = 1f;
+  private float relicMoveSpeed = 1f;
+
+  public int RicochetBounces => (ricochetTimer > 0f ? ricochetBounces : 0) + relicBounces;
+  public float MoveSpeedMultiplier => (moveSpeedTimer > 0f ? moveSpeedMultiplier : 1f) * relicMoveSpeed;
+  public float FireRateMultiplier => (fireRateTimer > 0f ? fireRateMultiplier : 1f) * relicFireRate;
+  public float DamageMultiplier => relicDamage;
+  public bool TwinShot => HasRelic(RelicType.PrismLens);
+  public System.Collections.Generic.IReadOnlyList<RelicType> Relics => relics;
+
+  public bool HasRelic(RelicType relic) => relics.Contains(relic);
+
+  public void ApplyRelic(RelicType relic)
+  {
+    relics.Add(relic);
+    switch (relic)
+    {
+      case RelicType.HeartOfLight:
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health != null) health.IncreaseMax(RelicCatalog.HeartHealth, float.MaxValue);
+        break;
+      case RelicType.FocusCrystal:
+        relicDamage += RelicCatalog.FocusDamage;
+        break;
+      case RelicType.OverclockChip:
+        relicFireRate += RelicCatalog.OverclockFireRate;
+        break;
+      case RelicType.RicochetMirror:
+        relicBounces++;
+        break;
+      case RelicType.SwiftBoots:
+        relicMoveSpeed += RelicCatalog.BootsMoveSpeed;
+        break;
+      case RelicType.HomingCore:
+        PlayerShooting gun = GetComponent<PlayerShooting>();
+        if (gun != null)
+        {
+          gun.UnlockWeapon(WeaponType.Homing);
+          gun.SetWeapon(WeaponType.Homing);
+        }
+        break;
+    }
+  }
 
   public void Update()
   {
@@ -74,9 +118,9 @@ public class PlayerPowerUps : MonoBehaviour
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null) health.IncreaseMax(healthIncrease, healthHeal);
         break;
-      case PowerUpType.Mana:
-        PlayerMana mana = GetComponent<PlayerMana>();
-        if (mana != null) mana.IncreaseMax(manaIncrease);
+      case PowerUpType.Battery:
+        PlayerHealth charged = GetComponent<PlayerHealth>();
+        if (charged != null) charged.IncreaseMax(0f, batteryHeal);
         break;
     }
 
@@ -92,7 +136,7 @@ public class PlayerPowerUps : MonoBehaviour
     {
       case PowerUpType.Ricochet: return "Tiro que ricocheteia";
       case PowerUpType.Health: return "Mais vida";
-      case PowerUpType.Mana: return "Mais mana";
+      case PowerUpType.Battery: return "Bateria: recupera vida";
       case PowerUpType.MoveSpeed: return "Velocidade de movimento";
       default: return "Velocidade de tiro";
     }
@@ -100,10 +144,55 @@ public class PlayerPowerUps : MonoBehaviour
 
   public void OnGUI()
   {
-    float y = Screen.height - 98f;
+    HudScale.Begin();
+    DrawHud();
+    HudScale.End();
+  }
+
+  private void DrawHud()
+  {
+    float y = HudScale.Height - 72f;
     DrawTimer(ref y, PowerUpType.Ricochet, ricochetTimer);
     DrawTimer(ref y, PowerUpType.MoveSpeed, moveSpeedTimer);
     DrawTimer(ref y, PowerUpType.FireRate, fireRateTimer);
+    DrawRelics(y);
+  }
+
+  // Uma etiqueta por relíquia coletada (repetidas mostram "x2"), em fileiras acima dos power-ups
+  private void DrawRelics(float bottom)
+  {
+    if (relics.Count == 0) return;
+
+    GUIStyle style = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+    style.normal.textColor = Color.white;
+    const float height = 20f;
+    const float maxWidth = 520f;
+    float x = 20f;
+    float y = bottom;
+
+    foreach (RelicType relic in System.Enum.GetValues(typeof(RelicType)))
+    {
+      int count = 0;
+      foreach (RelicType owned in relics) if (owned == relic) count++;
+      if (count == 0) continue;
+
+      string label = count > 1 ? $"{RelicCatalog.GetName(relic)} x{count}" : RelicCatalog.GetName(relic);
+      float width = style.CalcSize(new GUIContent(label)).x + 16f;
+      if (x > 20f && x + width > 20f + maxWidth)
+      {
+        x = 20f;
+        y -= height + 4f;
+      }
+
+      Rect chip = new Rect(x, y, width, height);
+      GUI.color = new Color(0f, 0f, 0f, 0.65f);
+      GUI.DrawTexture(chip, Texture2D.whiteTexture);
+      GUI.color = RelicCatalog.GetColor(relic);
+      GUI.DrawTexture(new Rect(chip.x, chip.y, 4f, chip.height), Texture2D.whiteTexture);
+      GUI.color = Color.white;
+      GUI.Label(new Rect(chip.x + 9f, chip.y, chip.width - 9f, chip.height), label, style);
+      x += width + 4f;
+    }
   }
 
   private void DrawTimer(ref float y, PowerUpType type, float timer)

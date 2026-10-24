@@ -168,8 +168,9 @@ public class CharacterSelect
 
     Rect plate = R(CenterX, 855f, 640f, 178f);
     DrawFit(namePlate, plate, false);
-    nameStyle.fontSize = Mathf.Max(12, Mathf.RoundToInt(32f * scale));
-    GUI.Label(plate, SelectedName.ToUpperInvariant(), nameStyle);
+    Rect plateText = new Rect(plate.x + plate.width * 0.15f, plate.y + plate.height * 0.28f, plate.width * 0.7f, plate.height * 0.44f);
+    HudScale.FitFont(nameStyle, SelectedName.ToUpperInvariant(), plateText, Mathf.RoundToInt(32f * scale));
+    GUI.Label(plateText, SelectedName.ToUpperInvariant(), nameStyle);
 
     DrawStats(R(1440f, 835f, 430f, 215f), scale);
 
@@ -189,8 +190,10 @@ public class CharacterSelect
       DrawFit(infoButton, info, false);
     }
 
-    hintStyle.fontSize = Mathf.Max(10, Mathf.RoundToInt(22f * scale));
-    GUI.Label(R(CenterX, 45f, 1400f, 50f), "◄ ► trocar  •  i  informações  •  Enter ou clique na cientista para jogar  •  Esc voltar", hintStyle);
+    const string hint = "◄ ► trocar  •  i  informações  •  Enter ou clique na cientista para jogar  •  Esc voltar";
+    Rect hintRect = R(CenterX, 45f, 1400f, 56f);
+    HudScale.FitFont(hintStyle, hint, hintRect, Mathf.RoundToInt(26f * scale));
+    GUI.Label(hintRect, hint, hintStyle);
 
     if (showInfo && DrawInfo() && interactable)
     {
@@ -217,20 +220,21 @@ public class CharacterSelect
 
     if (infoWindow != null) GUI.DrawTexture(Box(0f, 0f, InfoWidth, InfoHeight), infoWindow, ScaleMode.StretchToFill);
 
-    titleStyle.fontSize = Mathf.Max(14, Mathf.RoundToInt(54f * scale));
-    GUI.Label(Box(150f, 92f, 1150f, 96f), scientist.Name.ToUpperInvariant(), titleStyle);
+    Rect titleRect = Box(180f, 100f, 1090f, 80f);
+    HudScale.FitFont(titleStyle, scientist.Name.ToUpperInvariant(), titleRect, Mathf.RoundToInt(54f * scale));
+    GUI.Label(titleRect, scientist.Name.ToUpperInvariant(), titleStyle);
 
     Texture portrait = stage != null ? stage.TextureFor(selected) : null;
     if (portrait == null) portrait = portraits != null && selected < portraits.Length ? portraits[selected] : null;
     if (portrait != null) GUI.DrawTexture(Box(90f, 250f, 400f, 590f), portrait, ScaleMode.ScaleToFit);
 
-    subtitleStyle.fontSize = Mathf.Max(11, Mathf.RoundToInt(36f * scale));
-    textStyle.fontSize = Mathf.Max(11, Mathf.RoundToInt(34f * scale));
-    GUILayout.BeginArea(Box(530f, 270f, 820f, 570f));
-    GUILayout.Label($"{scientist.Field}  •  {scientist.Years}", subtitleStyle);
-    GUILayout.Space(24f * scale);
-    GUILayout.Label(scientist.Bio, textStyle);
-    GUILayout.EndArea();
+    string subtitle = $"{scientist.Field}  •  {scientist.Years}";
+    Rect subtitleRect = Box(530f, 260f, 820f, 100f);
+    Rect bioRect = Box(530f, 380f, 820f, 460f);
+    HudScale.FitFont(subtitleStyle, subtitle, subtitleRect, Mathf.RoundToInt(36f * scale));
+    HudScale.FitFont(textStyle, scientist.Bio, bioRect, Mathf.RoundToInt(34f * scale));
+    GUI.Label(subtitleRect, subtitle, subtitleStyle);
+    GUI.Label(bioRect, scientist.Bio, textStyle);
 
     if (IconButton(3, closeButton, R(1372f, 74f, 150f, 110f))) showInfo = false;
     if (IconButton(4, previousButton, R(190f, 942f, 150f, 114f))) Step(-1);
@@ -238,8 +242,9 @@ public class CharacterSelect
 
     Rect choose = R(InfoWidth * 0.5f, 942f, 400f, 142f);
     bool confirmed = IconButton(6, primaryButton, choose);
-    buttonTextStyle.fontSize = Mathf.Max(11, Mathf.RoundToInt(30f * scale));
-    GUI.Label(choose, "ESCOLHER", buttonTextStyle);
+    Rect chooseText = MainMenu.InsideButtonArt(primaryButton, choose);
+    HudScale.FitFont(buttonTextStyle, "ESCOLHER", chooseText, Mathf.RoundToInt(30f * scale));
+    GUI.Label(chooseText, "ESCOLHER", buttonTextStyle);
 
     return confirmed && Confirm();
   }
@@ -397,13 +402,15 @@ public class CharacterSelect
     subtitleStyle = new GUIStyle(GUI.skin.label)
     {
       fontStyle = FontStyle.Italic,
-      wordWrap = true
+      wordWrap = true,
+      alignment = TextAnchor.LowerLeft
     };
     subtitleStyle.normal.textColor = new Color(1f, 0.8f, 0.35f);
 
     textStyle = new GUIStyle(GUI.skin.label)
     {
-      wordWrap = true
+      wordWrap = true,
+      alignment = TextAnchor.UpperLeft
     };
     textStyle.normal.textColor = new Color(0.92f, 0.94f, 1f);
 

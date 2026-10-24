@@ -158,11 +158,18 @@ namespace Roguelike
 
         void OnGUI()
         {
+            HudScale.Begin();
+            DrawHud();
+            HudScale.End();
+        }
+
+        private void DrawHud()
+        {
             if (!showHealthBar || !InFight || HP == null || HP.IsDead)
                 return;
             int slot = Fighting.IndexOf(this);
-            float w = Mathf.Min(560f, Screen.width * 0.6f), h = 14f;
-            float x = (Screen.width - w) * 0.5f, y = Screen.height - 46f - slot * 46f;
+            float w = Mathf.Min(560f, HudScale.Width * 0.6f), h = 14f;
+            float x = (HudScale.Width - w) * 0.5f, y = HudScale.Height - 104f - slot * 46f;
             var label = new GUIStyle(GUI.skin.label) { fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.LowerCenter };
             label.normal.textColor = Phase > 1 ? new Color(1f, 0.6f, 1f) : Color.white;
             GUI.Label(new Rect(x, y - 24f, w, 22f), Phase > 1 ? $"{title}  — enraged" : title, label);

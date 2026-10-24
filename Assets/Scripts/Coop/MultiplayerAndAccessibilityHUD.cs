@@ -8,12 +8,12 @@ namespace GuardiasDaLuz
 {
     /// <summary>
     /// HUD DE ACESSIBILIDADE & MULTIPLAYER ("Luna") — módulo do projeto GameJAM (vinikyo), adaptado para este jogo.
-    /// A vida, a mana, as armas, o minimapa e as legendas continuam sendo desenhados pelos scripts do jogo; esta HUD soma:
+    /// A vida, as armas, o minimapa e as legendas continuam sendo desenhados pelos scripts do jogo; esta HUD soma:
     /// - Menu de Acessibilidade [F1 ou Tab]: velocidade do jogo (100/75/50%, travada em 100% no co-op), alto contraste /
     ///   visão noturna, legendas visuais liga/desliga, filtro de daltonismo (Deuteranopia, Protanopia, Tritanopia),
     ///   minimapa sem spoilers, tutorial e reinício [F5]. As escolhas ficam salvas (PlayerPrefs).
     /// - Tutorial no canto esquerdo [H], com os comandos da personagem que ficam verdes [OK] ao serem testados.
-    /// - Painéis das parceiras no modo cooperativo (vida e mana de cada uma) e o estado da conexão.
+    /// - Painéis das parceiras no modo cooperativo (vida de cada uma) e o estado da conexão.
     /// - Tela de vitória ao acender o topo do farol (fim do Andar 3-2).
     /// </summary>
     public class MultiplayerAndAccessibilityHUD : MonoBehaviour
@@ -49,7 +49,6 @@ namespace GuardiasDaLuz
         private Texture2D goldTex;
         private Texture2D purpleTex;
         private Texture2D barBackTex;
-        private Texture2D manaTex;
         private Volume accessibilityVolume;
         private PlayerShooting trackedShooting;
         private PlayerMovement trackedMovement;
@@ -118,7 +117,6 @@ namespace GuardiasDaLuz
             goldTex = MakeTex(new Color(1.0f, 0.82f, 0.22f, 0.95f));
             purpleTex = MakeTex(new Color(0.75f, 0.25f, 0.98f, 0.95f));
             barBackTex = MakeTex(new Color(0.18f, 0.08f, 0.10f, 0.90f));
-            manaTex = MakeTex(new Color(0.20f, 0.85f, 1.0f, 0.95f));
         }
 
         private static Texture2D MakeTex(Color col)
@@ -177,6 +175,13 @@ namespace GuardiasDaLuz
 
         private void OnGUI()
         {
+            HudScale.Begin();
+            DrawHud();
+            HudScale.End();
+        }
+
+        private void DrawHud()
+        {
             if (panelTex == null) CreateHUDTextures();
 
             DrawShortcutHint();
@@ -194,10 +199,10 @@ namespace GuardiasDaLuz
             GUIStyle s = new GUIStyle(GUI.skin.label) { fontSize = 11, alignment = TextAnchor.MiddleCenter };
             s.normal.textColor = new Color(0.85f, 0.88f, 1f, 0.75f);
             string coop = IsMultiplayerSession ? $"  •  CO-OP {LunaNetworkSyncManager.Instance.ConnectedPeersCount + 1}P" : "";
-            GUI.Label(new Rect(Screen.width * 0.5f - 220f, 4f, 440f, 18f), $"[F1] Acessibilidade  •  [H] Tutorial  •  [F5] Reiniciar{coop}", s);
+            GUI.Label(new Rect(HudScale.Width * 0.5f - 220f, 4f, 440f, 18f), $"[F1] Acessibilidade  •  [H] Tutorial  •  [F5] Reiniciar{coop}", s);
         }
 
-        // Vida e mana de cada parceira, abaixo do minimapa.
+        // Vida de cada parceira, abaixo do minimapa.
         private void DrawCoopPartnerPanels()
         {
             if (!IsMultiplayerSession) return;
@@ -208,9 +213,9 @@ namespace GuardiasDaLuz
             foreach (CoopRemoteAvatar partner in LunaNetworkSyncManager.Instance.RemoteAvatars())
             {
                 float w = 240f;
-                float x = Screen.width - w - 18f;
-                float y = 222f + index * 62f;
-                Rect bg = new Rect(x, y, w, 56f);
+                float x = HudScale.Width - w - 18f;
+                float y = 292f + index * 41f;
+                Rect bg = new Rect(x, y, w, 35f);
                 GUI.DrawTexture(bg, panelTex);
                 GUI.color = partner.slotColor;
                 GUI.DrawTexture(new Rect(bg.x, bg.y, bg.width, 3f), Texture2D.whiteTexture);
@@ -221,11 +226,6 @@ namespace GuardiasDaLuz
                 GUI.DrawTexture(new Rect(hp.x, hp.y, hp.width * Mathf.Clamp01(partner.health / Mathf.Max(1f, partner.maxHealth)), hp.height), greenTex);
                 string state = partner.isDead ? "CAÍDA" : $"{Mathf.Ceil(partner.health):F0}/{partner.maxHealth:F0}";
                 GUI.Label(hp, $"{partner.nickname}  VIDA {state}", label);
-
-                Rect mana = new Rect(x + 8f, y + 31f, w - 16f, 17f);
-                GUI.DrawTexture(mana, barBackTex);
-                GUI.DrawTexture(new Rect(mana.x, mana.y, mana.width * Mathf.Clamp01(partner.mana / Mathf.Max(1f, partner.maxMana)), mana.height), manaTex);
-                GUI.Label(mana, $"MANA {partner.mana:F0}/{partner.maxMana:F0}", label);
                 index++;
             }
         }
@@ -233,7 +233,7 @@ namespace GuardiasDaLuz
         private void DrawCornerTutorialPanels()
         {
             float panelX = 16f;
-            float panelY = 96f;
+            float panelY = 34f;
             float panelW = 340f;
 
             float block1H = 196f;
@@ -253,7 +253,7 @@ namespace GuardiasDaLuz
             GUILayout.BeginHorizontal();
             DrawCompactControlCard(cardW, cardH, stepMovedDone, "[W][A][S][D]", "Correr", "Setas também funcionam.");
             GUILayout.Space(6f);
-            DrawCompactControlCard(cardW, cardH, stepShotDone, "[Mouse / Espaço]", "Atirar", "Gasta mana e munição.");
+            DrawCompactControlCard(cardW, cardH, stepShotDone, "[Mouse / Espaço]", "Atirar", "A munição recarrega sozinha.");
             GUILayout.EndHorizontal();
             GUILayout.Space(6f);
             GUILayout.BeginHorizontal();
@@ -264,7 +264,7 @@ namespace GuardiasDaLuz
             GUILayout.EndArea();
 
             float block2Y = panelY + block1H + 8f;
-            const float block2H = 150f;
+            const float block2H = 175f;
             Rect block2 = new Rect(panelX, block2Y, panelW, block2H);
             GUI.DrawTexture(block2, infoTex);
             GUI.DrawTexture(new Rect(block2.x, block2.y, block2.width, 3f), purpleTex);
@@ -275,9 +275,10 @@ namespace GuardiasDaLuz
             body.normal.textColor = new Color(0.90f, 0.92f, 1f);
 
             GUILayout.BeginArea(new Rect(block2.x + 12f, block2.y + 8f, block2.width - 24f, block2.height - 14f));
-            GUILayout.Label("DICA — O FAROL (3 NÍVEIS x 2 ANDARES):", infoHeader);
-            GUILayout.Label("- Derrote os monstros e conserte o poste para abrir as portas. A sala ★FIM leva ao próximo andar.", body);
-            GUILayout.Label("- Andares 1-2, 2-2 e 3-2 têm um CHEFE. Rótulos acima dos monstros avisam: Venenoso, Veloz, Atordoante, Gélido...", body);
+            GUILayout.Label("DICAS:", infoHeader);
+            GUILayout.Label("- Derrote os monstros e conserte o poste para abrir as portas. A saída leva ao próximo andar.", body);
+            GUILayout.Label("- Rótulos acima dos monstros avisam: Venenoso, Veloz, Atordoante, Gélido...", body);
+            GUILayout.Label("- Pedestais [E] dão relíquias para sempre: mais vida, dano ou um tiro novo.", body);
             GUILayout.FlexibleSpace();
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Ocultar [H]", GUILayout.Height(22f))) SetTutorialVisible(false);
@@ -308,7 +309,7 @@ namespace GuardiasDaLuz
         {
             bool coop = IsMultiplayerSession;
             float modalH = coop ? 420f : 370f;
-            Rect r = new Rect(Screen.width * 0.5f - 270f, Screen.height * 0.5f - modalH * 0.5f, 540f, modalH);
+            Rect r = new Rect(HudScale.Width * 0.5f - 270f, HudScale.Height * 0.5f - modalH * 0.5f, 540f, modalH);
             GUI.DrawTexture(r, panelTex);
             GUI.DrawTexture(new Rect(r.x, r.y, r.width, 3f), goldTex);
             GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
@@ -388,7 +389,7 @@ namespace GuardiasDaLuz
 
         private void DrawVictoryScreen()
         {
-            Rect r = new Rect(Screen.width * 0.5f - 280f, Screen.height * 0.5f - 130f, 560f, 260f);
+            Rect r = new Rect(HudScale.Width * 0.5f - 280f, HudScale.Height * 0.5f - 130f, 560f, 260f);
             GUI.DrawTexture(r, panelTex);
             GUI.DrawTexture(new Rect(r.x, r.y, r.width, 4f), goldTex);
             GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 20, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };

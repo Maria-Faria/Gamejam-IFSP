@@ -26,6 +26,14 @@ public class MainMenu : MonoBehaviour
   [SerializeField] private float buttonSpacing = 0.012f;
   [SerializeField] private float fadeSeconds = 0.8f;
 
+  [Header("Janelas (Assets/Modals)")]
+  [SerializeField] private Texture2D modalWindow;
+  [SerializeField] private Texture2D modalCloseButton;
+  [SerializeField] private Texture2D modalPrimaryButton;
+  [SerializeField] private Texture2D modalSecondaryButton;
+  [SerializeField] private Texture2D modalFieldPlate;
+  [SerializeField] private Texture2D modalSliderKnob;
+
   [Header("Escolha de personagem")]
   [SerializeField] private CharacterSelect characterSelect = new CharacterSelect();
 
@@ -47,9 +55,19 @@ public class MainMenu : MonoBehaviour
   private string hostIpText;
   private string portText = "7777";
 
+  // Medidas tiradas de Modals/01_tutorial_window.png (1448 x 1086), as mesmas da janela de informações da escolha de personagem
+  private const float ModalWidth = 1448f;
+  private const float ModalHeight = 1086f;
+
   private GUIStyle titleStyle;
   private GUIStyle textStyle;
-  private GUIStyle smallButtonStyle;
+  private GUIStyle labelStyle;
+  private GUIStyle buttonTextStyle;
+  private GUIStyle fieldStyle;
+  private float modalScale;
+  private Vector2 modalOrigin;
+  private readonly float[] modalHover = new float[8];
+  private bool draggingSlider;
 
   public void Start()
   {
@@ -218,21 +236,18 @@ public class MainMenu : MonoBehaviour
     }
   }
 
+  // Janela no padrão de Assets/Modals: título na faixa de cima, conteúdo no meio, "Voltar" na faixa de baixo
   private void DrawPanel()
   {
-    float width = Mathf.Min(Screen.width * 0.5f, Screen.height * 0.8f);
-    float height = Screen.height * 0.6f;
-    Rect box = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.32f, width, height);
-
-    GUI.color = new Color(0.55f, 0.35f, 1f, 0.9f);
-    GUI.DrawTexture(new Rect(box.x - 3f, box.y - 3f, box.width + 6f, box.height + 6f), Texture2D.whiteTexture);
-    GUI.color = new Color(0.08f, 0.06f, 0.16f, 0.94f);
-    GUI.DrawTexture(box, Texture2D.whiteTexture);
+    GUI.color = new Color(0f, 0f, 0f, 0.6f);
+    GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
     GUI.color = Color.white;
 
-    float pad = box.width * 0.07f;
-    Rect content = new Rect(box.x + pad, box.y + pad * 0.6f, box.width - pad * 2f, box.height - pad * 1.2f);
-    GUILayout.BeginArea(content);
+    modalScale = Mathf.Min(Screen.width * 0.72f / ModalWidth, Screen.height * 0.88f / ModalHeight);
+    modalOrigin = new Vector2((Screen.width - ModalWidth * modalScale) * 0.5f, (Screen.height - ModalHeight * modalScale) * 0.5f);
+    if (modalWindow != null) GUI.DrawTexture(Box(0f, 0f, ModalWidth, ModalHeight), modalWindow, ScaleMode.StretchToFill);
+
+    Text(Box(180f, 100f, 1090f, 80f), panel == Panel.Multiplayer ? "MULTIPLAYER (CO-OP ATÉ 4)" : "CONFIGURAÇÕES", titleStyle, 54f);
 
     if (panel == Panel.Multiplayer)
     {
@@ -243,91 +258,71 @@ public class MainMenu : MonoBehaviour
       DrawSettings();
     }
 
-    GUILayout.FlexibleSpace();
-    if (GUILayout.Button("Voltar", smallButtonStyle, GUILayout.Height(Screen.height * 0.06f)))
-    {
-      panel = Panel.None;
-    }
-
-    GUILayout.EndArea();
+    if (ModalButton(0, modalCloseButton, Center(1372f, 74f, 150f, 110f), null, true)) panel = Panel.None;
+    if (ModalButton(1, modalPrimaryButton, Center(ModalWidth * 0.5f, 942f, 400f, 142f), "VOLTAR", true)) panel = Panel.None;
   }
 
   // Sala cooperativa (até 4 jogadoras na rede local / online por IP), pelo LunaNetworkSyncManager.
   private void DrawMultiplayer()
   {
     LunaNetworkSyncManager net = LunaNetworkSyncManager.EnsureExists();
-    float rowHeight = Screen.height * 0.05f;
 
-    GUILayout.Label("MULTIPLAYER (CO-OP ATÉ 4)", titleStyle);
-    GUILayout.Space(Screen.height * 0.01f);
-
-    GUILayout.BeginHorizontal();
-    GUILayout.Label("Apelido:", textStyle, GUILayout.Width(Screen.height * 0.16f));
-    nicknameText = GUILayout.TextField(nicknameText ?? "", 16, GUILayout.Height(rowHeight * 0.8f));
-    GUILayout.EndHorizontal();
-    GUILayout.BeginHorizontal();
-    GUILayout.Label("IP do host:", textStyle, GUILayout.Width(Screen.height * 0.16f));
-    hostIpText = GUILayout.TextField(hostIpText ?? "", 40, GUILayout.Height(rowHeight * 0.8f));
-    GUILayout.Label("Porta:", textStyle, GUILayout.Width(Screen.height * 0.08f));
-    portText = GUILayout.TextField(portText ?? "", 5, GUILayout.Width(Screen.height * 0.1f), GUILayout.Height(rowHeight * 0.8f));
-    GUILayout.EndHorizontal();
+    Text(Box(110f, 235f, 220f, 90f), "Apelido:", labelStyle, 32f);
+    nicknameText = ModalField(Box(340f, 235f, 990f, 90f), nicknameText, 16);
+    Text(Box(110f, 340f, 220f, 90f), "IP do host:", labelStyle, 32f);
+    hostIpText = ModalField(Box(340f, 340f, 600f, 90f), hostIpText, 40);
+    Text(Box(965f, 340f, 125f, 90f), "Porta:", labelStyle, 32f);
+    portText = ModalField(Box(1100f, 340f, 230f, 90f), portText, 5);
 
     int port = int.TryParse(portText, out int parsed) && parsed > 0 && parsed < 65536 ? parsed : 7777;
     CoopSession.playerNickname = string.IsNullOrWhiteSpace(nicknameText) ? "Guardiã" : nicknameText.Trim().Replace("|", "");
 
-    GUILayout.Space(Screen.height * 0.01f);
+    Rect left = Center(430f, 530f, 560f, 200f);
+    Rect right = Center(1020f, 530f, 560f, 200f);
+    float logTop = 630f;
     bool offline = net.currentRole == LunaNetworkSyncManager.NetworkRole.Offline;
     if (offline)
     {
-      GUILayout.BeginHorizontal();
-      if (GUILayout.Button("Criar sala (Host)", smallButtonStyle, GUILayout.Height(rowHeight)))
+      if (ModalButton(2, modalPrimaryButton, left, "CRIAR SALA (HOST)", true))
       {
         PlayerPrefs.SetString(NicknameKey, CoopSession.playerNickname);
         CoopSession.customDungeonSeed = CoopSession.NewSeed();
         net.StartHost(port);
       }
-      if (GUILayout.Button("Entrar na sala", smallButtonStyle, GUILayout.Height(rowHeight)))
+      if (ModalButton(3, modalSecondaryButton, right, "ENTRAR NA SALA", true))
       {
         PlayerPrefs.SetString(NicknameKey, CoopSession.playerNickname);
         PlayerPrefs.SetString(HostIpKey, hostIpText.Trim());
         net.StartClient(hostIpText, port, CoopSession.playerNickname);
       }
-      GUILayout.EndHorizontal();
     }
     else
     {
       bool host = net.currentRole == LunaNetworkSyncManager.NetworkRole.Host;
-      GUILayout.Label(host ? $"Sala aberta — {net.ConnectedPeersCount + 1}/4 jogadoras (semente {CoopSession.customDungeonSeed})"
-                           : (net.IsConnected ? $"Conectada como Jogadora {net.MyPlayerId + 1}" : "Conectando..."), textStyle);
-      GUILayout.BeginHorizontal();
-      GUI.enabled = host;
-      if (GUILayout.Button(host ? "INICIAR EXPEDIÇÃO" : "Aguardando o host...", smallButtonStyle, GUILayout.Height(rowHeight)))
+      if (ModalButton(2, modalPrimaryButton, left, host ? "INICIAR EXPEDIÇÃO" : "AGUARDANDO O HOST...", host))
       {
         CoopSession.StartExpedition();
       }
-      GUI.enabled = true;
-      if (GUILayout.Button("Desconectar", smallButtonStyle, GUILayout.Height(rowHeight), GUILayout.Width(Screen.height * 0.2f)))
+      if (ModalButton(3, modalSecondaryButton, right, "DESCONECTAR", true))
       {
         net.StopNetwork();
         CoopSession.ResetToSingleplayer();
         CoopSession.multiplayerConnectionLog = "Desconectada.";
       }
-      GUILayout.EndHorizontal();
+      Text(Box(110f, 625f, 1230f, 60f), host ? $"Sala aberta — {net.ConnectedPeersCount + 1}/4 jogadoras (semente {CoopSession.customDungeonSeed})"
+                                             : (net.IsConnected ? $"Conectada como Jogadora {net.MyPlayerId + 1}" : "Conectando..."), labelStyle, 32f);
+      logTop = 690f;
     }
 
-    GUILayout.Space(Screen.height * 0.01f);
-    GUILayout.Label(string.IsNullOrEmpty(CoopSession.multiplayerConnectionLog)
+    Text(Box(110f, logTop, 1230f, 850f - logTop), string.IsNullOrEmpty(CoopSession.multiplayerConnectionLog)
       ? "Crie uma sala e passe o seu IP para as amigas (mesma rede ou porta liberada), ou digite o IP do host e entre."
-      : CoopSession.multiplayerConnectionLog, textStyle);
+      : CoopSession.multiplayerConnectionLog, textStyle, 32f);
   }
 
   private void DrawSettings()
   {
-    GUILayout.Label("CONFIGURAÇÕES", titleStyle);
-    GUILayout.Space(Screen.height * 0.015f);
-
-    GUILayout.Label($"Volume geral: {Mathf.RoundToInt(volume * 100f)}%", textStyle);
-    float newVolume = GUILayout.HorizontalSlider(volume, 0f, 1f, GUILayout.Height(Screen.height * 0.03f));
+    Text(Box(110f, 240f, 560f, 60f), $"Volume geral: {Mathf.RoundToInt(volume * 100f)}%", labelStyle, 32f);
+    float newVolume = ModalSlider(Box(110f, 320f, 560f, 70f), volume);
     if (!Mathf.Approximately(newVolume, volume))
     {
       volume = newVolume;
@@ -335,49 +330,186 @@ public class MainMenu : MonoBehaviour
       PlayerPrefs.SetFloat(VolumeKey, volume);
     }
 
-    GUILayout.Space(Screen.height * 0.015f);
-
-    if (GUILayout.Button(fullscreen ? "Tela cheia: ligada" : "Tela cheia: desligada", smallButtonStyle, GUILayout.Height(Screen.height * 0.06f)))
+    if (ModalButton(4, modalSecondaryButton, Center(390f, 520f, 620f, 221f), fullscreen ? "TELA CHEIA: LIGADA" : "TELA CHEIA: DESLIGADA", true))
     {
       fullscreen = !fullscreen;
       Screen.fullScreen = fullscreen;
     }
 
+<<<<<<< HEAD
     GUILayout.Space(Screen.height * 0.015f);
     GUILayout.Label("<b>Controles</b>", textStyle);
     GUILayout.Label("WASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma (compre armas na loja de cada andar)\nE: consertar postes, comprar e interagir", textStyle);
     GUILayout.Space(Screen.height * 0.02f);
     GUILayout.Label("<b>Créditos</b>", textStyle);
     GUILayout.Label("Projeto UV — Game Jam IFSP", textStyle);
+=======
+    Text(Box(760f, 230f, 580f, 310f), "<b><color=#FFCC59>Controles</color></b>\nWASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma\nE: consertar postes e pegar itens", textStyle, 32f);
+    Text(Box(760f, 570f, 580f, 110f), "<b><color=#FFCC59>Créditos</color></b>\nProjeto UV — Game Jam IFSP", textStyle, 32f);
+  }
+
+  // Desenha o texto com a maior fonte (até o tamanho de referência) que cabe na caixa
+  private void Text(Rect rect, string text, GUIStyle style, float referenceSize)
+  {
+    HudScale.FitFont(style, text, rect, Mathf.RoundToInt(referenceSize * modalScale));
+    GUI.Label(rect, text, style);
+  }
+
+  private Rect Box(float x, float y, float w, float h)
+  {
+    return new Rect(modalOrigin.x + x * modalScale, modalOrigin.y + y * modalScale, w * modalScale, h * modalScale);
+  }
+
+  private Rect Center(float cx, float cy, float w, float h)
+  {
+    return Box(cx - w * 0.5f, cy - h * 0.5f, w, h);
+  }
+
+  // Botão com a arte das janelas: cresce e clareia com o mouse em cima, como os da escolha de personagem
+  private bool ModalButton(int index, Texture2D texture, Rect rect, string label, bool enabled)
+  {
+    bool hovered = enabled && rect.Contains(Event.current.mousePosition);
+    if (Event.current.type == EventType.Repaint)
+    {
+      modalHover[index] = Mathf.MoveTowards(modalHover[index], hovered ? 1f : 0f, Time.unscaledDeltaTime * 8f);
+    }
+
+    float grow = 1f + modalHover[index] * 0.08f;
+    Rect drawn = new Rect(rect.center.x - rect.width * grow * 0.5f, rect.center.y - rect.height * grow * 0.5f, rect.width * grow, rect.height * grow);
+    Color tint = enabled ? Color.Lerp(new Color(0.85f, 0.85f, 0.85f), Color.white, modalHover[index]) : new Color(0.5f, 0.5f, 0.55f, 0.8f);
+    GUI.color = tint;
+    if (texture != null) GUI.DrawTexture(drawn, texture, ScaleMode.ScaleToFit);
+    GUI.color = Color.white;
+    if (!string.IsNullOrEmpty(label))
+    {
+      GUI.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.6f);
+      Text(InsideButtonArt(texture, drawn), label, buttonTextStyle, 28f);
+      GUI.color = Color.white;
+    }
+
+    return enabled && GUI.Button(rect, GUIContent.none, GUIStyle.none);
+  }
+
+  // Parte de dentro da pílula de 03/04_button (a arte tem brilho e borda em volta), onde o texto cabe sem encostar
+  public static Rect InsideButtonArt(Texture2D texture, Rect area)
+  {
+    float aspect = texture != null ? (float)texture.width / texture.height : area.width / Mathf.Max(area.height, 1f);
+    float width = Mathf.Min(area.width, area.height * aspect);
+    float height = width / aspect;
+    return new Rect(area.center.x - width * 0.38f, area.center.y - height * 0.24f, width * 0.76f, height * 0.48f);
+  }
+
+  private string ModalField(Rect rect, string text, int maxLength)
+  {
+    if (modalFieldPlate != null) GUI.DrawTexture(rect, modalFieldPlate, ScaleMode.StretchToFill);
+    // O TextField do Unity só alinha bem à esquerda, então a caixa de edição tem a largura do texto
+    // e fica centralizada no miolo da placa (longe das pontas em ângulo)
+    text = text ?? "";
+    float maxWidth = rect.width * 0.8f;
+    fieldStyle.fontSize = Mathf.RoundToInt(Mathf.Min(32f * modalScale, rect.height * 0.42f));
+    Vector2 size = fieldStyle.CalcSize(new GUIContent(text));
+    float lineHeight = fieldStyle.CalcSize(new GUIContent("Ág")).y;
+    float width = Mathf.Min(maxWidth, size.x + fieldStyle.fontSize * 0.6f);
+    Rect inner = new Rect(rect.center.x - width * 0.5f, rect.center.y - lineHeight * 0.5f, width, lineHeight);
+
+    // clicar em qualquer parte da placa também começa a digitar
+    string controlName = $"campo_{Mathf.RoundToInt(rect.x)}_{Mathf.RoundToInt(rect.y)}";
+    Event e = Event.current;
+    if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition) && !inner.Contains(e.mousePosition))
+    {
+      GUI.FocusControl(controlName);
+      e.Use();
+    }
+    GUI.SetNextControlName(controlName);
+    return GUI.TextField(inner, text, maxLength, fieldStyle);
+  }
+
+  // Trilho fino em neon com o anel de Modals/10_progress como pino
+  private float ModalSlider(Rect rect, float value)
+  {
+    float knob = rect.height;
+    float left = rect.x + knob * 0.5f;
+    float width = rect.width - knob;
+    Rect track = new Rect(left, rect.center.y - rect.height * 0.09f, width, rect.height * 0.18f);
+
+    GUI.color = new Color(0.05f, 0.12f, 0.35f, 0.95f);
+    GUI.DrawTexture(track, Texture2D.whiteTexture);
+    GUI.color = new Color(0.2f, 0.85f, 1f);
+    GUI.DrawTexture(new Rect(track.x, track.y, track.width * value, track.height), Texture2D.whiteTexture);
+    GUI.color = Color.white;
+
+    Event e = Event.current;
+    if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition)) draggingSlider = true;
+    if (e.rawType == EventType.MouseUp) draggingSlider = false;
+    if (draggingSlider && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag))
+    {
+      value = Mathf.Clamp01((e.mousePosition.x - left) / Mathf.Max(width, 1f));
+      e.Use();
+    }
+
+    Rect thumb = new Rect(left + width * value - knob * 0.5f, rect.y, knob, knob);
+    if (modalSliderKnob != null) GUI.DrawTexture(thumb, modalSliderKnob, ScaleMode.ScaleToFit);
+    return value;
+>>>>>>> ea654c10caddb580f892666d72b3bda7cbe9ecf5
   }
 
   private void CreateStyles()
   {
-    int textSize = Mathf.Max(12, Mathf.RoundToInt(Screen.height * 0.024f));
-    if (titleStyle != null && textStyle.fontSize == textSize) return;
+    if (titleStyle != null) return;
 
     titleStyle = new GUIStyle(GUI.skin.label)
     {
-      fontSize = Mathf.RoundToInt(textSize * 1.8f),
       fontStyle = FontStyle.Bold,
       alignment = TextAnchor.MiddleCenter
     };
-    titleStyle.normal.textColor = new Color(1f, 0.8f, 0.25f);
+    titleStyle.normal.textColor = new Color(0.85f, 0.95f, 1f);
 
     textStyle = new GUIStyle(GUI.skin.label)
     {
-      fontSize = textSize,
       richText = true,
-      wordWrap = true
+      wordWrap = true,
+      alignment = TextAnchor.MiddleLeft
     };
-    textStyle.normal.textColor = new Color(0.92f, 0.88f, 1f);
+    textStyle.normal.textColor = new Color(0.92f, 0.94f, 1f);
 
-    smallButtonStyle = new GUIStyle(GUI.skin.button)
+    labelStyle = new GUIStyle(textStyle) { wordWrap = false };
+
+    buttonTextStyle = new GUIStyle(GUI.skin.label)
     {
-      fontSize = textSize,
-      fontStyle = FontStyle.Bold
+      fontStyle = FontStyle.Bold,
+      alignment = TextAnchor.MiddleCenter
     };
+    buttonTextStyle.normal.textColor = new Color(0.92f, 0.96f, 1f);
+
+    // sem fundo: a placa de Modals/09_title_plate desenhada por baixo faz o papel da caixa
+    fieldStyle = new GUIStyle(GUI.skin.label)
+    {
+      alignment = TextAnchor.MiddleLeft,
+      clipping = TextClipping.Clip,
+      wordWrap = false,
+      padding = new RectOffset(0, 0, 0, 0),
+      margin = new RectOffset(0, 0, 0, 0)
+    };
+    fieldStyle.normal.textColor = fieldStyle.hover.textColor = fieldStyle.focused.textColor = Color.white;
   }
+
+#if UNITY_EDITOR
+  // Preenche as janelas vazias com a arte de Assets/Modals
+  public void OnValidate()
+  {
+    AssignIfEmpty(ref modalWindow, "01_tutorial_window");
+    AssignIfEmpty(ref modalCloseButton, "07_close");
+    AssignIfEmpty(ref modalPrimaryButton, "03_primary_button");
+    AssignIfEmpty(ref modalSecondaryButton, "04_secondary_button");
+    AssignIfEmpty(ref modalFieldPlate, "09_title_plate");
+    AssignIfEmpty(ref modalSliderKnob, "10_progress");
+  }
+
+  private static void AssignIfEmpty(ref Texture2D slot, string name)
+  {
+    if (slot == null) slot = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/Modals/{name}.png");
+  }
+#endif
 
   public void OnDisable()
   {

@@ -245,6 +245,13 @@ public class PlayerStatus : MonoBehaviour
 
   public void OnGUI()
   {
+    HudScale.Begin();
+    DrawHud();
+    HudScale.End();
+  }
+
+  private void DrawHud()
+  {
     if (!showStatusGUI || (health != null && health.IsDead))
     {
       return;
@@ -254,12 +261,12 @@ public class PlayerStatus : MonoBehaviour
     {
       float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 6f);
       GUI.color = new Color(0.2f, 0.9f, 0.2f, 0.05f + 0.05f * pulse);
-      GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+      GUI.DrawTexture(new Rect(0f, 0f, HudScale.Width, HudScale.Height), Texture2D.whiteTexture);
     }
 
     // Etiquetas ao lado da barra de vida
     float x = 268f;
-    float y = Screen.height - 44f;
+    float y = HudScale.Height - 44f;
     DrawChip(ref x, y, IsStunned, "Atordoada", stunTimer, stunDuration, new Color(0.85f, 0.65f, 0.1f));
     DrawChip(ref x, y, IsPoisoned, "Envenenada", poisonTimer, poisonDuration, new Color(0.25f, 0.65f, 0.2f));
     DrawChip(ref x, y, IsSlowed, $"Lenta {Mathf.RoundToInt(slowMultiplier * 100f)}%", slowTimer, slowDuration, new Color(0.25f, 0.5f, 0.9f));

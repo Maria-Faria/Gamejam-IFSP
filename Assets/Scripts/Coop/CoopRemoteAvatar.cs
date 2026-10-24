@@ -16,8 +16,6 @@ namespace GuardiasDaLuz
         public Color slotColor = Color.white;
         public float health = 100f;
         public float maxHealth = 100f;
-        public float mana = 100f;
-        public float maxMana = 100f;
         public bool isDead;
         public bool isMoving;
         public WeaponType weapon;
@@ -103,16 +101,23 @@ namespace GuardiasDaLuz
             }
 
             // anel no chão na cor da vaga
-            ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            ring.name = "Anel_Parceira";
-            Destroy(ring.GetComponent<Collider>());
+            ring = new GameObject("Anel_Parceira");
             ring.transform.SetParent(transform, false);
             ring.transform.localPosition = new Vector3(0f, 0.03f, 0f);
-            ring.transform.localScale = new Vector3(1.3f, 0.01f, 1.3f);
-            Renderer ringRenderer = ring.GetComponent<Renderer>();
-            ringRenderer.material.color = new Color(slotColor.r, slotColor.g, slotColor.b, 0.6f);
-            ringRenderer.material.EnableKeyword("_EMISSION");
-            ringRenderer.material.SetColor("_EmissionColor", slotColor * 1.5f);
+            LineRenderer ringLine = ring.AddComponent<LineRenderer>();
+            ringLine.useWorldSpace = false;
+            ringLine.loop = true;
+            ringLine.widthMultiplier = 0.08f;
+            ringLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            ringLine.material = new Material(Shader.Find("Sprites/Default"));
+            ringLine.startColor = ringLine.endColor = new Color(slotColor.r, slotColor.g, slotColor.b, 0.8f);
+            const int ringSegments = 40;
+            ringLine.positionCount = ringSegments;
+            for (int i = 0; i < ringSegments; i++)
+            {
+                float angle = i * Mathf.PI * 2f / ringSegments;
+                ringLine.SetPosition(i, new Vector3(Mathf.Cos(angle) * 0.65f, 0f, Mathf.Sin(angle) * 0.65f));
+            }
 
             GameObject auraObj = new GameObject($"Aura_Luz_P{playerId + 1}");
             auraObj.transform.SetParent(transform, false);
@@ -203,6 +208,17 @@ namespace GuardiasDaLuz
                     LightBullet quick = Fire(prefab, origin, aim * Quaternion.Euler(0f, Random.Range(-3f, 3f), 0f));
                     if (quick != null) quick.SetDamage(5f);
                     break;
+                case WeaponType.Homing:
+                    foreach (float side in new[] { -1f, 1f })
+                    {
+                        LightBullet seeker = Fire(prefab, origin, aim * Quaternion.Euler(0f, side * 16f, 0f));
+                        if (seeker == null) continue;
+                        seeker.SetSpeed(15f);
+                        seeker.SetDamage(14f);
+                        seeker.SetLifetime(3.5f);
+                        seeker.ConfigureHoming(260f);
+                    }
+                    break;
             }
         }
 
@@ -213,6 +229,13 @@ namespace GuardiasDaLuz
         }
 
         private void OnGUI()
+        {
+            HudScale.Begin();
+            DrawHud();
+            HudScale.End();
+        }
+
+        private void DrawHud()
         {
             if (!visible) return;
             Camera cam = Camera.main;
@@ -225,13 +248,14 @@ namespace GuardiasDaLuz
                 nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             }
             string text = isDead ? $"{nickname} (caída)" : nickname;
-            Rect rect = new Rect(screen.x - 80f, Screen.height - screen.y - 12f, 160f, 22f);
+            Vector2 point = HudScale.FromScreenPoint(screen);
+            Rect rect = new Rect(point.x - 80f, point.y - 12f, 160f, 22f);
             nameStyle.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
             GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), text, nameStyle);
             nameStyle.normal.textColor = slotColor;
             GUI.Label(rect, text, nameStyle);
 
-            Rect bar = new Rect(screen.x - 30f, Screen.height - screen.y + 9f, 60f, 5f);
+            Rect bar = new Rect(point.x - 30f, point.y + 9f, 60f, 5f);
             GUI.color = new Color(0f, 0f, 0f, 0.7f);
             GUI.DrawTexture(bar, Texture2D.whiteTexture);
             GUI.color = new Color(0.25f, 0.9f, 0.4f);

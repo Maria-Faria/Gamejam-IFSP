@@ -266,6 +266,12 @@ MonoBehaviour:
   buttonsTop: 0.45
   buttonSpacing: 0.012
   fadeSeconds: 0.8
+  modalWindow: {fileID: 2800000, guid: f20213fff895c394ca3d64c07adecb6f, type: 3}
+  modalCloseButton: {fileID: 2800000, guid: cbd1f6705fe10d24f8e28f39d19e3fa9, type: 3}
+  modalPrimaryButton: {fileID: 2800000, guid: e8e1ba3ab8eb6d04cb41f2b3b7c175a8, type: 3}
+  modalSecondaryButton: {fileID: 2800000, guid: f0fe017b52d3354498851bf6351cfbdb, type: 3}
+  modalFieldPlate: {fileID: 2800000, guid: 0ee7d50ef47adc9499268e11fb17de4e, type: 3}
+  modalSliderKnob: {fileID: 2800000, guid: 36456e432f5626a48b503922c5ad6112, type: 3}
   characterSelect:
     portraits:
     - {fileID: 2800000, guid: b573306470394d7ebe7341971edb8f98, type: 3}

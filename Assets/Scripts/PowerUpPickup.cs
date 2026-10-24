@@ -78,7 +78,7 @@ public class PowerUpPickup : MonoBehaviour
     pickup.bodies = pickupObject.GetComponentsInChildren<Renderer>();
     pickup.baseHeight = pickupObject.transform.position.y;
 
-    bool tint = model == null || type != PowerUpType.Mana;
+    bool tint = model == null || type != PowerUpType.Battery;
     foreach (Renderer body in pickup.bodies)
     {
       if (tint) Tint(body, GetColor(type));
@@ -86,10 +86,10 @@ public class PowerUpPickup : MonoBehaviour
     }
   }
 
-  // Mana usa a bateria com as cores originais; os outros tipos usam o cristal tingido com a cor do power-up
+  // A bateria (recupera vida) usa o modelo com as cores originais; os outros tipos usam o cristal tingido com a cor do power-up
   private static GameObject GetModel(PowerUpType type)
   {
-    return LoadModel(type == PowerUpType.Mana ? BatteryModelName : CrystalModelName);
+    return LoadModel(type == PowerUpType.Battery ? BatteryModelName : CrystalModelName);
   }
 
   public static GameObject LoadModel(string modelName)
@@ -112,7 +112,7 @@ public class PowerUpPickup : MonoBehaviour
     switch (type)
     {
       case PowerUpType.Health: return LightCrystalSoundName;
-      case PowerUpType.Mana: return EnergySoundName;
+      case PowerUpType.Battery: return EnergySoundName;
       case PowerUpType.MoveSpeed: return SpecialSoundName;
       default: return RetroTechSoundName;
     }
@@ -175,7 +175,7 @@ public class PowerUpPickup : MonoBehaviour
     return wrapper;
   }
 
-  private static void Tint(Renderer body, Color color)
+  public static void Tint(Renderer body, Color color)
   {
     foreach (Material material in body.materials)
     {
@@ -190,7 +190,7 @@ public class PowerUpPickup : MonoBehaviour
     {
       case PowerUpType.Ricochet: return new Color(0.3f, 0.9f, 1f);
       case PowerUpType.Health: return new Color(0.95f, 0.25f, 0.3f);
-      case PowerUpType.Mana: return new Color(0.6f, 0.3f, 1f);
+      case PowerUpType.Battery: return new Color(0.3f, 1f, 0.55f);
       case PowerUpType.MoveSpeed: return new Color(0.35f, 1f, 0.45f);
       default: return new Color(1f, 0.8f, 0.2f);
     }
@@ -200,11 +200,11 @@ public class PowerUpPickup : MonoBehaviour
   {
     switch (type)
     {
-      case PowerUpType.Ricochet: return PrimitiveType.Cube;
+      case PowerUpType.Ricochet: return PrimitiveType.Sphere;
       case PowerUpType.Health: return PrimitiveType.Sphere;
-      case PowerUpType.Mana: return PrimitiveType.Sphere;
+      case PowerUpType.Battery: return PrimitiveType.Sphere;
       case PowerUpType.MoveSpeed: return PrimitiveType.Capsule;
-      default: return PrimitiveType.Cylinder;
+      default: return PrimitiveType.Capsule;
     }
   }
 
