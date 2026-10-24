@@ -35,6 +35,12 @@ public class PlayerStatusTests
   public IEnumerator TearDown()
   {
     Application.targetFrameRate = -1;
+    Time.timeScale = 1f;
+    Type result = Type.GetType("GameResult, Assembly-CSharp");
+    if (result != null)
+    {
+      foreach (UnityEngine.Object screen in UnityEngine.Object.FindObjectsByType(result)) UnityEngine.Object.Destroy(((Component)screen).gameObject);
+    }
     Scene game = SceneManager.GetSceneByName(GameScene);
     if (!game.IsValid() || !game.isLoaded)
     {
@@ -195,31 +201,42 @@ public class PlayerStatusTests
     Debug.Log($"[PlayerStatusTests] corpo girou {fallen:0.0} graus na queda");
     Assert.Greater(fallen, 60f, "a jogadora deveria ter caído");
 
+    // fora do co-op a morte mostra a tela de derrota (GameResult, que pausa o jogo); "jogar de novo" reinicia
     Component oldHealth = health;
     float duration = Get<float>(animation, "DeathDuration");
-    float reloadedAt = -1f;
-    float timeout = Time.time + 6f;
-    while (Time.time < timeout)
+    Type result = Type.GetType("GameResult, Assembly-CSharp", true);
+    Func<bool> showing = () => (bool)result.GetProperty("IsShowing").GetValue(null);
+    float shownAt = -1f;
+    float timeout = Time.realtimeSinceStartup + 6f;
+    while (Time.realtimeSinceStartup < timeout)
     {
-      Component current = FindComponent("PlayerHealth");
-      if (current != null && current != oldHealth)
+      if (showing() && Time.timeScale == 0f)
       {
-        reloadedAt = Time.time;
+        shownAt = Time.time;
         break;
       }
-      if (oldHealth != null)
-      {
-        Assert.IsTrue(Get<bool>(oldHealth, "IsDead"));
-      }
+      Assert.IsTrue(Get<bool>(oldHealth, "IsDead"));
       yield return null;
     }
 
-    Debug.Log($"[PlayerStatusTests] cena reiniciou {reloadedAt - killedAt:0.00}s depois da morte (animação {duration:0.00}s)");
-    Assert.Greater(reloadedAt, 0f, "o reinício da cena deveria acontecer");
-    Assert.GreaterOrEqual(reloadedAt - killedAt, duration, "reinício antes do fim da animação");
+    Debug.Log($"[PlayerStatusTests] tela de derrota {shownAt - killedAt:0.00}s depois da morte (animação {duration:0.00}s)");
+    Assert.Greater(shownAt, 0f, "a tela de derrota deveria aparecer");
+    Assert.GreaterOrEqual(shownAt - killedAt, duration, "derrota antes do fim da animação");
+
+    UnityEngine.Object screen = UnityEngine.Object.FindAnyObjectByType(result);
+    result.GetMethod("PlayAgain", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(screen, null);
+    timeout = Time.realtimeSinceStartup + 6f;
+    Component newHealth = null;
+    while (Time.realtimeSinceStartup < timeout)
+    {
+      newHealth = FindComponent("PlayerHealth");
+      if (newHealth != null && newHealth != oldHealth) break;
+      yield return null;
+    }
+    Assert.IsTrue(newHealth != null && newHealth != oldHealth, "jogar de novo reinicia a cena");
     yield return null;
-    Component newHealth = FindComponent("PlayerHealth");
-    Assert.IsFalse(Get<bool>(newHealth, "IsDead"));
+    Assert.AreEqual(1f, Time.timeScale, "o jogo volta a correr");
+    Assert.IsFalse(Get<bool>(FindComponent("PlayerHealth"), "IsDead"));
   }
 
   // Gera imagens das animações quando a variável PLAYER_FX_SCREENSHOTS aponta para uma pasta

@@ -278,7 +278,7 @@ namespace Roguelike.Tests
             }
             yield return new WaitForSeconds(0.6f);
             spawned = root.GetComponentsInChildren<Monster>();
-            Assert.That(spawned.Length, Is.InRange(2, 3), "floor 1-1 sends 2-3 monsters a wave");
+            Assert.That(spawned.Length, Is.InRange(3, 4), "floor 1-1 sends 2-3 monsters a wave, x1.33 at difficulty 3");
             var allowed = new[] { "BallShadow", "Regular", "Ghost" };
             foreach (var m in spawned)
                 Assert.Contains(m.name, allowed, "only the floor's types");
@@ -322,6 +322,7 @@ namespace Roguelike.Tests
                 Assert.IsNotNull(boss, $"floor {kv.Key + 1}: a boss should appear");
                 Assert.AreEqual(kv.Value, boss.name);
                 Assert.Greater(boss.Health.Max, 1000f, "bosses get a long fight");
+                Assert.Greater(boss.Health.Max, 1600f, "difficulty 3: half as much health again");
                 Assert.IsTrue(((IList)Field(room, "roomMonsters")).Contains(boss.gameObject), "the boss holds the doors");
             }
         }

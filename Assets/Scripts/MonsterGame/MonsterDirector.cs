@@ -50,6 +50,24 @@ public class MonsterDirector : MonoBehaviour
   [Tooltip("Segundos entre o aviso de fumaça e o monstro aparecer.")]
   [SerializeField] private float spawnTell = 0.6f;
   [SerializeField] private bool showVariantLabels = true;
+  [Tooltip("Quão mais difícil que as tabelas dos andares (1 = como estão). A ameaça (vida x dano x quantidade) " +
+           "cresce nesse fator: vida e dano dos monstros x dificuldade^0,37 cada, monstros por onda x dificuldade^0,26; " +
+           "os chefes ganham vida e dano x dificuldade^0,37 e atacam com intervalos / dificuldade^0,26.")]
+  [SerializeField] private float difficulty = 3f;
+
+  public float Difficulty
+  {
+    get => difficulty;
+    set => difficulty = Mathf.Max(0.1f, value);
+  }
+
+  // a dificuldade dividida entre vida, dano e quantidade (expoentes somam 1)
+  private float StatFactor => Mathf.Pow(difficulty, 0.37f);
+  private float CountFactor => Mathf.Pow(difficulty, 0.26f);
+
+  /// Monstros por onda do plano já com a dificuldade (mínimo, máximo).
+  public Vector2Int WaveSize(FloorPlan plan) =>
+    new Vector2Int(Mathf.RoundToInt(plan.perWave.x * CountFactor), Mathf.RoundToInt(plan.perWave.y * CountFactor));
 
   private class RoomState
   {
@@ -250,9 +268,10 @@ public class MonsterDirector : MonoBehaviour
       Monster boss = entry.Spawn(position, map.playerTransform, null, state.node.roomRoot.transform);
       if (boss != null)
       {
-        boss.DamageScale = plan.bossDamage;
+        boss.DamageScale = plan.bossDamage * StatFactor;
+        boss.CooldownScale = 1f / CountFactor;
         boss.SpeedScale = Mathf.Lerp(1f, plan.speed, 0.5f);
-        if (boss.Health != null && plan.bossHealth > 0f) boss.Health.SetMax(plan.bossHealth);
+        if (boss.Health != null && plan.bossHealth > 0f) boss.Health.SetMax(plan.bossHealth * StatFactor);
         Register(state, boss);
         CurrentBoss = boss;
       }
@@ -267,7 +286,8 @@ public class MonsterDirector : MonoBehaviour
     state.wavesLeft--;
     FloorPlan plan = CurrentPlan;
 
-    int count = Random.Range(plan.perWave.x, plan.perWave.y + 1);
+    Vector2Int size = WaveSize(plan);
+    int count = Random.Range(size.x, size.y + 1);
     if (state.node.mergedGiantPartner != null) count = Mathf.RoundToInt(count * 1.5f);
     if (elite) count += 2;
 
@@ -305,9 +325,9 @@ public class MonsterDirector : MonoBehaviour
     if (monster == null) return null;
 
     monster.SpeedScale = plan.speed;
-    monster.DamageScale = plan.damage;
+    monster.DamageScale = plan.damage * StatFactor;
     monster.CooldownScale = plan.cooldown;
-    if (monster.Health != null) monster.Health.SetMax(monster.Health.Max * plan.health);
+    if (monster.Health != null) monster.Health.SetMax(monster.Health.Max * plan.health * StatFactor);
 
     if (IsPhantom(type))
     {
