@@ -336,8 +336,8 @@ public class MainMenu : MonoBehaviour
       Screen.fullScreen = fullscreen;
     }
 
-    Text(Box(760f, 230f, 580f, 310f), "<b><color=#FFCC59>Controles</color></b>\nWASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma\nE: consertar postes, comprar e interagir", textStyle, 32f);
-    Text(Box(760f, 570f, 580f, 110f), "<b><color=#FFCC59>Créditos</color></b>\nProjeto UV — Game Jam IFSP", textStyle, 32f);
+    Text(Box(760f, 230f, 580f, 380f), "<b>Controles</b>\nWASD / setas: correr\nEspaço / botão esquerdo do mouse: atirar\n1 a 7 / roda do mouse: trocar de arma (compre armas na loja de cada andar)\nE: consertar postes, comprar e interagir", textStyle, 32f);
+    Text(Box(760f, 630f, 580f, 110f), "<b>Créditos</b>\nProjeto UV — Game Jam IFSP", textStyle, 32f);
   }
 
   // Desenha o texto com a maior fonte (até o tamanho de referência) que cabe na caixa
