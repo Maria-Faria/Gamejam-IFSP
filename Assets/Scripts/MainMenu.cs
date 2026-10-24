@@ -23,7 +23,10 @@ public class MainMenu : MonoBehaviour
   [SerializeField] private float buttonSpacing = 0.012f;
   [SerializeField] private float fadeSeconds = 0.8f;
 
-  private enum Panel { None, Multiplayer, Settings }
+  [Header("Escolha de personagem")]
+  [SerializeField] private CharacterSelect characterSelect = new CharacterSelect();
+
+  private enum Panel { None, Multiplayer, Settings, CharacterSelect }
 
   private Texture2D[] buttons;
   private float[] hover;
@@ -75,6 +78,13 @@ public class MainMenu : MonoBehaviour
       return;
     }
 
+    if (panel == Panel.CharacterSelect)
+    {
+      if (characterSelect.HandleInput(out bool back)) starting = true;
+      else if (back) panel = Panel.None;
+      return;
+    }
+
     if (panel != Panel.None)
     {
       if (Input.GetKeyDown(KeyCode.Escape)) panel = Panel.None;
@@ -101,7 +111,8 @@ public class MainMenu : MonoBehaviour
     switch (index)
     {
       case 0:
-        starting = true;
+        characterSelect.Open();
+        panel = Panel.CharacterSelect;
         break;
       case 1:
         panel = Panel.Multiplayer;
@@ -136,6 +147,13 @@ public class MainMenu : MonoBehaviour
     if (panel == Panel.None)
     {
       DrawButtons();
+    }
+    else if (panel == Panel.CharacterSelect)
+    {
+      GUI.color = new Color(0f, 0f, 0f, 0.55f);
+      GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+      GUI.color = Color.white;
+      if (characterSelect.Draw(!starting)) starting = true;
     }
     else
     {

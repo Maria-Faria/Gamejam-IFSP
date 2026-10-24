@@ -266,6 +266,31 @@ MonoBehaviour:
   buttonsTop: 0.45
   buttonSpacing: 0.012
   fadeSeconds: 0.8
+  characterSelect:
+    portraits:
+    - {fileID: 2800000, guid: b573306470394d7ebe7341971edb8f98, type: 3}
+    - {fileID: 2800000, guid: bbb22667d1c64195813f8734609ed89c, type: 3}
+    - {fileID: 2800000, guid: e416244b051e4f6ea6a63429d9caa0e4, type: 3}
+    - {fileID: 2800000, guid: 58c95ec555124bd4bd478f7c2934ada6, type: 3}
+    - {fileID: 2800000, guid: 5cdb2c32e9e74318864772fef330ea0f, type: 3}
+    - {fileID: 2800000, guid: 9c977f50af3443c488653769a7dace56, type: 3}
+    - {fileID: 2800000, guid: f63ad4115b0c42ffb39746f20d862e01, type: 3}
+    leftArrow: {fileID: 2800000, guid: f28e265c46374383898ce8047196749b, type: 3}
+    rightArrow: {fileID: 2800000, guid: 1b8ba34d78f749e0aec1a9c21d2a5f14, type: 3}
+    infoButton: {fileID: 2800000, guid: 81d4463c726e4a69949f251e8af82d25, type: 3}
+    namePlate: {fileID: 2800000, guid: 1480051e8169499098f9aeb4846a62a6, type: 3}
+    pedestal: {fileID: 2800000, guid: 12f168e7599b477da99311eaa724a1ad, type: 3}
+    platform: {fileID: 2800000, guid: 0eba7fa125ee4c8f90aa6c697b33eba5, type: 3}
+    slideSpeed: 8
+    infoWindow: {fileID: 2800000, guid: f20213fff895c394ca3d64c07adecb6f, type: 3}
+    closeButton: {fileID: 2800000, guid: cbd1f6705fe10d24f8e28f39d19e3fa9, type: 3}
+    previousButton: {fileID: 2800000, guid: 8a0b8a69c3742e549afd7ea3aebca62d, type: 3}
+    nextButton: {fileID: 2800000, guid: 8faa6a416f8bb4e4ebbe0e16b0deb6d5, type: 3}
+    primaryButton: {fileID: 2800000, guid: e8e1ba3ab8eb6d04cb41f2b3b7c175a8, type: 3}
+    navigateSound: {fileID: 8300000, guid: 783740c437d757d41b09c26869213930, type: 3}
+    confirmSound: {fileID: 8300000, guid: 19702751e376d654db20201e22b037c5, type: 3}
+    infoSound: {fileID: 8300000, guid: 3e51070c21f64c8eb6f8af96cec1597b, type: 3}
+    soundVolume: 0.8
 --- !u!114 &203
 MonoBehaviour:
   m_ObjectHideFlags: 0
