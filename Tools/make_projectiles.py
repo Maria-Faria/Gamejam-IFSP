@@ -2,14 +2,18 @@
 # out along the way they fly, a crescent blade for the boomerang, a cracked smoke bomb. The game's Roguelike/GhostBolt shader makes them
 # breathe, wobble and fade; the vertex colours tell it where: R = glow (eyes, cracks), G = 0 at the head to 1
 # at the tip of the tail.
-# usage: blender -b -P make_projectiles.py -- <out_dir> [preview_dir]
+# The enemies' plain bolts use the artist's shadow_projectile.fbx (a ball of dark smoke), resized and given the
+# same vertex colours: R from the light streaks of its texture, G along the way it flies.
+# usage: blender -b -P make_projectiles.py -- <out_dir> [preview_dir] [shadow_projectile.fbx]
 # Outputs: <out_dir>/<shape>.fbx for the shapes below, sized in metres, facing -Y (Unity +Z).
 import bpy, bmesh, math, os, sys
+import numpy as np
 from mathutils import Vector, noise
 
 args = sys.argv[sys.argv.index('--') + 1:]
 OUT = args[0]
-PREVIEW = args[1] if len(args) > 1 else None
+PREVIEW = args[1] if len(args) > 1 and args[1] != '-' else None
+SHADOW_SRC = args[2] if len(args) > 2 else "F:/fatec/Monster_Views_24_PNGs/shadow_projectile.fbx"
 
 def lumpy(v, amount, scale, seed):
     return v.normalized() * (1 + amount * noise.noise(v * scale + Vector((seed, seed * 1.7, seed * .3))))
@@ -74,8 +78,49 @@ def orb(bm, radius=.1, stretch=1.8, lump=.04, seed=5.0):
         glow[v] = max(0.0, -p.y - .75) * 2.0          # a hotter tip in front
     return glow, tail
 
+def shadow(bm, radius=.11, stretch=1.35):
+    """The artist's shadow projectile: a ball of dark smoke. Centred, sized to `radius` and drawn out a little
+    along the way it flies (-Y); the back half fades (G), the lighter streaks of its texture glow faintly (R)."""
+    bpy.ops.import_scene.fbx(filepath=SHADOW_SRC)
+    src = next(o for o in bpy.data.objects if o.type == 'MESH')
+    me = src.data
+    me.transform(src.matrix_world)
+    # brightness of the albedo texture under each vertex
+    img = next((nd.image for m in me.materials if m and m.use_nodes for nd in m.node_tree.nodes
+                if nd.type == 'TEX_IMAGE' and nd.image and "normal" not in nd.image.name
+                and "rough" not in nd.image.name and "metal" not in nd.image.name), None)
+    lum = None
+    if img is not None:
+        w, h = img.size
+        px = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(px)
+        px = px.reshape(h, w, 4)
+        lum = px[..., 0] * .3 + px[..., 1] * .55 + px[..., 2] * .15
+    bm.from_mesh(me)
+    uv = bm.loops.layers.uv.active
+    bright = {}
+    for f in bm.faces:
+        for l in f.loops:
+            if lum is not None and uv is not None:
+                u, v = l[uv].uv
+                bright.setdefault(l.vert, []).append(float(lum[min(h - 1, max(0, int(v * h))), min(w - 1, max(0, int(u * w)))]))
+    lo = Vector(map(min, *[v.co for v in bm.verts])); hi = Vector(map(max, *[v.co for v in bm.verts]))
+    c, half = (lo + hi) / 2, max(hi - lo) / 2
+    glow, tail = {}, {}
+    vals = [sum(b) / len(b) for b in bright.values()] or [0.0]
+    top = sorted(vals)[int(len(vals) * .9)]
+    for v in bm.verts:
+        p = (v.co - c) / half
+        v.co = Vector((p.x * radius, p.y * radius * stretch, p.z * radius))
+        tail[v] = max(0.0, p.y) * .8
+        b = sum(bright[v]) / len(bright[v]) if v in bright else 0.0
+        glow[v] = max(0.0, min(1.0, (b - top * .8) / max(top * .2, 1e-3))) * .35
+    bpy.data.objects.remove(src)
+    return glow, tail
+
 SHAPES = {
     "Orb": lambda bm: orb(bm, radius=.09, stretch=2.8),
+    "Shadow": lambda bm: shadow(bm),
     "Blade": lambda bm: blade(bm),
     "Bomb": lambda bm: bomb(bm),
     "Glob": lambda bm: orb(bm, radius=.11, stretch=2.2, lump=.16, seed=4.0),     # lumpier, for spit

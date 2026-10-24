@@ -57,6 +57,7 @@ public class MonsterDirector : MonoBehaviour
     public StandaloneLighthouseMapSystem.MapRoomNode node;
     public int wavesLeft;
     public bool spawning;
+    public bool ended;          // vencida por uma parceira (co-op): nada mais nasce aqui
     public readonly List<Monster> alive = new List<Monster>();
   }
 
@@ -198,6 +199,7 @@ public class MonsterDirector : MonoBehaviour
       if (node.mergedGiantPartner != null) rooms[node.mergedGiantPartner] = state;
     }
     state.wavesLeft = 0;
+    state.ended = true;
   }
 
   // O estado da sala (o mesmo para as duas metades de um salão gigante), criado na primeira visita.
@@ -240,6 +242,11 @@ public class MonsterDirector : MonoBehaviour
       for (int i = 0; i < 10; i++) EnemyBullet.SpawnSmokePuff(position + Vector3.up + Random.insideUnitSphere * 1.2f, Random.Range(0.6f, 1f));
       map.ShowBannerMessage($"☠ CHEFE: {entry.title}! Derrote-o para abrir a escadaria do farol!");
       yield return new WaitForSeconds(spawnTell * 1.5f);
+      if (state.ended || state.node.doorsUnlocked)
+      {
+        state.spawning = false;
+        yield break;
+      }
 
       Monster boss = entry.Spawn(position, map.playerTransform, null, state.node.roomRoot.transform);
       if (boss != null)
@@ -288,7 +295,7 @@ public class MonsterDirector : MonoBehaviour
     for (int i = 0; i < picks.Count; i++)
     {
       // a sala pode ter sido liberada durante o aviso (última onda morta, poste consertado): sem reforços
-      if (state.node.roomRoot == null || state.node.doorsUnlocked) break;
+      if (state.node.roomRoot == null || state.node.doorsUnlocked || state.ended) break;
       Monster monster = SpawnMonster(picks[i], spots[i], plan, elite, state.node.roomRoot.transform);
       if (monster != null) Register(state, monster);
       yield return new WaitForSeconds(0.08f);

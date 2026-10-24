@@ -2,7 +2,7 @@ namespace Roguelike
 {
     /// How big the monsters are built in this game. Tools/make_monsters.py sizes every monster relative to a
     /// player character whose largest side is ReferenceSize (1.109 m): balls 0.5x, regular/ghost/3_eyed/claw
-    /// 0.75x, ghoul/horned/crescent/muscle 1x, bosses fat 1.7x, muscle_boss 1.8x, skull_face 2x. Here the player
+    /// 0.75x, ghoul/horned/crescent/muscle 1x, bosses fat 1.7x, muscle_boss 2.6x, skull_face 2x. Here the player
     /// (Annie Easley: annie_easley-compressed.obj, 1.105 m tall, placed at scale 1.63 under the Player in
     /// SampleScene) is PlayerSize tall, so everything about a monster — mesh (FBX import scale), colliders,
     /// reach, ranges, speeds — is multiplied by Factor to keep those ratios against this player.

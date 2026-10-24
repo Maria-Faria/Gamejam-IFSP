@@ -42,7 +42,7 @@ Material:
     - _BumpScale: 1
     - _GlowThreshold: 0.55
     - _HemSway: 1.3
-    - _Opacity: 0.975
+    - _Opacity: 0.95
     - _Phase: 0
     - _RimPower: 2.5
     - _RimStrength: 0.6

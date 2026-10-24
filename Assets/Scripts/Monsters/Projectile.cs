@@ -214,6 +214,7 @@ namespace Roguelike
                 Burst(at, hit);
             if (summon)
                 Summon(at);
+            ShadowBolt.Release(gameObject);     // its smoke and trail stay hanging in the air a moment
             Destroy(gameObject);
         }
 

@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 1158164401236170584}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0.16214399, z: 0}
+  m_LocalPosition: {x: 0, y: 0.23420802, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -169,7 +169,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.32428798
+      scalar: 0.46841604
       minScalar: 0.02
       maxCurve:
         serializedVersion: 2
@@ -287,8 +287,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 1.4592959
-      minScalar: 0.81071997
+      scalar: 2.107872
+      minScalar: 1.17104
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -751,7 +751,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 1.4592959
+      value: 2.107872
       mode: 0
       spread: 0
       speed:
@@ -2689,7 +2689,7 @@ ParticleSystem:
     strength:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.64857596
+      scalar: 0.9368321
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -4863,7 +4863,7 @@ Transform:
   m_GameObject: {fileID: 6096860032893755735}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.783584, z: 0}
+  m_LocalPosition: {x: 0, y: 2.5762882, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5123,8 +5123,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.32428798
-      minScalar: 0.12971519
+      scalar: 0.46841604
+      minScalar: 0.18736641
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -5587,7 +5587,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 1.945728
+      value: 2.8104963
       mode: 0
       spread: 0
       speed:
@@ -6384,7 +6384,7 @@ ParticleSystem:
     y:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.16214399
+      scalar: 0.23420802
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -7525,7 +7525,7 @@ ParticleSystem:
     strength:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.16214399
+      scalar: 0.23420802
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -9841,8 +9841,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.38914558
-      minScalar: 0.064857595
+      scalar: 0.5620992
+      minScalar: 0.093683206
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -9959,8 +9959,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 1.0701504
-      minScalar: 0.5837184
+      scalar: 1.545773
+      minScalar: 0.8431489
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -10347,7 +10347,7 @@ ParticleSystem:
     m_Scale: {x: 1, y: 1, z: 1}
     placementMode: 0
     m_MeshMaterialIndex: 0
-    m_MeshNormalOffset: 0.064857595
+    m_MeshNormalOffset: 0.093683206
     m_MeshSpawn:
       mode: 0
       spread: 0
@@ -11220,7 +11220,7 @@ ParticleSystem:
     y:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.972864
+      scalar: 1.4052482
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -12361,7 +12361,7 @@ ParticleSystem:
     strength:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.81071997
+      scalar: 1.17104
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -14614,6 +14614,9 @@ PrefabInstance:
       addedObject: {fileID: 4743687993254153636}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d4d5b451eda87d742bed4526de14681e, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 2212839527724652126}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d4d5b451eda87d742bed4526de14681e, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 3618129822524136137}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d4d5b451eda87d742bed4526de14681e, type: 3}
       insertIndex: -1
@@ -14659,10 +14662,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.972864
-  m_Height: 3.2428799
+  m_Radius: 1.4052482
+  m_Height: 4.68416
   m_Direction: 1
-  m_Center: {x: 0, y: 1.6214399, z: 0}
+  m_Center: {x: 0, y: 2.34208, z: 0}
 --- !u!114 &4437135612109474920
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14690,7 +14693,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Roguelike::Roguelike.Monster
   target: {fileID: 0}
-  size: 3.2428799
+  size: 4.68416
   aggroRange: 25.992426
   turnSpeed: 220
   moveSpeed: 2.1118846
@@ -14740,6 +14743,41 @@ MonoBehaviour:
   wallShotSpeed: 9.74716
   wallShotDamage: 8
   wallShotHeight: 0.974716
+  explosionEffect: {fileID: 706153852784013439, guid: 5f0e65c6c51b8e247a0d15ec57530ec9, type: 3}
+  explosionRadius: 3.2490532
+  explosionDamage: 14
+  impactZone: {fileID: 1443581279559468802, guid: 692e222464cd56046a20e90b560dde2e, type: 3}
+  zoneRadius: 3.5739586
+  zoneDuration: 4.5
+  zoneDamage: 5
+  hitStun: 1.2
+  hitKnockback: 11.371686
+--- !u!114 &2212839527724652126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8710074842247123889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb68a4953f9602243853d92259a0b69d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Roguelike::Roguelike.MeleeAttack
+  state: Flurry
+  damage: 5
+  minRange: 0
+  maxRange: 5.523391
+  cooldown: 6
+  weight: 1
+  hands:
+  - Hand.L
+  - Hand.R
+  handRadius: 0.3
+  reach: 0.8
+  lunge: 1.1371686
+  advanceFor: 0.8
+  trackTarget: 0.8
 --- !u!114 &3618129822524136137
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -9888,6 +9888,15 @@ MonoBehaviour:
   wallShotSpeed: 9.74716
   wallShotDamage: 8
   wallShotHeight: 0.974716
+  explosionEffect: {fileID: 0}
+  explosionRadius: 3.2490532
+  explosionDamage: 0
+  impactZone: {fileID: 0}
+  zoneRadius: 3.2490532
+  zoneDuration: 4
+  zoneDamage: 4
+  hitStun: 0
+  hitKnockback: 12.996213
 --- !u!114 &4464124870593614582
 MonoBehaviour:
   m_ObjectHideFlags: 0

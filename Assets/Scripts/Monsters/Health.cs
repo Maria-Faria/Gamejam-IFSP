@@ -24,6 +24,9 @@ namespace Roguelike
         /// Any victim hit by a monster's attack or projectile: (victim, damage dealt, the monster). The game
         /// hangs on-hit effects on it (poison, stun...).
         public static event Action<Health, float, Monster> HitByMonster;
+        /// A monster asks for its victim to be stunned: (victim, seconds, push in m/s, the monster). The game
+        /// stuns and shoves the player (the muscle boss's charge).
+        public static event Action<Health, float, Vector3, Monster> StunRequested;
         public event Action Died;
 
         protected virtual void Awake() => _current = maxHealth;
@@ -61,6 +64,13 @@ namespace Roguelike
             if (source && applyScale) amount *= source.DamageScale;
             TakeDamage(amount, from);
             HitByMonster?.Invoke(this, amount, source);
+        }
+
+        /// Stuns this victim for `seconds` and shoves it with `push` (m/s), if the game handles StunRequested.
+        public void Stun(float seconds, Vector3 push, Monster source)
+        {
+            if (!IsDead && seconds > 0f)
+                StunRequested?.Invoke(this, seconds, push, source);
         }
 
         protected void RaiseDamaged(float amount, Vector3 from)

@@ -104,8 +104,8 @@ MonoBehaviour:
   - name: MuscleBoss
     prefab: {fileID: 8710074842247123889, guid: 320474bdf050fd344a719430a816a889, type: 3}
     sizeClass: 3
-    relativeSize: 1.8
-    height: 3.2428799
+    relativeSize: 2.6
+    height: 4.68416
     isBoss: 1
     title: The Brute
     maxHealth: 320

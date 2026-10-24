@@ -28,7 +28,7 @@ Material:
     - _BreatheAmount: 0.08
     - _BreatheSpeed: 7
     - _Density: 0.3
-    - _Opacity: 0.85
+    - _Opacity: 0.95
     - _Phase: 0
     - _Size: 0.79153305
     - _TailWhip: 0.08

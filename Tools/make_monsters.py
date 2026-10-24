@@ -61,7 +61,7 @@ MONSTERS = {
                    arm_r=(0.17, 0.16, 0.15), limbs_only_outside=True,
                    arm=[(.72, .40, .28), (.86, .45, .45), (.86, .60, .62), (.82, .72, .76)],
                    leg=[(.62, .32, .66), (.65, .32, .82), (.67, .30, .94), (.67, .48, .99)]),
-    "muscle_boss": dict(folder="MuscleBoss", scale=1.8, hover=0.0, kind="brute", lean=0.0,
+    "muscle_boss": dict(folder="MuscleBoss", scale=2.6, hover=0.0, kind="brute", lean=0.0,
                         pelvis=(.5, .45, .62), chest=(.5, .45, .40), neck=(.5, .48, .33), top=(.5, .5, .02),
                         arm_r=(0.17, 0.16, 0.18), limbs_only_outside=True, hard_hands=True,
                         arm=[(.72, .45, .38), (.83, .55, .47), (.87, .72, .56), (.90, .95, .64)],
@@ -692,6 +692,37 @@ def dizzy_clip(poser, H):
     keys.append((84, base(poser, H)))
     return keys, []
 
+def flurry_clip(poser, H):
+    """A flurry of punches: fists up in a guard, then eight jabs left-right-left-right as fast as it can throw
+    them, the shoulders twisting into each one and the body leaning further in, then a breath to recover.
+    A hit on every jab."""
+    b = base(poser, H)
+    guard = merge(arm("L", n(F * .6, X * .45, D * .25), n(F * .2, -X * .4, U * .8), n(F, U * .3)),
+                  arm("R", n(F * .6, -X * .45, D * .25), n(F * .2, X * .4, U * .8), n(F, U * .3)))
+    def jab(s, i):
+        O = side_vec(s)
+        tw = 1 if s == "L" else -1
+        other = "R" if s == "L" else "L"
+        Oo = side_vec(other)
+        lean = min(1.0, i / 5)
+        p = merge(arm(s, n(F, O * .05, U * .02), n(F, -O * .05), n(F, D * .15)),
+                  arm(other, n(F * .3, BK * .45, Oo * .5, D * .2), n(F * .5, -Oo * .3, U * .7), n(F, U * .4)),
+                  legs(0, 6, 22))
+        p.update({"Hips": dict(rot=(4 + 4 * lean, 0, -10 * tw)), "Spine": dict(rot=(6 + 6 * lean, 0, -14 * tw)),
+                  "Head": dict(rot=(-6 - 4 * lean, 0, 10 * tw)),
+                  "Root": dict(loc=(.02 * H * tw, -(.06 + .06 * lean) * H, -.01 * H))})
+        return p
+    keys = [(0, b), (7, merge(guard, legs(0, 6, 24), {"Spine": dict(rot=(8, 0, 0)), "Head": dict(rot=(-8, 0, 0)),
+                                                       "Root": dict(loc=(0, -.03 * H, -.02 * H))}))]
+    events = []
+    for i in range(8):
+        f = 11 + i * 5
+        keys.append((f, jab("L" if i % 2 == 0 else "R", i)))
+        events.append((f, "Hit"))
+    keys += [(52, jab("R", 7)), (60, merge(guard, {"Spine": dict(rot=(-4, 0, 0)), "Root": dict(loc=(0, 0, .01 * H))})),
+             (72, b)]
+    return keys, events
+
 def laser_clip(poser, H):
     """Gather a charge between the claws (1.3 s), fire a beam for 1 s, recover."""
     b = base(poser, H)
@@ -829,6 +860,7 @@ def clips_for(name, spec, poser, H):
         if kind == "brute":
             k, e = spin_clip(poser, H); out.append(("Spin", 24, k, True, e))
             k, e = dizzy_clip(poser, H); out.append(("SpinDizzy", 84, k, False, e))
+            k, e = flurry_clip(poser, H); out.append(("Flurry", 72, k, False, e))
             out.append(("Cast", 40, cast_clip(poser, H, lift=0.0), True, []))
     elif kind == "skull":
         k, e = laser_clip(poser, H); out.append(("ChargedLaser", 96, k, False, e))

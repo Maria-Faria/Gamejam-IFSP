@@ -94,7 +94,7 @@ namespace Roguelike.Tests
             new object[] { "Claw", 0.75f, new[] { "Idle", "Move", "Shoot", "Slash", "Teleport" } },
             new object[] { "Fat", 1.7f, new[] { "Idle", "Move", "Flail", "Jump", "Spit" } },
             new object[] { "Muscle", 1f, new[] { "Idle", "Move", "Charge", "ChargeWallHit", "Punch" } },
-            new object[] { "MuscleBoss", 1.8f, new[] { "Idle", "Move", "Charge", "ChargeWallHit", "Spin", "SpinDizzy", "Cast" } },
+            new object[] { "MuscleBoss", 2.6f, new[] { "Idle", "Move", "Charge", "ChargeWallHit", "Spin", "SpinDizzy", "Flurry", "Cast" } },
             new object[] { "SkullFace", 2f, new[] { "Idle", "Move", "ChargedLaser", "Teleport", "SpinShoot", "Throw", "Cast" } },
         };
 

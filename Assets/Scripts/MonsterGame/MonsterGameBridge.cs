@@ -5,7 +5,8 @@ using UnityEngine;
 // Liga os monstros (assembly Roguelike, Assets/Scripts/Monsters) ao jogo:
 // - os monstros têm como alvo a jogadora (o mesmo objeto que o mapa e a câmera usam);
 // - o dano dos ataques deles vai para PlayerHealth (via MonsterPlayerHealth);
-// - as armas da jogadora acham e ferem os monstros pelo WeaponDamage (FindMonsterHealth).
+// - as armas da jogadora acham e ferem os monstros pelo WeaponDamage (FindMonsterHealth);
+// - um monstro que atordoa (Health.Stun) atordoa e empurra a jogadora pelo PlayerStatus.
 public static class MonsterGameBridge
 {
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -13,6 +14,23 @@ public static class MonsterGameBridge
   {
     MonsterTargeting.FindPlayer = FindPlayer;
     MonsterTargeting.PrepareTarget = PrepareTarget;
+    Roguelike.Health.StunRequested -= OnStunRequested;
+    Roguelike.Health.StunRequested += OnStunRequested;
+  }
+
+  // Um monstro atordoa a jogadora (a investida do chefe Brutamontes): fica parada e é empurrada.
+  private static void OnStunRequested(Roguelike.Health victim, float seconds, Vector3 push, Monster source)
+  {
+    PlayerStatus status = PlayerStatus.Of(victim);
+    if (status == null)
+    {
+      return;
+    }
+    status.Stun(seconds);
+    if (push.sqrMagnitude > 0.01f)
+    {
+      status.Knockback(push);
+    }
   }
 
   // A jogadora: a do mapa, se houver, senão quem tem PlayerHealth / PlayerMovement na cena.

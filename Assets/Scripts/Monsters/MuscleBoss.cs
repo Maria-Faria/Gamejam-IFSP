@@ -4,12 +4,14 @@ using UnityEngine;
 
 namespace Roguelike
 {
-    /// The muscle boss stalks the target, then either charges it from afar — slamming into a wall sends bolts
-    /// flying off all eight ways and leaves it dazed, the opening to punish it — or, up close, whirls with its
-    /// fists out until it staggers dizzy, the other opening — flinging bolts north, east, south and west
-    /// twice, a beat apart, while it whirls. Now and then it roars up a barrage: two walls of bullets sweeping
-    /// across the target. Enraged: it stalks faster, charges three times in a row
-    /// (re-aiming each time) with a quicker run, spins longer, and the barrage comes every other round.
+    /// The muscle boss stalks the target, then either charges it from afar — running the target over stuns it;
+    /// slamming into a wall blows the wall apart (bolts flying off all eight ways, a blast and a burning impact
+    /// zone left on the ground) and leaves it dazed, the opening to punish it — or, up close, either whirls
+    /// with its fists out until it staggers dizzy, the other opening — flinging bolts north, east, south and
+    /// west twice, a beat apart, while it whirls — or throws a flurry of punches. Now and then it roars up a
+    /// barrage: two walls of bullets sweeping across the target. Enraged: it stalks faster, charges three
+    /// times in a row (re-aiming each time) with a quicker run, spins longer, and the barrage comes every
+    /// other round.
     public class MuscleBoss : BossBrain
     {
         [Tooltip("Closer than this (m) it spins instead of charging.")]
@@ -17,6 +19,8 @@ namespace Roguelike
 
         ChargeAttack _charge;
         SpinAttack _spin;
+        MeleeAttack _flurry;
+        bool _flurryNext;
         BulletPatternAttack _barrage;
         int _round;
 
@@ -25,6 +29,8 @@ namespace Roguelike
             base.Awake();
             _charge = M.Attack<ChargeAttack>();
             _spin = M.Attack<SpinAttack>();
+            _flurry = M.Attack<MeleeAttack>();
+            _flurryNext = Random.value < 0.5f;
             _barrage = M.Attacks.OfType<BulletPatternAttack>().FirstOrDefault();
         }
 
@@ -47,7 +53,10 @@ namespace Roguelike
                                   Phase == 1 ? 1f : 1.35f);
             if (Dist <= spinRange)
             {
-                yield return Use(_spin);
+                // spin and flurry take turns, now and then the same one twice
+                bool flurry = _flurry && (!_spin || _flurryNext);
+                _flurryNext = Random.value < 0.25f ? _flurryNext : !_flurryNext;
+                yield return Use(flurry ? (MonsterAttack)_flurry : _spin);
                 yield return Hold(Phase == 1 ? 0.6f : 0.3f);
             }
             else

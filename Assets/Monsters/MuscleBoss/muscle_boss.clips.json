@@ -1,9 +1,9 @@
 {
  "name": "muscle_boss",
- "size": 1.9962,
- "height": 1.9962,
+ "size": 2.8834,
+ "height": 2.8834,
  "hover": 0.0,
- "scale": 2.0222,
+ "scale": 2.9209,
  "textured": true,
  "clips": [
   {
@@ -46,6 +46,45 @@
    "frames": 84,
    "loop": false,
    "events": []
+  },
+  {
+   "name": "Flurry",
+   "frames": 72,
+   "loop": false,
+   "events": [
+    {
+     "time": 0.1527777777777778,
+     "name": "Hit"
+    },
+    {
+     "time": 0.2222222222222222,
+     "name": "Hit"
+    },
+    {
+     "time": 0.2916666666666667,
+     "name": "Hit"
+    },
+    {
+     "time": 0.3611111111111111,
+     "name": "Hit"
+    },
+    {
+     "time": 0.4305555555555556,
+     "name": "Hit"
+    },
+    {
+     "time": 0.5,
+     "name": "Hit"
+    },
+    {
+     "time": 0.5694444444444444,
+     "name": "Hit"
+    },
+    {
+     "time": 0.6388888888888888,
+     "name": "Hit"
+    }
+   ]
   },
   {
    "name": "Cast",

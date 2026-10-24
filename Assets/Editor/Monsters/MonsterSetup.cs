@@ -40,7 +40,7 @@ public static class MonsterSetup
             { "Horned", (1f, MonsterCatalog.SizeClass.Medium, false) },
             { "Muscle", (1f, MonsterCatalog.SizeClass.Medium, false) },
             { "Fat", (1.7f, MonsterCatalog.SizeClass.Boss, true) },
-            { "MuscleBoss", (1.8f, MonsterCatalog.SizeClass.Boss, true) },
+            { "MuscleBoss", (2.6f, MonsterCatalog.SizeClass.Boss, true) },
             { "SkullFace", (2f, MonsterCatalog.SizeClass.Boss, true) },
         };
 
@@ -50,7 +50,7 @@ public static class MonsterSetup
         { typeof(Monster), new[] { "aggroRange", "moveSpeed" } },
         { typeof(MonsterAttack), new[] { "minRange", "maxRange" } },
         { typeof(BulletPatternAttack), new[] { "speed", "height", "wallSpacing", "wallDistance", "waveAmplitude" } },
-        { typeof(ChargeAttack), new[] { "speed", "maxDistance", "overshoot", "wallShotSpeed", "wallShotHeight" } },
+        { typeof(ChargeAttack), new[] { "speed", "maxDistance", "overshoot", "wallShotSpeed", "wallShotHeight", "explosionRadius", "zoneRadius", "hitKnockback" } },
         { typeof(JumpSmashAttack), new[] { "maxLeap", "landingShotSpeed" } },
         { typeof(LaserAttack), new[] { "length", "beamRadius" } },
         { typeof(LungeAttack), new[] { "dashDistance" } },
@@ -118,7 +118,8 @@ public static class MonsterSetup
     {
         public Dictionary<string, Projectile> bolts = new Dictionary<string, Projectile>();
         public Dictionary<Projectile, GameObject> flashes = new Dictionary<Projectile, GameObject>();   // muzzle flash per bolt
-        public GameObject puff, landing, telegraph, orb, wallImpact;
+        public GameObject puff, landing, telegraph, orb, wallImpact, explosion;
+        public ImpactZone impactZone;
         public LineRenderer beam;
         public MonsterImporter.Meta meta;
     }
@@ -229,8 +230,16 @@ public static class MonsterSetup
             attacks = (go, m, ctx) =>
             {
                 // the charge: slamming into a wall sends bolts flying all eight ways
+                // running the target over stuns it; slamming into a wall blows it apart (bolts flying all eight
+                // ways, a blast) and leaves a burning impact zone on the ground
                 Set(Add<ChargeAttack>(go, "Charge", 25, 3f, 14f, 6f), "impactEffect", ctx.wallImpact,
-                    "wallShot", ctx.bolts["Purple"], "wallShotCount", 8, "wallShotDamage", 8f);
+                    "wallShot", ctx.bolts["Purple"], "wallShotCount", 8, "wallShotDamage", 8f,
+                    "explosionEffect", ctx.explosion, "explosionRadius", 2f, "explosionDamage", 14f,
+                    "impactZone", ctx.impactZone, "zoneRadius", 2.2f, "zoneDuration", 4.5f, "zoneDamage", 5f,
+                    "hitStun", 1.2f, "hitKnockback", 7f);
+                // the flurry: eight jabs, left-right, up close
+                Set(Melee(go, "Flurry", new[] { "Hand.L", "Hand.R" }, 5, 3.4f, 6f, .7f),
+                    "handRadius", .3f, "reach", .8f, "advanceFor", .8f, "trackTarget", .8f);
                 // the spin: bolts north, east, south and west, twice, a beat apart
                 Set(Add<SpinAttack>(go, "Spin", 8, 0f, 3f, 7f), "shot", ctx.bolts["Purple"], "volleys", 2, "firstVolley", .6f,
                     "volleyInterval", 1f);
@@ -615,7 +624,7 @@ public static class MonsterSetup
     {
         public string key, mesh;
         public Color core, rim, eyes, smoke = C(.42f, .32f, .6f);
-        public float radius = .12f, lifetime = 4f, spin, returnAfter, halo = 1f, opacity = .85f, smokeRate = 18f;
+        public float radius = .12f, lifetime = 4f, spin, returnAfter, halo = 1f, opacity = .95f, smokeRate = 18f, pulse = .22f;
 
         public BoltSpec(string key, string mesh, Color core, Color rim, Color eyes)
         {
@@ -623,7 +632,7 @@ public static class MonsterSetup
         }
     }
 
-    static Projectile MakeBolt(BoltSpec b, Ctx ctx, Material smokeMat, Texture2D dot)
+    static Projectile MakeBolt(BoltSpec b, Ctx ctx, Material smokeMat, Material trailMat, Texture2D dot)
     {
         string meshPath = $"{MonsterImporter.ProjectileDir}{b.mesh}.fbx";
         var mesh = AssetDatabase.LoadAllAssetsAtPath(meshPath).OfType<Mesh>().FirstOrDefault();
@@ -644,7 +653,7 @@ public static class MonsterSetup
                 // a thick streak of darkness with only a faint coloured edge, not a glowing light
                 m.SetColor("_CoreColor", b.core * 0.06f);
                 m.SetColor("_RimColor", b.rim * 0.22f);
-                m.SetFloat("_Density", b.mesh == "Orb" || b.mesh == "Glob" ? 0.8f : 0.3f);
+                m.SetFloat("_Density", b.mesh == "Shadow" ? 0.95f : b.mesh == "Glob" ? 0.8f : 0.3f);
                 m.SetFloat("_TailWhip", 0.08f);
                 m.SetColor("_EyeColor", b.eyes * 0.12f);
                 m.SetFloat("_Opacity", b.opacity);
@@ -699,6 +708,50 @@ public static class MonsterSetup
         Grow(trail, 0.7f, 1.6f);
         Spin(trail, 60f);
         Colors(trail, b.smoke * 0.35f, C(.03f, .02f, .05f), 0.7f);
+        // it breathes: swells and shrinks, and on every contraction exhales a gust of heavy smoke that hangs
+        // in the air behind it (ShadowBolt)
+        var exhale = NewSystem(go.transform, "Exhale", smokeMat);
+        var ex = exhale.main;
+        ex.loop = true;
+        ex.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
+        ex.startSpeed = new ParticleSystem.MinMaxCurve(size * 0.6f, size * 2f);
+        ex.startSize = new ParticleSystem.MinMaxCurve(size * 0.9f, size * 1.6f);
+        ex.startRotation = new ParticleSystem.MinMaxCurve(0f, 2f * Mathf.PI);
+        ex.simulationSpace = ParticleSystemSimulationSpace.World;
+        ex.maxParticles = 80;
+        var exEm = exhale.emission;
+        exEm.rateOverTime = 0f;
+        var exShape = exhale.shape;
+        exShape.enabled = true;
+        exShape.shapeType = ParticleSystemShapeType.Sphere;
+        exShape.radius = size * 0.25f;
+        Noise(exhale, 0.2f, 1.2f, 0.4f);
+        Grow(exhale, 0.8f, 2.4f);
+        Spin(exhale, 50f);
+        var exLimit = exhale.limitVelocityOverLifetime;
+        exLimit.enabled = true;
+        exLimit.dampen = 0.15f;
+        exLimit.limit = size * 0.5f;
+        Colors(exhale, b.smoke * 0.22f, C(.02f, .015f, .035f), 0.85f);
+        // a trail of darkness dragging behind it
+        var dark = new GameObject("DarkTrail");
+        dark.transform.SetParent(go.transform, false);
+        var tr = dark.AddComponent<TrailRenderer>();
+        tr.sharedMaterial = trailMat;
+        tr.time = 0.45f;
+        tr.minVertexDistance = size * 0.15f;
+        tr.widthMultiplier = size * 0.9f;
+        tr.widthCurve = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.35f, 0.75f), new Keyframe(1f, 0f));
+        var tg = new Gradient();
+        tg.SetKeys(new[] { new GradientColorKey(C(.05f, .03f, .08f), 0f), new GradientColorKey(b.smoke * 0.2f, 1f) },
+                   new[] { new GradientAlphaKey(0.85f, 0f), new GradientAlphaKey(0.5f, 0.5f), new GradientAlphaKey(0f, 1f) });
+        tr.colorGradient = tg;
+        tr.textureMode = LineTextureMode.Stretch;
+        tr.numCapVertices = 4;
+        tr.shadowCastingMode = ShadowCastingMode.Off;
+        tr.receiveShadows = false;
+        var life = go.AddComponent<ShadowBolt>();
+        Set(life, "body", body.transform, "exhale", exhale, "pulseAmount", b.pulse);
         var p = go.AddComponent<Projectile>();
         Set(p, "radius", b.radius, "lifetime", b.lifetime, "spin", b.spin, "returnAfter", b.returnAfter);
         Set(p, "impactEffect", ctx.puff);
@@ -722,6 +775,7 @@ public static class MonsterSetup
         var smokeMat = ParticleMat("SmokeParticle", puffTex, Color.white, false);
         var moteMat = ParticleMat("Mote", dot, Color.white, false);
         var white = Texture2D.whiteTexture;
+        var trailMat = ParticleMat("ShadowTrail", beamTex, Color.white, false);
 
         // smoke puff (teleport, bolt impacts)
         var puff = new GameObject("SmokePuff");
@@ -738,6 +792,68 @@ public static class MonsterSetup
         Burst(impact, "Dust", smokeMat, 30, C(.45f, .4f, .55f), C(.15f, .12f, .18f), 2.5f, 0.4f, 1f, ParticleSystemShapeType.Hemisphere, 0.2f);
         ctx.wallImpact = SavePrefab(impact, "WallImpact");
 
+        // the muscle boss blowing a wall apart: a flash, a ball of dark smoke and sparks flying out (built for a
+        // 1 m blast, scaled to the blast radius)
+        var blast = new GameObject("WallExplosion");
+        Burst(blast, "Flash", ParticleMat("BlastFlash", dot, new Color(2.4f, 1.1f, 3.8f), true), 1, Color.white, Color.white,
+              0f, 2.4f, 0.25f, ParticleSystemShapeType.Sphere, 0.01f);
+        Burst(blast, "Smoke", smokeMat, 50, C(.3f, .22f, .45f), C(.05f, .04f, .08f), 3.5f, 1.1f, 1.5f, ParticleSystemShapeType.Sphere, 0.3f);
+        var blastSparks = Burst(blast, "Sparks", ParticleMat("BlastSpark", dot, new Color(2.6f, 1.4f, 4f), true), 40, Color.white, Color.white,
+                                8f, 0.14f, 0.6f, ParticleSystemShapeType.Sphere, 0.1f);
+        var blastSparkGrow = blastSparks.sizeOverLifetime;
+        blastSparkGrow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
+        ctx.explosion = SavePrefab(blast, "WallExplosion");
+
+        // the impact zone it leaves: a pool of darkness on the ground with a glowing rim, smouldering smoke and
+        // embers rising off it (built 1 m in radius, ImpactZone scales it)
+        var zone = new GameObject("ImpactZone");
+        GameObject FlatQuad(string name, float scale, float lift, Material mat)
+        {
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Object.DestroyImmediate(q.GetComponent<Collider>());
+            q.name = name;
+            q.transform.SetParent(zone.transform, false);
+            q.transform.localPosition = Vector3.up * lift;
+            q.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            q.transform.localScale = Vector3.one * scale;
+            var qr = q.GetComponent<MeshRenderer>();
+            qr.sharedMaterial = mat;
+            qr.shadowCastingMode = ShadowCastingMode.Off;
+            qr.receiveShadows = false;
+            return q;
+        }
+        FlatQuad("Scorch", 2.2f, 0f, ParticleMat("ImpactZoneScorch", dot, new Color(.05f, .03f, .09f, .9f), false));
+        FlatQuad("Rim", 2.1f, 0.01f, ParticleMat("ImpactZoneRim", ring, new Color(1.8f, .5f, 2.6f, .8f), true));
+        void Smoulder(string name, Material mat, float rate, Vector2 life, Vector2 size, float rise, Color a, Color b, float peak)
+        {
+            var ps = NewSystem(zone.transform, name, mat);
+            ps.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            var m = ps.main;
+            m.loop = true;
+            m.startLifetime = new ParticleSystem.MinMaxCurve(life.x, life.y);
+            m.startSpeed = new ParticleSystem.MinMaxCurve(0f, 0.2f);
+            m.startSize = new ParticleSystem.MinMaxCurve(size.x, size.y);
+            m.startRotation = new ParticleSystem.MinMaxCurve(0f, 2f * Mathf.PI);
+            m.simulationSpace = ParticleSystemSimulationSpace.World;
+            m.maxParticles = 120;
+            var e = ps.emission;
+            e.rateOverTime = rate;
+            var sh = ps.shape;
+            sh.enabled = true;
+            sh.shapeType = ParticleSystemShapeType.Circle;
+            sh.radius = 0.9f;
+            Velocity(ps, Vector3.up * rise, ParticleSystemSimulationSpace.World);
+            Noise(ps, 0.25f, 1f, 0.4f);
+            Grow(ps, 0.7f, 1.8f);
+            Spin(ps, 40f);
+            Colors(ps, a, b, peak);
+        }
+        Smoulder("Smoke", smokeMat, 26f, new Vector2(1f, 1.8f), new Vector2(.6f, 1.1f), .7f, C(.22f, .16f, .34f), C(.04f, .03f, .06f), .75f);
+        Smoulder("Embers", ParticleMat("ImpactZoneEmber", dot, new Color(2.4f, 1f, 3.6f), true), 16f, new Vector2(.6f, 1.1f),
+                 new Vector2(.05f, .12f), 1.4f, Color.white, Color.white, .9f);
+        zone.AddComponent<ImpactZone>();
+        ctx.impactZone = SavePrefab(zone, "ImpactZone").GetComponent<ImpactZone>();
+
         // landing telegraph: a glowing ring on the floor
         var telegraph = new GameObject("JumpTelegraph");
         var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -753,13 +869,13 @@ public static class MonsterSetup
         var specs = new[]
         {
             //            key          mesh     core                           rim                            eyes
-            new BoltSpec("Violet",    "Orb",   new Color(1.0f, .45f, 2.2f), new Color(2.0f, 1.2f, 4.0f), new Color(4f, 3.6f, 5f)),
-            new BoltSpec("Cyan",      "Orb",   new Color(.4f, 1.2f, 2.4f), new Color(1.2f, 2.6f, 4.0f), new Color(3.6f, 4.6f, 5f)),
-            new BoltSpec("Plum",      "Orb",   new Color(1.8f, .4f, 1.4f), new Color(3.4f, 1.2f, 2.8f), new Color(5f, 3.6f, 4.4f)),
-            new BoltSpec("Purple",    "Orb",   new Color(1.4f, .35f, 2.4f), new Color(2.6f, .9f, 4.2f), new Color(4.4f, 3.2f, 5f)),
-            new BoltSpec("Rose",      "Orb",   new Color(2.0f, .4f, .9f), new Color(3.6f, 1.2f, 2.0f), new Color(5f, 3.8f, 4f)),
+            new BoltSpec("Violet",    "Shadow",new Color(1.0f, .45f, 2.2f), new Color(2.0f, 1.2f, 4.0f), new Color(4f, 3.6f, 5f)),
+            new BoltSpec("Cyan",      "Shadow",new Color(.4f, 1.2f, 2.4f), new Color(1.2f, 2.6f, 4.0f), new Color(3.6f, 4.6f, 5f)),
+            new BoltSpec("Plum",      "Shadow",new Color(1.8f, .4f, 1.4f), new Color(3.4f, 1.2f, 2.8f), new Color(5f, 3.6f, 4.4f)),
+            new BoltSpec("Purple",    "Shadow",new Color(1.4f, .35f, 2.4f), new Color(2.6f, .9f, 4.2f), new Color(4.4f, 3.2f, 5f)),
+            new BoltSpec("Rose",      "Shadow",new Color(2.0f, .4f, .9f), new Color(3.6f, 1.2f, 2.0f), new Color(5f, 3.8f, 4f)),
             new BoltSpec("Boomerang", "Blade", new Color(1.4f, 1.0f, 2.6f), new Color(2.6f, 2.0f, 4.4f), new Color(4.4f, 4f, 5f))
-                { radius = .2f, lifetime = 6f, spin = 900f, returnAfter = 6f, halo = 1.4f },
+                { radius = .2f, lifetime = 6f, spin = 900f, returnAfter = 6f, halo = 1.4f, pulse = .1f },
             new BoltSpec("Spit",      "Glob",  new Color(.5f, 1.6f, .3f), new Color(1.2f, 3.0f, .7f), new Color(3f, 5f, 2f))
                 { smoke = C(.3f, .42f, .22f) },
             new BoltSpec("Summon",    "Glob",  new Color(.55f, .3f, 1.0f), new Color(1.4f, .9f, 2.6f), new Color(3f, 2.4f, 4.4f))
@@ -768,7 +884,7 @@ public static class MonsterSetup
                 { radius = .2f, lifetime = 5f, halo = 1.6f, opacity = .85f, smokeRate = 30f },
         };
         foreach (var b in specs)
-            ctx.bolts[b.key] = MakeBolt(b, ctx, smokeMat, dot);
+            ctx.bolts[b.key] = MakeBolt(b, ctx, smokeMat, trailMat, dot);
         // the bomb bursts into a ring of eight bolts
         Set(ctx.bolts["Bomb"], "burstInto", ctx.bolts["Purple"], "burstCount", 8, "burstSpeed", 5f, "burstDamage", 6f);
         foreach (var bolt in ctx.bolts.Values)
@@ -953,7 +1069,7 @@ public static class MonsterSetup
         m.SetTexture("_BumpMap", Tex("normal"));
         m.SetTexture("_MetallicGlossMap", Tex("metallicSmoothness"));
         m.SetColor("_BaseColor", look.tint);
-        m.SetFloat("_Opacity", 0.975f);
+        m.SetFloat("_Opacity", 0.95f);           // 5% see-through
         m.SetFloat("_Size", H);
         m.SetFloat("_BreatheAmount", look.breathe);
         m.SetFloat("_WarpAmount", look.warp);

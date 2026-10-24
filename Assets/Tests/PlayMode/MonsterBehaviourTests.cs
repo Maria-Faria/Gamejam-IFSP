@@ -366,6 +366,133 @@ namespace Roguelike.Tests
         }
 
         [UnityTest]
+        public IEnumerator MuscleBossWallHitExplodesAndLeavesABurningZone()
+        {
+            var (m, dummy) = Setup("MuscleBoss", 5f);
+            m.GetComponent<MonsterBrain>().enabled = false;
+            dummy.transform.position = new Vector3(0f, 0f, 30f * S);
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.transform.position = new Vector3(0f, 1.25f, 6f) * S;
+            wall.transform.localScale = new Vector3(8f, 2.5f, 0.5f) * S;
+            _spawned.Add(wall);
+            // someone standing by the wall, off the boss's path
+            var bystander = Dummy(new Vector3(1.7f, 0f, 5.2f) * S);
+            int blasted = 0;
+            bystander.Damaged += (d, from) => blasted++;
+            yield return null;
+            var charge = m.Attack<ChargeAttack>();
+            m.Run(charge);
+            yield return new WaitUntil(() => charge.HitWall || !m.Busy);
+            Assert.IsTrue(charge.HitWall, "it should hit the wall");
+            Assert.Greater(blasted, 0, "the wall blows apart, hurting whoever stands by it");
+            var zone = charge.LastZone;
+            Assert.IsNotNull(zone, "an impact zone is left on the ground");
+            Assert.Less(Monster.Flat(zone.transform.position - charge.WallPoint).magnitude, 2f * S, "where it hit the wall");
+            Assert.Less(Mathf.Abs(zone.transform.position.y), 0.2f, "on the floor");
+            // step into it: it keeps burning
+            bystander.transform.position = zone.transform.position;
+            int before = blasted;
+            yield return new WaitForSeconds(1.6f);
+            Assert.GreaterOrEqual(blasted - before, 2, "the zone hurts every tick");
+            yield return new WaitForSeconds(5f);
+            Assert.IsTrue(zone == null || !zone.enabled, "and burns out after a few seconds");
+        }
+
+        [UnityTest]
+        public IEnumerator MuscleBossChargeStunsWhoItRunsOver()
+        {
+            var (m, dummy) = Setup("MuscleBoss", 6f);
+            m.GetComponent<MonsterBrain>().enabled = false;
+            float stun = 0f;
+            Vector3 push = Vector3.zero;
+            System.Action<Health, float, Vector3, Monster> onStun = (h, s, p, src) =>
+            {
+                if (h == dummy && src == m) { stun = s; push = p; }
+            };
+            Health.StunRequested += onStun;
+            try
+            {
+                yield return null;
+                m.Run(m.Attack<ChargeAttack>());
+                yield return new WaitUntil(() => !m.Busy);
+            }
+            finally
+            {
+                Health.StunRequested -= onStun;
+            }
+            Assert.GreaterOrEqual(stun, 1f, "running the player over stuns them");
+            Assert.Greater(Vector3.Dot(push, Vector3.forward), 0f, "and shoves them the way it runs");
+        }
+
+        [UnityTest]
+        public IEnumerator MuscleBossThrowsAFlurryOfPunches()
+        {
+            var (m, dummy) = Setup("MuscleBoss", 2.2f);
+            m.GetComponent<MonsterBrain>().enabled = false;
+            int hits = 0;
+            dummy.Damaged += (d, from) => hits++;
+            yield return null;
+            var flurry = m.Attack<MeleeAttack>("Flurry");
+            Assert.IsNotNull(flurry, "it has a flurry");
+            m.Run(flurry);
+            yield return new WaitUntil(() => !m.Busy);
+            Assert.GreaterOrEqual(hits, 5, "most of the eight jabs land");
+        }
+
+        [UnityTest]
+        public IEnumerator MuscleBossPicksBothCloseAttacks()
+        {
+            var (m, dummy) = Setup("MuscleBoss", 2f);
+            var w = new Watch();
+            yield return Observe(m, dummy, 40f, w,
+                                 () => w.Attacks.Contains("Flurry") && w.Attacks.Contains("Spin"));
+            Assert.Contains("Flurry", w.Attacks, "up close it throws flurries...");
+            Assert.Contains("Spin", w.Attacks, "...and spins");
+        }
+
+        [UnityTest]
+        public IEnumerator BoltsBreatheExhaleSmokeAndTrailDarkness()
+        {
+            var (m, dummy) = Setup("Regular", 30f);
+            m.GetComponent<MonsterBrain>().enabled = false;
+            var prefab = m.Attack<ProjectileAttack>();
+            var boltPrefab = (Projectile)typeof(ProjectileAttack)
+                .GetField("projectile", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                .GetValue(prefab);
+            Assert.AreEqual("Shadow", boltPrefab.GetComponentInChildren<MeshFilter>().sharedMesh.name, "shadow_projectile.fbx model");
+            var body = boltPrefab.GetComponentInChildren<MeshRenderer>().sharedMaterials[0];
+            Assert.AreEqual(0.95f, body.GetFloat("_Opacity"), 1e-3f, "5% see-through");
+            var bolt = Projectile.Spawn(boltPrefab, new Vector3(0f, 1f, 0f), Vector3.right * 2f, 1f, m.transform).Life(2f);
+            var life = bolt.GetComponent<ShadowBolt>();
+            var trail = bolt.GetComponentInChildren<TrailRenderer>();
+            Assert.IsNotNull(life);
+            Assert.IsNotNull(trail, "a trail of darkness drags behind it");
+            var bodyT = bolt.GetComponentInChildren<MeshFilter>().transform;
+            float lo = float.MaxValue, hi = 0f;
+            for (float end = Time.time + 1.5f; Time.time < end;)
+            {
+                lo = Mathf.Min(lo, bodyT.localScale.x);
+                hi = Mathf.Max(hi, bodyT.localScale.x);
+                yield return null;
+            }
+            Assert.Greater(hi - lo, 0.2f, "it contracts and expands");
+            Assert.GreaterOrEqual(life.Exhaled, 2, "exhaling smoke as it does");
+            Assert.Greater(trail.positionCount, 2, "the trail follows it");
+            var trailGo = trail.gameObject;
+            yield return new WaitForSeconds(0.8f);
+            Assert.IsTrue(bolt == null, "the bolt is gone");
+            Assert.IsTrue(trailGo != null, "but its trail fades out where it was left");
+        }
+
+        [Test]
+        public void MonstersAreSlightlySeeThrough([ValueSource(nameof(Names))] string name)
+        {
+            var smr = LoadPrefab(name).GetComponentInChildren<SkinnedMeshRenderer>();
+            var mat = smr.sharedMaterials.First(x => x.shader.name == "Roguelike/Ghostly");
+            Assert.AreEqual(0.95f, mat.GetFloat("_Opacity"), 1e-3f);
+        }
+
+        [UnityTest]
         public IEnumerator ClawBurstsEightWays()
         {
             var (m, dummy) = Setup("Claw", 3f);
