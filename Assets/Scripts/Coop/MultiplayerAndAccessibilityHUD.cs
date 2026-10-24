@@ -185,7 +185,8 @@ namespace GuardiasDaLuz
             StandaloneLighthouseMapSystem map = StandaloneLighthouseMapSystem.Instance;
             if (showCornerTutorialPanel && !showAccessibilityMenu) DrawCornerTutorialPanels();
             if (showAccessibilityMenu) DrawAccessibilityAndMultiplayerModal();
-            if (map != null && map.isLighthouseCompleted) DrawVictoryScreen();
+            // Sozinha, a vitória usa a tela de imagem (GameResult); no co-op continua esta, que reinicia para todas
+            if (map != null && map.isLighthouseCompleted && !GameResult.IsShowing) DrawVictoryScreen();
         }
 
         private void DrawShortcutHint()

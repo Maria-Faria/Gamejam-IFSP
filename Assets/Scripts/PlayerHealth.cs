@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 public class PlayerHealth : MonoBehaviour
 {
   [SerializeField] private float maxHealth = 100f;
-  [Tooltip("Segundos até reiniciar a cena depois que a vida chega a zero.")]
+  [Tooltip("Segundos até aparecer a tela de derrota depois que a vida chega a zero.")]
   [SerializeField] private float restartDelay = 2.5f;
   [SerializeField] private AudioClip hitSound;
   [Tooltip("Toca no golpe fatal, no lugar do som de dano.")]
@@ -39,7 +39,7 @@ public class PlayerHealth : MonoBehaviour
 
   public void TakeDamage(float damage)
   {
-    if (dead)
+    if (dead || GameResult.IsShowing)
     {
       return;
     }
@@ -57,7 +57,7 @@ public class PlayerHealth : MonoBehaviour
       dead = true;
       if (audioSource != null && deathSound != null) audioSource.PlayOneShot(deathSound);
       Died?.Invoke();
-      Invoke(nameof(Restart), restartDelay);
+      Invoke(nameof(FinishDeath), restartDelay);
     }
   }
 
@@ -83,17 +83,24 @@ public class PlayerHealth : MonoBehaviour
     nextHitSoundTime = Time.time + hitSoundInterval;
   }
 
-  private void Restart()
+  private void FinishDeath()
   {
-    // Espera a animação de morte terminar antes de reiniciar
+    // Espera a animação de morte terminar antes de mostrar a derrota
     PlayerAnimation playerAnimation = GetComponent<PlayerAnimation>();
     if (playerAnimation != null && playerAnimation.IsPlayingDeath)
     {
-      Invoke(nameof(Restart), 0.1f);
+      Invoke(nameof(FinishDeath), 0.1f);
       return;
     }
 
-    SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    // No co-op a expedição recomeça para todas (LunaNetworkSyncManager); a morta recarrega a cena sozinha
+    if (GuardiasDaLuz.CoopSession.IsCoop)
+    {
+      SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+      return;
+    }
+
+    GameResult.Show(GameResult.Outcome.Defeat, "Sua vida chegou a zero e a escuridão tomou conta do farol.");
   }
 
   public void OnGUI()

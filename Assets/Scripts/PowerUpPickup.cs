@@ -13,6 +13,12 @@ public class PowerUpPickup : MonoBehaviour
   public const string BatteryModelName = "battery";
   public const string CrystalModelName = "crystal";
 
+  private const string SoundFolder = "Assets/Audios/Projeto_UV_4_PowerUps_SFX";
+  public const string LightCrystalSoundName = "01_PowerUp_Cristal_de_Luz";
+  public const string EnergySoundName = "02_PowerUp_Carga_Energetica";
+  public const string RetroTechSoundName = "03_PowerUp_Tecnologia_Retro";
+  public const string SpecialSoundName = "04_PowerUp_Melhoria_Especial";
+
   private static PlayerPowerUps player;
   private static float nextDropTime;
   private static int lastType = -1;
@@ -101,6 +107,57 @@ public class PowerUpPickup : MonoBehaviour
 #endif
   }
 
+  private static string GetSoundName(PowerUpType type)
+  {
+    switch (type)
+    {
+      case PowerUpType.Health: return LightCrystalSoundName;
+      case PowerUpType.Mana: return EnergySoundName;
+      case PowerUpType.MoveSpeed: return SpecialSoundName;
+      default: return RetroTechSoundName;
+    }
+  }
+
+  public static AudioClip LoadSound(string soundName)
+  {
+    var map = GuardiasDaLuz.MapSystem.StandaloneLighthouseMapSystem.Instance;
+    if (map != null)
+    {
+      AudioClip assigned = null;
+      switch (soundName)
+      {
+        case LightCrystalSoundName: assigned = map.powerUpLightCrystalSound; break;
+        case EnergySoundName: assigned = map.powerUpEnergySound; break;
+        case RetroTechSoundName: assigned = map.powerUpRetroTechSound; break;
+        case SpecialSoundName: assigned = map.powerUpSpecialSound; break;
+      }
+      if (assigned != null) return assigned;
+    }
+    return LoadSoundAsset(soundName);
+  }
+
+  public static AudioClip LoadSoundAsset(string soundName)
+  {
+#if UNITY_EDITOR
+    return UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>($"{SoundFolder}/{soundName}.wav");
+#else
+    return null;
+#endif
+  }
+
+  // Som 2D, para tocar com o mesmo volume onde quer que a câmera esteja
+  public static void PlaySound(AudioClip clip)
+  {
+    if (clip == null) return;
+
+    var map = GuardiasDaLuz.MapSystem.StandaloneLighthouseMapSystem.Instance;
+    GameObject sound = new GameObject($"SFX_{clip.name}");
+    AudioSource source = sound.AddComponent<AudioSource>();
+    source.spatialBlend = 0f;
+    source.PlayOneShot(clip, map != null ? map.powerUpSoundVolume : 0.9f);
+    Destroy(sound, clip.length + 0.1f);
+  }
+
   public static GameObject CreateModelVisual(GameObject model, Transform parent, float size)
   {
     Bounds bounds = GuardiasDaLuz.MapSystem.RoomDecorKit.GetLocalBounds(model);
@@ -181,6 +238,7 @@ public class PowerUpPickup : MonoBehaviour
     if (offset.magnitude <= PickupDistance)
     {
       player.Collect(type);
+      PlaySound(LoadSound(GetSoundName(type)));
       Destroy(gameObject);
     }
   }

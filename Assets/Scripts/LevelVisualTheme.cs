@@ -12,7 +12,7 @@ namespace GuardiasDaLuz.MapSystem
         public string assetFolder = "Assets/Levels/L1_Lab";
         [Tooltip("Nome do piso principal das salas comuns.")]
         public string mainFloorName = "Lab_Floor_Plain";
-        [Tooltip("Nome do piso das salas especiais (Boss, Loja, Item Único e Secreta).")]
+        [Tooltip("Nome do piso das salas especiais (Boss, Item Único e Secreta).")]
         public string accentFloorName = "Lab_Floor_Grate";
 
         [Header("Peças do kit (preenchidas automaticamente no editor)")]
